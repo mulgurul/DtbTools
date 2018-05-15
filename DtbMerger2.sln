@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 15
+VisualStudioVersion = 15.0.27428.2005
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DtbMerger2Library", "DtbMerger2Library\DtbMerger2Library.csproj", "{DCDA14CD-72BE-4EB6-BDFF-926D552567BB}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DtbMerger2LibraryTests", "DtbMerger2LibraryTests\DtbMerger2LibraryTests.csproj", "{3990346E-34BF-4E92-81D8-2D7C4E5AE335}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{DCDA14CD-72BE-4EB6-BDFF-926D552567BB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DCDA14CD-72BE-4EB6-BDFF-926D552567BB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DCDA14CD-72BE-4EB6-BDFF-926D552567BB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DCDA14CD-72BE-4EB6-BDFF-926D552567BB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3990346E-34BF-4E92-81D8-2D7C4E5AE335}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3990346E-34BF-4E92-81D8-2D7C4E5AE335}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3990346E-34BF-4E92-81D8-2D7C4E5AE335}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3990346E-34BF-4E92-81D8-2D7C4E5AE335}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {D5A27532-484D-4311-A8FD-EE19F72148BC}
+	EndGlobalSection
+EndGlobal
