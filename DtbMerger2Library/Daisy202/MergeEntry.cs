@@ -86,15 +86,26 @@ namespace DtbMerger2Library.Daisy202
             return res;
         }
 
-        public static XElement GetReferencedElement(XDocument destDoc, XAttribute uriAttr)
+        public static Uri GetUri(XAttribute uriAttr)
         {
             if (uriAttr == null)
             {
                 return null;
             }
+
+            if (String.IsNullOrEmpty(uriAttr.BaseUri))
+            {
+                return new Uri(uriAttr.Value);
+            }
+            return new Uri(new Uri(uriAttr.BaseUri), uriAttr.Value);
+        }
+
+        public static XElement GetReferencedElement(XDocument destDoc, Uri uri)
+        {
+            if (destDoc == null) throw new ArgumentNullException(nameof(destDoc));
+            if (uri == null) throw new ArgumentNullException(nameof(uri));
             var destDocUri = new Uri(destDoc.BaseUri);
-            var uri = new Uri(new Uri(uriAttr.BaseUri), uriAttr.Value);
-            if (!String.Equals(destDocUri.AbsolutePath, uri.AbsolutePath, StringComparison.InvariantCultureIgnoreCase) )
+            if (!String.Equals(destDocUri.AbsolutePath, uri.AbsolutePath, StringComparison.InvariantCultureIgnoreCase))
             {
                 return null;
             }
@@ -103,6 +114,12 @@ namespace DtbMerger2Library.Daisy202
                 return null;
             }
             return destDoc.XPathSelectElement($"//*[@id='{uri.Fragment.TrimStart('#')}']");
+        }
+
+        public static XElement GetReferencedElement(XDocument destDoc, XAttribute uriAttr)
+        {
+            return GetReferencedElement(destDoc, GetUri(uriAttr));
+
         }
 
         private XElement GetSmilPar(XElement elem)
@@ -154,7 +171,43 @@ namespace DtbMerger2Library.Daisy202
 
         public IEnumerable<XElement> GetTextElements()
         {
-            return new XElement[0];
+            var contentDocs = new Dictionary<string, XDocument>();
+            var textElements = GetSmilElements()
+                .Select(par => par.Element(par.Name.Namespace + "text")?.Attribute("src"))
+                .Select(srcAttr =>
+                {
+                    var uri = GetUri(srcAttr);
+                    var path = uri?.AbsolutePath;
+                    if (String.IsNullOrEmpty(path))
+                    {
+                        return null;
+                    }
+                    if (!contentDocs.ContainsKey(path))
+                    {
+                        contentDocs.Add(
+                            path,
+                            XDocument.Load(Uri.UnescapeDataString(path), LoadOptions.SetBaseUri|LoadOptions.SetLineInfo));
+                    }
+                    return GetReferencedElement(contentDocs[path], uri);
+                })
+                .Select(elem => elem.AncestorsAndSelf().FirstOrDefault(e => e.Parent?.Name?.LocalName == "body"))
+                .Where(e => e != null)
+                .Distinct()
+                .ToList();
+            int i = 0;
+            while (i < textElements.Count-1)
+            {
+                var e1 = textElements[i];
+                var e2 = textElements[i + 1];
+                var siblingsBetween = e1.ElementsAfterSelf().Intersect(e2.ElementsBeforeSelf()).ToList();
+                if (siblingsBetween.Any())
+                {
+                    textElements.InsertRange(i+1, siblingsBetween);
+                    i += siblingsBetween.Count;
+                }
+                i++;
+            }
+            return textElements;
         }
 
         public IEnumerable<AudioSegment> GetAudioSegments()

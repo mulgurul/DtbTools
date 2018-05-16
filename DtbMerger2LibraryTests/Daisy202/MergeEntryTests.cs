@@ -55,6 +55,17 @@ namespace DtbMerger2LibraryTests.Daisy202
         }
 
         [TestMethod]
+        public void GetTextElementsTest()
+        {
+            var entry = new MergeEntry() { SourceNavEntry = new UriBuilder(dtb1NccUri) { Fragment = "nav1" }.Uri };
+            var textElements = entry.GetTextElements()?.ToList();
+            Assert.IsNotNull(textElements, "Text elements is null");
+            Assert.IsTrue(textElements.Any(), "Found no text elements");
+            Assert.IsTrue(textElements.All(e => e.Parent?.Name == (e.Name.Namespace+"body")));
+            Assert.AreEqual(3, textElements.Count(), "Expected 3 text elements, including unreferenced image");
+        }
+
+        [TestMethod]
         public void NccTest()
         {
             var entry = new MergeEntry() { SourceNavEntry = new UriBuilder(dtb1NccUri) { Fragment = "nav1" }.Uri };
