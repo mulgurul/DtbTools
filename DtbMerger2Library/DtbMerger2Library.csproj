@@ -44,9 +44,11 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="AudioSegment.cs" />
+    <Compile Include="Daisy202\Utils.cs" />
     <Compile Include="MediaEntry.cs" />
     <Compile Include="Daisy202\MergeEntry.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Tree\TreeNode.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

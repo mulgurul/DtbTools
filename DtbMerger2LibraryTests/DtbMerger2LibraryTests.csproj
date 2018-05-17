@@ -51,7 +51,9 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Daisy202\MergeEntryTests.cs" />
+    <Compile Include="Daisy202\UtilsTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Tree\TreeNodeTests.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="DTBs\DTB1\sm0003.smil">

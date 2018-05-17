@@ -5,12 +5,12 @@ using System.IO;
 using System.Linq;
 using System.Xml.Linq;
 using System.Xml.XPath;
+using DtbMerger2Library.Tree;
 
 namespace DtbMerger2Library.Daisy202
 {
-    public class MergeEntry
+    public class MergeEntry : TreeNode<MergeEntry>
     {
-        private static readonly String[] HeadingLocalNames = new[] {"h1", "h2", "h3", "h4", "h5", "h6"};
 
         private XDocument ncc, smil;
         public Uri SourceNavEntry { get; set; }
@@ -78,48 +78,12 @@ namespace DtbMerger2Library.Daisy202
             }
             var res = new List<XElement>() {heading};
             var next = heading.ElementsAfterSelf().FirstOrDefault();
-            while (next != null && !(HeadingLocalNames.Contains(next.Name.LocalName)))
+            while (!Utils.IsHeading(next))
             {
                 res.Add(next);
-                next = next.ElementsAfterSelf().FirstOrDefault();
+                next = next?.ElementsAfterSelf().FirstOrDefault();
             }
             return res;
-        }
-
-        public static Uri GetUri(XAttribute uriAttr)
-        {
-            if (uriAttr == null)
-            {
-                return null;
-            }
-
-            if (String.IsNullOrEmpty(uriAttr.BaseUri))
-            {
-                return new Uri(uriAttr.Value);
-            }
-            return new Uri(new Uri(uriAttr.BaseUri), uriAttr.Value);
-        }
-
-        public static XElement GetReferencedElement(XDocument destDoc, Uri uri)
-        {
-            if (destDoc == null) throw new ArgumentNullException(nameof(destDoc));
-            if (uri == null) throw new ArgumentNullException(nameof(uri));
-            var destDocUri = new Uri(destDoc.BaseUri);
-            if (!String.Equals(destDocUri.AbsolutePath, uri.AbsolutePath, StringComparison.InvariantCultureIgnoreCase))
-            {
-                return null;
-            }
-            if (String.IsNullOrEmpty(uri.Fragment))
-            {
-                return null;
-            }
-            return destDoc.XPathSelectElement($"//*[@id='{uri.Fragment.TrimStart('#')}']");
-        }
-
-        public static XElement GetReferencedElement(XDocument destDoc, XAttribute uriAttr)
-        {
-            return GetReferencedElement(destDoc, GetUri(uriAttr));
-
         }
 
         private XElement GetSmilPar(XElement elem)
@@ -132,7 +96,7 @@ namespace DtbMerger2Library.Daisy202
             {
                 return null;
             }
-            var par = GetReferencedElement(Smil, hrefAttr);
+            var par = Utils.GetReferencedElement(Smil, hrefAttr);
             if (par?.Name.LocalName == "text")
             {
                 par = par.Parent;
@@ -153,8 +117,9 @@ namespace DtbMerger2Library.Daisy202
             {
                 throw new InvalidOperationException("First ncc element does not point to smil par");
             }
+
             var nextHeadingPar = GetSmilPar(
-                nccElements.Last().ElementsAfterSelf().FirstOrDefault(e => HeadingLocalNames.Contains(e.Name.LocalName)));
+                nccElements.Last().ElementsAfterSelf().FirstOrDefault(Utils.IsHeading));
             var res = new List<XElement>();
             while (firstPar != null)
             {
@@ -171,12 +136,12 @@ namespace DtbMerger2Library.Daisy202
 
         public IEnumerable<XElement> GetTextElements()
         {
-            var contentDocs = new Dictionary<string, XDocument>();
+            var contentDocs = new Dictionary<String, XDocument>();
             var textElements = GetSmilElements()
                 .Select(par => par.Element(par.Name.Namespace + "text")?.Attribute("src"))
                 .Select(srcAttr =>
                 {
-                    var uri = GetUri(srcAttr);
+                    var uri = Utils.GetUri(srcAttr);
                     var path = uri?.AbsolutePath;
                     if (String.IsNullOrEmpty(path))
                     {
@@ -188,7 +153,7 @@ namespace DtbMerger2Library.Daisy202
                             path,
                             XDocument.Load(Uri.UnescapeDataString(path), LoadOptions.SetBaseUri|LoadOptions.SetLineInfo));
                     }
-                    return GetReferencedElement(contentDocs[path], uri);
+                    return Utils.GetReferencedElement(contentDocs[path], (Uri) uri);
                 })
                 .Select(elem => elem.AncestorsAndSelf().FirstOrDefault(e => e.Parent?.Name?.LocalName == "body"))
                 .Where(e => e != null)
@@ -237,30 +202,9 @@ namespace DtbMerger2Library.Daisy202
                 .Select(audio => new AudioSegment()
                 {
                     AudioFile = new Uri(new Uri(audio.BaseUri), audio.Attribute("src")?.Value??""),
-                    ClipBegin = ParseSmilClip(audio.Attribute("clip-begin")?.Value),
-                    ClipEnd = ParseSmilClip(audio.Attribute("clip-end")?.Value)
+                    ClipBegin = Utils.ParseSmilClip(audio.Attribute("clip-begin")?.Value),
+                    ClipEnd = Utils.ParseSmilClip(audio.Attribute("clip-end")?.Value)
                 });
-        }
-
-        private static TimeSpan ParseSmilClip(string val)
-        {
-            if (String.IsNullOrWhiteSpace(val))
-            {
-                return TimeSpan.MinValue;
-            }
-            val = val.Trim();
-            if (val.StartsWith("npt=") && val.EndsWith("s"))
-            {
-                var secs = Double.Parse(
-                    val.Substring(4, val.Length - 5), 
-                    NumberStyles.Float,
-                    CultureInfo.InvariantCulture);
-                return TimeSpan.FromSeconds(secs);
-            }
-            else
-            {
-                throw new ArgumentException($"Value {val} is not a valid Daisy 2.02 smil clop value");
-            }
         }
 
         public IEnumerable<MediaEntry> GetMediaEntries()
@@ -272,8 +216,65 @@ namespace DtbMerger2Library.Daisy202
                         .Where(e => e.Name.LocalName == "img")
                         .Select(e => e.Attribute("src")?.Value.ToLowerInvariant())
                         .Where(relUri => Uri.IsWellFormedUriString(relUri, UriKind.Relative))
-                        .Select(relUri => new MediaEntry(){RelativeUri = new Uri(relUri), Source = new Uri(new Uri(n.BaseUri), relUri)}))
+                        .Select(relUri => new MediaEntry(){RelativeUri = new Uri(relUri, UriKind.Relative), Source = new Uri(new Uri(n.BaseUri), relUri)}))
                 .Distinct();
+            return res;
+        }
+
+        public override String ToString()
+        {
+            return SourceNavEntry.ToString();
+        }
+
+        public static IEnumerable<MergeEntry> LoadMergeEntriesFromNcc(Uri nccUri)
+        {
+            var ncc = XDocument.Load(Uri.UnescapeDataString(nccUri.AbsolutePath), LoadOptions.SetBaseUri|LoadOptions.SetLineInfo);
+            return ncc.Root
+                ?.Element(ncc.Root.Name.Namespace + "body")
+                ?.Elements(ncc.Root.Name.Namespace + "h1")
+                .Select(LoadMergeEntryTreeFromHeading);
+        }
+
+        public static MergeEntry LoadMergeEntryTreeFromHeading(XElement heading)
+        {
+            if (heading == null) throw new ArgumentNullException(nameof(heading));
+            if (String.IsNullOrEmpty(heading.Attribute("id")?.Value))
+            {
+                throw new ArgumentException("Heading element has no id attribute", nameof(heading));
+            }
+
+            var res = new MergeEntry()
+            {
+                SourceNavEntry = new UriBuilder(new Uri(heading.BaseUri)) {Fragment = heading.Attribute("id")?.Value ?? ""}.Uri
+            };
+            var subHeadingName = Utils.GetSubHeadingName(heading.Name);
+            if (subHeadingName != null)
+            {
+                var followingSubHeadings = heading.ElementsAfterSelf(subHeadingName);
+                var followingHeading = heading.ElementsAfterSelf(heading.Name).FirstOrDefault();
+                if (followingHeading!=null)
+                {
+                    followingSubHeadings = followingSubHeadings.Intersect(followingHeading.ElementsBeforeSelf());
+                }
+                res.AddChildren(followingSubHeadings.Select(LoadMergeEntryTreeFromHeading));
+            }
+            return res;
+        }
+
+        public static IEnumerable<MergeEntry> LoadMergeEntriesFromMacro(Uri macroUri)
+        {
+            return XDocument
+                       .Load(Uri.UnescapeDataString(macroUri.AbsolutePath), LoadOptions.SetBaseUri | LoadOptions.SetLineInfo)
+                       .Root?.Elements().Select(LoadMergeEntryFromMacroElement)??new MergeEntry[0];
+        }
+
+        public static MergeEntry LoadMergeEntryFromMacroElement(XElement elem)
+        {
+            var res = new MergeEntry()
+            {
+                SourceNavEntry = new UriBuilder(new Uri(elem.Attribute("file")?.Value??"")) { Fragment = elem.Attribute("ItemID")?.Value??""}.Uri
+            };
+            res.AddChildren(elem.Elements().Select(LoadMergeEntryFromMacroElement));
             return res;
         }
     }
