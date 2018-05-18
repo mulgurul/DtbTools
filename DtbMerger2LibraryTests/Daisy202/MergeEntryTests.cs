@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.IO;
 using System.Linq;
 using DtbMerger2Library.Daisy202;
@@ -12,11 +13,13 @@ namespace DtbMerger2LibraryTests.Daisy202
     {
         private readonly Uri dtb1NccUri = new Uri(new Uri(new Uri(Directory.GetCurrentDirectory()), "Out/"), "DTB1/ncc.html");
 
+
         [TestMethod]
         public void GetNccElementsTest()
         {
             var entry = new MergeEntry() { SourceNavEntry = new UriBuilder(dtb1NccUri) { Fragment = "nav1" }.Uri };
-            var nccElements = entry.GetNccElements().ToList();
+            var nccElements = entry.GetNccElements()?.ToList();
+            Assert.IsNotNull(nccElements, "Found ncc elements is null");
             Assert.IsTrue(nccElements.Any(), "Found no ncc elements");
             Assert.AreEqual(1, nccElements.Count(), "Expected 1 ncc element");
             Assert.IsFalse(String.IsNullOrEmpty(nccElements.First().BaseUri), "First ncc element has no base uri");
@@ -101,10 +104,12 @@ namespace DtbMerger2LibraryTests.Daisy202
         public void LoadMergeEntriesFromBERLMacroTest()
         {
             var entries = MergeEntry.LoadMergeEntriesFromMacro(new Uri(
-                @"D:\BlizzardData\batch\BERL\Publisher\20180516_143247_001\merge.xml"));
+                @"D:\BlizzardData\batch\BERL\Publisher\20180516_143247_001\merge.xml")).ToList();
             Assert.IsNotNull(entries, "Loaded entries was null");
+            Assert.IsTrue(entries.SelectMany(e => e.GetNccElements()).Any(), "Found no ncc elements");
             Assert.IsTrue(entries.SelectMany(e => e.GetSmilElements()).Any(), "Found no smil elements");
+            Assert.IsTrue(entries.SelectMany(e => e.GetAudioSegments()).Any(), "Found no audio segments");
+            Assert.IsTrue(entries.SelectMany(e => e.GetTextElements()).Any(), "Found no text elements");
         }
-
     }
 }
