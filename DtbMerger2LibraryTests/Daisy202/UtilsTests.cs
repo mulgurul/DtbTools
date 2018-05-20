@@ -45,7 +45,46 @@ namespace DtbMerger2LibraryTests.Daisy202
                     Assert.IsNull(sn, $"Expected subheading of {ns+ln} to be null, actually was {sn}");
                 }
             }
-            
+        }
+
+        [TestMethod]
+        public void GenerateSkeletonXhtmlDocumentTest()
+        {
+            var xhtmlDoc = Utils.GenerateSkeletonXhtmlDocument();
+            Assert.IsNotNull(xhtmlDoc);
+            Assert.IsNotNull(xhtmlDoc.Root);
+            Assert.AreEqual(Utils.XhtmlNs + "html", xhtmlDoc.Root.Name);
+        }
+
+        [TestMethod]
+        public void GenerateSkeletonSmilDocumentTest()
+        {
+            var smilDoc = Utils.GenerateSkeletonSmilDocument();
+            Assert.IsNotNull(smilDoc);
+            Assert.IsNotNull(smilDoc.Root);
+            Assert.AreEqual("smil", smilDoc.Root.Name);
+        }
+
+        [TestMethod]
+        public void IsReferenceToTest()
+        {
+            var testData = new[]
+            {
+                new Tuple<Uri, Uri, bool>(new Uri("http://temp.org/content.html#id"), new Uri("http://temp.org/ncc.html"), false),
+                new Tuple<Uri, Uri, bool>(new Uri("ncc.html#id", UriKind.Relative), new Uri("ncc.html", UriKind.Relative), true),
+                new Tuple<Uri, Uri, bool>(new Uri("content.html#id", UriKind.Relative), new Uri("ncc.html", UriKind.Relative), false),
+                new Tuple<Uri, Uri, bool>(new Uri("ncc.html#id", UriKind.Relative), new Uri("http://temp.org/ncc.html"), false),
+                new Tuple<Uri, Uri, bool>(new Uri("http://temp.org/ncc.html"), new Uri("http://temp.org/ncc.html"), true),
+                new Tuple<Uri, Uri, bool>(new Uri("http://temp.org/ncc.html#id"), new Uri("http://temp.org/ncc.html"), true),
+                new Tuple<Uri, Uri, bool>(new Uri("http://temp.org/ncc.html"), new Uri("http://temp.org/ncc.html#id"), true),
+            };
+            foreach (var test in testData)
+            {
+                Assert.AreEqual(
+                    test.Item3, 
+                    Utils.IsReferenceTo(test.Item1, test.Item2),
+                    $"Expedted IsReferenceTo({test.Item1}, {test.Item2}) to return {test.Item3}");
+            }
         }
 
     }

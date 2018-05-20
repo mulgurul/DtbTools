@@ -1,11 +1,15 @@
 ﻿using System;
+using System.CodeDom;
 using System.Collections.Generic;
 using System.Globalization;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Xml;
 using System.Xml.Linq;
 using System.Xml.XPath;
+using NAudio.Wave;
 
 namespace DtbMerger2Library.Daisy202
 {
@@ -14,6 +18,42 @@ namespace DtbMerger2Library.Daisy202
         private static readonly List<string> HeadingLocalNames = new List<string> { "h1", "h2", "h3", "h4", "h5", "h6" };
 
         public static XNamespace XhtmlNs => "http://www.w3.org/1999/xhtml";
+
+        public static XDocument GenerateSkeletonXhtmlDocument()
+        {
+            return new XDocument(
+                new XDeclaration("1.0", "UTF-8", "true"),
+                new XDocumentType("html", "-//W3C//DTD XHTML 1.0 Transitional//EN", "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd", null),
+                new XElement(
+                    Utils.XhtmlNs + "html",
+                    new XElement(
+                        Utils.XhtmlNs + "head",
+                        new XElement(
+                            Utils.XhtmlNs + "meta",
+                            new XAttribute("charset", "utf-8")),
+                        new XElement(
+                            Utils.XhtmlNs + "meta",
+                            new XAttribute("http-equiv", "Content-type"),
+                            new XAttribute("content", "text/html; charset=utf-8"))),
+                    new XElement(Utils.XhtmlNs + "body")));
+        }
+
+        public static XDocument GenerateSkeletonSmilDocument()
+        {
+            return new XDocument(
+                new XDeclaration("1.0", "UTF-8", "true"),
+                new XDocumentType("smil", "-//W3C//DTD SMIL 1.0//EN", "http://www.w3.org/TR/REC-smil/SMIL10.dtd", null),
+                new XElement(
+                    "smil",
+                    new XElement(
+                        "head",
+                        new XElement(
+                            "layout",
+                            new XElement("region", new XAttribute("id", "txtView")))),
+                    new XElement(
+                        "body",
+                        new XElement("seq"))));
+        }
 
         public static XName GetSubHeadingName(XName headingName)
         {
@@ -87,6 +127,52 @@ namespace DtbMerger2Library.Daisy202
             {
                 throw new ArgumentException($"Value {val} is not a valid Daisy 2.02 smil clip value", nameof(val));
             }
+        }
+
+        public static XElement CloneWithBaseUri(XElement source) 
+        {
+            using (var reader = XmlReader.Create(new StringReader(source.ToString()), new XmlReaderSettings(),
+                source.BaseUri))
+            {
+                if (reader.Read())
+                {
+                    return XElement.Load(reader, LoadOptions.SetBaseUri);
+                }
+
+                return null;
+            }
+        }
+
+        public static bool IsReferenceTo(Uri source, Uri dest)
+        {
+            if (source == null || dest == null)
+            {
+                return false;
+            }
+
+            if (source.IsAbsoluteUri != dest.IsAbsoluteUri)
+            {
+                return false;
+            }
+
+            if (!source.IsAbsoluteUri)
+            {
+                source = new Uri(new Uri("http://temp.org"), source);
+                dest = new Uri(new Uri("http://temp.org"), dest);
+            }
+
+            return dest.AbsolutePath == source.AbsolutePath;
+        }
+
+        public static TimeSpan GetAudioFileDuration(Uri audioFile)
+        {
+            var path = Uri.UnescapeDataString(audioFile.LocalPath);
+            if (!File.Exists(path))
+            {
+                throw new InvalidOperationException($"Could not find audio file {audioFile}");
+            }
+
+            return new AudioFileReader(path).TotalTime;
         }
     }
 }

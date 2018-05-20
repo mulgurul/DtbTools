@@ -26,6 +26,10 @@ namespace DtbMerger2LibraryTests.Daisy202
             Assert.AreEqual(nccElements.First().Attribute("id")?.Value, "nav1");
             Assert.AreEqual(nccElements.First().Attribute("class")?.Value, "title");
             Assert.AreEqual(nccElements.First().Name.LocalName, "h1");
+            entry = new MergeEntry() { SourceNavEntry = new UriBuilder(dtb1NccUri) { Fragment = "nav3_2" }.Uri };
+            Assert.IsNotNull(nccElements, "Found ncc elements is null");
+            Assert.IsTrue(nccElements.Any(), "Found no ncc elements");
+            Assert.AreEqual(1, nccElements.Count(), "Expected 1 ncc element");
         }
 
         [TestMethod]
@@ -40,11 +44,14 @@ namespace DtbMerger2LibraryTests.Daisy202
         [TestMethod]
         public void GetSmilElementsTest()
         {
-            var entry = new MergeEntry() { SourceNavEntry = new UriBuilder(dtb1NccUri) { Fragment = "nav1" }.Uri };
-            var smilElements = entry.GetSmilElements()?.ToList();
-            Assert.IsNotNull(smilElements, "Smil elements null");
-            Assert.IsTrue(smilElements.Any(), "Found no smil elements");
-            Assert.IsTrue(smilElements.All(e => e.Name.LocalName == "par"));
+            foreach (var frag in new[] {"nav1", "nav3_2"})
+            {
+                var entry = new MergeEntry() { SourceNavEntry = new UriBuilder(dtb1NccUri) { Fragment = frag }.Uri };
+                var smilElements = entry.GetSmilElements()?.ToList();
+                Assert.IsNotNull(smilElements, "Smil elements null");
+                Assert.IsTrue(smilElements.Any(), "Found no smil elements");
+                Assert.IsTrue(smilElements.All(e => e.Name.LocalName == "par"));
+            }
         }
 
         [TestMethod]
@@ -71,21 +78,28 @@ namespace DtbMerger2LibraryTests.Daisy202
         [TestMethod]
         public void NccTest()
         {
-            var entry = new MergeEntry() { SourceNavEntry = new UriBuilder(dtb1NccUri) { Fragment = "nav1" }.Uri };
-            Assert.IsNotNull(entry.Ncc, "Entry has null Ncc");
-            Assert.IsNotNull(entry.Ncc.BaseUri, "Entry Ncc has null BaseUri");
-            Assert.IsTrue(Uri.IsWellFormedUriString(Uri.EscapeUriString(entry.Ncc.BaseUri), UriKind.Absolute), $"Entrys Ncc does not have a well formed absolute BaseUri: {entry.Ncc.BaseUri}");
-            Assert.AreEqual("html", entry.Ncc.Root?.Name?.LocalName);
+            foreach (var frag in new[] {"nav1", "nav3_2"})
+            {
+                var entry = new MergeEntry() { SourceNavEntry = new UriBuilder(dtb1NccUri) { Fragment = frag }.Uri };
+                Assert.IsNotNull(entry.Ncc, "Entry has null Ncc");
+                Assert.IsNotNull(entry.Ncc.BaseUri, "Entry Ncc has null BaseUri");
+                Assert.IsTrue(Uri.IsWellFormedUriString(Uri.EscapeUriString(entry.Ncc.BaseUri), UriKind.Absolute), $"Entrys Ncc does not have a well formed absolute BaseUri: {entry.Ncc.BaseUri}");
+                Assert.AreEqual("html", entry.Ncc.Root?.Name?.LocalName);
+            }
         }
 
         [TestMethod]
         public void SmilTest()
         {
-            var entry = new MergeEntry() { SourceNavEntry = new UriBuilder(dtb1NccUri) { Fragment = "nav1" }.Uri };
-            Assert.IsNotNull(entry.Smil, "Entry has null Smil");
-            Assert.IsNotNull(entry.Smil.BaseUri, "Entry Smil has null BaseUri");
-            Assert.IsTrue(Uri.IsWellFormedUriString(Uri.EscapeUriString(entry.Smil.BaseUri), UriKind.Absolute), $"Entrys Ncc does not have a well formed absolute BaseUri: {entry.Smil.BaseUri}");
-            Assert.AreEqual("smil", entry.Smil.Root?.Name?.LocalName);
+            foreach (var frag in new[] {"nav1", "nav3_2"})
+            {
+                var entry = new MergeEntry() {SourceNavEntry = new UriBuilder(dtb1NccUri) {Fragment = frag}.Uri};
+                Assert.IsNotNull(entry.Smil, "Entry has null Smil");
+                Assert.IsNotNull(entry.Smil.BaseUri, "Entry Smil has null BaseUri");
+                Assert.IsTrue(Uri.IsWellFormedUriString(Uri.EscapeUriString(entry.Smil.BaseUri), UriKind.Absolute),
+                    $"Entrys Ncc does not have a well formed absolute BaseUri: {entry.Smil.BaseUri}");
+                Assert.AreEqual("smil", entry.Smil.Root?.Name?.LocalName);
+            }
         }
 
         [TestMethod]
@@ -100,7 +114,7 @@ namespace DtbMerger2LibraryTests.Daisy202
         }
 
         [TestMethod]
-        //[Ignore]//Need to map C:\Users\oha\VirtualBlizzardDrive to D: using subst D: C:\Users\oha\VirtualBlizzardDrive
+        [Ignore]//Need to map C:\Users\oha\VirtualBlizzardDrive to D: using subst D: C:\Users\oha\VirtualBlizzardDrive
         public void LoadMergeEntriesFromBERLMacroTest()
         {
             var entries = MergeEntry.LoadMergeEntriesFromMacro(new Uri(

@@ -173,7 +173,7 @@ namespace DtbMerger2Library.Daisy202
             }
             var res = new List<XElement>() {heading};
             var next = heading.ElementsAfterSelf().FirstOrDefault();
-            while (!Utils.IsHeading(next))
+            while (next != null && !Utils.IsHeading(next))
             {
                 res.Add(next);
                 next = next?.ElementsAfterSelf().FirstOrDefault();
@@ -184,7 +184,7 @@ namespace DtbMerger2Library.Daisy202
         private XElement GetSmilPar(XElement elem)
         {
             var hrefAttr = elem
-                .Descendants()
+                ?.Descendants()
                 .FirstOrDefault(e => e.Name.LocalName == "a")
                 ?.Attribute("href");
             if (hrefAttr == null)
@@ -287,6 +287,9 @@ namespace DtbMerger2Library.Daisy202
                     ClipEnd = Utils.ParseSmilClip(audio.Attribute("clip-end")?.Value)
                 });
         }
+
+        public string DefaultAudioFileExtension =>
+            Path.GetExtension(GetAudioSegments().FirstOrDefault()?.AudioFile.AbsolutePath);
 
         public IEnumerable<MediaEntry> GetMediaEntries()
         {

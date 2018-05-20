@@ -44,6 +44,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="AudioSegment.cs" />
+    <Compile Include="Daisy202\DtbBuilder.cs" />
     <Compile Include="Daisy202\Utils.cs" />
     <Compile Include="MediaEntry.cs" />
     <Compile Include="Daisy202\MergeEntry.cs" />
