@@ -53,7 +53,7 @@ namespace DtbMerger2LibraryTests.DTBs
             }
         }
 
-        public static void NarrateTextsForSmilFile(XDocument smilDocument)
+        public static void NarrateTextsForSmilFile(XDocument smilDocument, ref TimeSpan totalElapsedTime)
         {
             var smilPars = smilDocument.Descendants("par").ToList();
             var audioFileName = smilDocument
@@ -79,6 +79,16 @@ namespace DtbMerger2LibraryTests.DTBs
                     followingAudio.Remove();
                 }
             }
+
+            var dur = TimeSpan.FromSeconds(durs.Select(d => d.TotalSeconds).Sum());
+            Utils.CreateOrGetMeta(smilDocument, "ncc:timeInThisSmil")?.SetAttributeValue(
+                "content", dur.ToString(@"hh\:mm\:ss"));
+            Utils.CreateOrGetMeta(smilDocument, "ncc:totalElapsedTime")?.SetAttributeValue(
+                "content", totalElapsedTime.ToString(@"hh\:mm\:ss"));
+            smilDocument.Root?.Element("body")?.Element("seq")?.SetAttributeValue(
+                "dur",
+                $"{dur.TotalSeconds.ToString("f", CultureInfo.InvariantCulture)}");
+            totalElapsedTime = totalElapsedTime.Add(dur);
         }
     }
 }

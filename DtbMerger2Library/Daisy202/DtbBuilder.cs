@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using System.Xml.Linq;
@@ -11,6 +12,8 @@ namespace DtbMerger2Library.Daisy202
 {
     public class DtbBuilder
     {
+        public TimeSpan AllowedFileEndAudio { get; set; } = TimeSpan.FromSeconds(1.5);
+
         public List<MergeEntry> MergeEntries { get; private set; }
 
         public DtbBuilder() : this(new MergeEntry[0])
@@ -69,6 +72,99 @@ namespace DtbMerger2Library.Daisy202
             audioFileSegments.Clear();
             ContentDocument = null;
             NccDocument = Utils.GenerateSkeletonXhtmlDocument();
+            index = 0;
+            nccIdIndex = 0;
+            contentIdIndex = 0;
+            totalElapsedTime = TimeSpan.Zero;
+        }
+
+        private int index = 0;
+        private int nccIdIndex = 0;
+        private int contentIdIndex = 0;
+        private TimeSpan totalElapsedTime = TimeSpan.Zero;
+
+        private List<XElement> GetNccElements(MergeEntry me, List<XElement> smilElements)
+        {
+            var nccElements = me.GetNccElements().Select(Utils.CloneWithBaseUri).ToList();
+            //Set new id attributes on ncc elements, fixing references from smil <text> elements
+            foreach (var idAttr in nccElements
+                .SelectMany(e => e.DescendantsAndSelf())
+                .Select(e => e.Attribute("id"))
+                .Where(attr => attr != null))
+            {
+                var newId = $"NCCID{nccIdIndex:D5}";
+                nccIdIndex++;
+                //Find and fix smil <text> elements src attributes, that link to ncc elements
+                foreach (var textSrcAttr in smilElements
+                    .Select(e => e.Element("text")?.Attribute("src"))
+                    .Where(attr => Utils.IsReferenceTo(Utils.GetUri(attr), new Uri(me.Ncc.BaseUri))))
+                {
+                    var textSrcUri = Utils.GetUri(textSrcAttr);
+                    if (textSrcUri.Fragment == $"#{idAttr.Value}")
+                    {
+                        textSrcAttr.Value = $"{NccDocumentName}#{newId}";
+                    }
+                }
+                idAttr.Value = newId;
+            }
+            //Fix <a> element descendants of ncc elements, that point to the smil file
+            foreach (var nccAHrefAttr in nccElements
+                .SelectMany(e => e.DescendantsAndSelf(e.Name.Namespace + "a"))
+                .Select(a => a.Attribute("href"))
+                .Where(href => href != null))
+            {
+                var uri = Utils.GetUri(nccAHrefAttr);
+                if (Utils.IsReferenceTo(uri, new Uri(me.Smil.BaseUri)))
+                {
+                    nccAHrefAttr.Value = $"{GetSmilFileName(index)}{uri.Fragment}";
+                }
+            }
+
+            return nccElements;
+        }
+
+        public List<XElement> GetContentElements(MergeEntry me, List<XElement> smilElements)
+        {
+            var contentElements = me.GetTextElements().Select(Utils.CloneWithBaseUri).ToList();
+            if (contentElements.Any())
+            {
+                //Set new id attributes on content elements, fixing references from smil <text> elements
+                foreach (var idAttr in contentElements
+                    .SelectMany(e => e.DescendantsAndSelf())
+                    .Select(e => e.Attribute("id"))
+                    .Where(attr => attr != null))
+                {
+                    var newId = $"TEXTID{contentIdIndex:D5}";
+                    contentIdIndex++;
+                    //Find and fix smil <text> elements src attributes, that link to content elements
+                    foreach (var textSrcAttr in smilElements
+                        .Select(e => e.Element("text")?.Attribute("src"))
+                        .Where(attr => me.ContentDocuments.Values.Any(cd =>
+                            Utils.IsReferenceTo(Utils.GetUri(attr), new Uri(cd.BaseUri)))))
+                    {
+                        var textSrcUri = Utils.GetUri(textSrcAttr);
+                        if (textSrcUri.Fragment == $"#{idAttr.Value}")
+                        {
+                            textSrcAttr.Value = $"{ContentDocumentName}#{newId}";
+                        }
+                    }
+                    idAttr.Value = newId;
+                }
+                //Fix <a> element descendants of ncc elements, that point to the smil file
+                foreach (var contentAHrefAttr in contentElements
+                    .SelectMany(e => e.DescendantsAndSelf(e.Name.Namespace + "a"))
+                    .Select(a => a.Attribute("href"))
+                    .Where(href => href != null))
+                {
+                    var uri = Utils.GetUri(contentAHrefAttr);
+                    if (Utils.IsReferenceTo(uri, new Uri(me.Smil.BaseUri)))
+                    {
+                        contentAHrefAttr.Value = $"{GetSmilFileName(index)}{uri.Fragment}";
+                    }
+                }
+            }
+
+            return contentElements;
         }
 
         public void BuildDtb()
@@ -78,92 +174,26 @@ namespace DtbMerger2Library.Daisy202
                 throw new InvalidOperationException("No merge entries added to builder");
             }
             ResetBuilder();
+            var generator =
+                $"{Assembly.GetExecutingAssembly().GetName().Name} v{Assembly.GetExecutingAssembly().GetName().Version}";
+
             var entries = MergeEntries.SelectMany(entry => entry.DescententsAndSelf).ToList();
             if (entries.Any(me => me.GetTextElements().Any()))
             {
                 ContentDocument = Utils.GenerateSkeletonXhtmlDocument();
             }
-            int index = 0;
-            int nccIdIndex = 0;
-            int contentIdIndex = 0;
-            var totalElapsedTime = TimeSpan.Zero;
+
+            var identifier = Utils.CreateOrGetMeta(entries.First().Ncc, "dc:identifier")?.Attribute("content")?.Value ??
+                             Guid.NewGuid().ToString();
             foreach (var me in entries)
             {
                 var smilFile = Utils.GenerateSkeletonSmilDocument();
                 var smilElements = me.GetSmilElements().Select(Utils.CloneWithBaseUri).ToList();
-                var nccElements = me.GetNccElements().Select(Utils.CloneWithBaseUri).ToList();
-                //Set new id attributes on ncc elements, fixing references from smil <text> elements
-                foreach (var idAttr in nccElements
-                    .SelectMany(e => e.DescendantsAndSelf())
-                    .Select(e => e.Attribute("id"))
-                    .Where(attr => attr != null))
-                {
-                    var newId = $"NCCID{nccIdIndex:D5}";
-                    nccIdIndex++;
-                    //Find and fix smil <text> elements src attributes, that link to ncc elements
-                    foreach (var textSrcAttr in smilElements
-                        .Select(e => e.Element("text")?.Attribute("src"))
-                        .Where(attr => Utils.IsReferenceTo(Utils.GetUri(attr), new Uri(me.Ncc.BaseUri))))
-                    {
-                        var textSrcUri = Utils.GetUri(textSrcAttr);
-                        if (textSrcUri.Fragment == $"#{idAttr.Value}")
-                        {
-                            textSrcAttr.Value = $"{NccDocumentName}#{newId}";
-                        }
-                    }
-                    idAttr.Value = newId;
-                }
-                //Fix <a> element descendants of ncc elements, that point to the smil file
-                foreach (var nccAHrefAttr in nccElements
-                    .SelectMany(e => e.DescendantsAndSelf(e.Name.Namespace + "a"))
-                    .Select(a => a.Attribute("href"))
-                    .Where(href => href != null))
-                {
-                    var uri = Utils.GetUri(nccAHrefAttr);
-                    if (Utils.IsReferenceTo(uri, new Uri(me.Smil.BaseUri)))
-                    {
-                        nccAHrefAttr.Value = $"{GetSmilFileName(index)}{uri.Fragment}";
-                    }
-                }
-                NccDocument.Root?.Element(NccDocument?.Root.Name.Namespace + "body")?.Add(nccElements);
+                NccDocument.Root?.Element(NccDocument?.Root.Name.Namespace + "body")?.Add(GetNccElements(me, smilElements));
 
-                var contentElements = me.GetTextElements().Select(Utils.CloneWithBaseUri).ToList();
+                var contentElements = GetContentElements(me, smilElements);
                 if (contentElements.Any())
                 {
-                    //Set new id attributes on ncc elements, fixing references from smil <text> elements
-                    foreach (var idAttr in contentElements
-                        .SelectMany(e => e.DescendantsAndSelf())
-                        .Select(e => e.Attribute("id"))
-                        .Where(attr => attr != null))
-                    {
-                        var newId = $"TEXTID{contentIdIndex:D5}";
-                        contentIdIndex++;
-                        //Find and fix smil <text> elements src attributes, that link to content elements
-                        foreach (var textSrcAttr in smilElements
-                            .Select(e => e.Element("text")?.Attribute("src"))
-                            .Where(attr => me.ContentDocuments.Values.Any(cd => 
-                                Utils.IsReferenceTo(Utils.GetUri(attr), new Uri(cd.BaseUri)))))
-                        {
-                            var textSrcUri = Utils.GetUri(textSrcAttr);
-                            if (textSrcUri.Fragment == $"#{idAttr.Value}")
-                            {
-                                textSrcAttr.Value = $"{ContentDocumentName}#{newId}";
-                            }
-                        }
-                        idAttr.Value = newId;
-                    }
-                    //Fix <a> element descendants of ncc elements, that point to the smil file
-                    foreach (var contentAHrefAttr in contentElements
-                        .SelectMany(e => e.DescendantsAndSelf(e.Name.Namespace + "a"))
-                        .Select(a => a.Attribute("href"))
-                        .Where(href => href != null))
-                    {
-                        var uri = Utils.GetUri(contentAHrefAttr);
-                        if (Utils.IsReferenceTo(uri, new Uri(me.Smil.BaseUri)))
-                        {
-                            contentAHrefAttr.Value = $"{GetSmilFileName(index)}{uri.Fragment}";
-                        }
-                    }
                     ContentDocument.Root?.Element(ContentDocument?.Root.Name.Namespace + "body")?.Add(contentElements);
                 }
 
@@ -175,16 +205,10 @@ namespace DtbMerger2Library.Daisy202
                         .ParseSmilClip(audio.Attribute("clip-end")?.Value)
                         .Subtract(Utils.ParseSmilClip(audio.Attribute("clip-begin")?.Value)).TotalSeconds)
                     .Sum());
-                smilFile.Root?.Element("head")?.Add(
-                    new XElement(
-                        "meta",
-                        new XAttribute("name", "ncc:totalElapsedTime"),
-                        new XAttribute("content", totalElapsedTime.ToString(@"hh\:mm\:ss"))));
-                smilFile.Root?.Element("head")?.Add(
-                    new XElement(
-                        "meta",
-                        new XAttribute("name", "ncc:timeInThisSmil"),
-                        new XAttribute("content", timeInThisSmil.ToString(@"hh\:mm\:ss"))));
+                Utils.CreateOrGetMeta(smilFile, "ncc:totalElapsedTime")?.SetAttributeValue(
+                    "content", Utils.GetHHMMSSFromTimeSpan(totalElapsedTime));
+                Utils.CreateOrGetMeta(smilFile, "ncc:timeInThisSmil")?.SetAttributeValue(
+                    "content", Utils.GetHHMMSSFromTimeSpan(timeInThisSmil));
                 var seq = smilFile.Root?.Element("body")?.Element("seq");
                 if (seq == null)
                 {
@@ -193,12 +217,46 @@ namespace DtbMerger2Library.Daisy202
                 seq.SetAttributeValue(
                     "dur", 
                     $"{timeInThisSmil.TotalSeconds.ToString("F3", CultureInfo.InvariantCulture)}s");
+                Utils.CreateOrGetMeta(smilFile, "ncc:generator")?.SetAttributeValue("content", generator);
+                Utils.CreateOrGetMeta(smilFile, "dc:identifier")?.SetAttributeValue("content", identifier);
                 seq.Add(smilElements);
                 smilFiles.Add(smilFile);
-                totalElapsedTime += timeInThisSmil;
+                totalElapsedTime += TimeSpan.FromSeconds(Math.Ceiling(timeInThisSmil.TotalSeconds));
                 index++;
             }
-         }
+
+            NccDocument.Root?.Element(Utils.XhtmlNs+"head")?.Add(
+                entries.First().Ncc.Root?.Element(Utils.XhtmlNs + "head")?.Elements(Utils.XhtmlNs + "meta"));
+
+            Utils.CreateOrGetMeta(NccDocument, "ncc:totalTime")?.SetAttributeValue("content", Utils.GetHHMMSSFromTimeSpan(totalElapsedTime));
+            var fileCount =
+                1
+                + 2 * smilFiles.Count
+                + (ContentDocument == null ? 0 : 1)
+                + entries.Select(me => me.GetMediaEntries().Count()).Sum();
+            Utils.CreateOrGetMeta(NccDocument, "ncc:files")?.SetAttributeValue("content", fileCount);
+            Utils.CreateOrGetMeta(NccDocument, "ncc:depth")?.SetAttributeValue(
+                "content",
+                entries.Select(me => me.Depth).Max());
+            Utils.CreateOrGetMeta(NccDocument, "ncc:tocItems")?.SetAttributeValue(
+                "content",
+                entries.Count);
+            foreach (var pt in new[] {"Front", "Normal", "Special"})
+            {
+                Utils.CreateOrGetMeta(NccDocument, $"ncc:page{pt}")?.SetAttributeValue(
+                    "content",
+                    entries.SelectMany(me => 
+                        me.GetNccElements()
+                            .Where(e => 
+                                e.Name == Utils.XhtmlNs + "span" 
+                                && e.Attribute("class")?.Value == $"page-{pt.ToLowerInvariant()}"))
+                    .Count());
+            }
+            Utils.CreateOrGetMeta(NccDocument, "ncc:multimediaType")?.SetAttributeValue(
+                "content",
+                ContentDocument==null? "audioNCC" : "audioFullText");
+            Utils.CreateOrGetMeta(NccDocument, "ncc:generator")?.SetAttributeValue("content", generator);
+        }
 
         public void SaveDtb(string baseDir)
         {
@@ -233,7 +291,7 @@ namespace DtbMerger2Library.Daisy202
                         throw new InvalidOperationException(
                             $"Audio segment clip-end {audSeg.ClipEnd} is beyond the end of audio file {audSeg.AudioFile}");
                     }
-                    if (audSeg.AudioFileDuration < audSeg.ClipEnd.Add(TimeSpan.FromSeconds(0.1)))
+                    if (audSeg.AudioFileDuration < audSeg.ClipEnd.Add(AllowedFileEndAudio))
                     {
                         File.Copy(Uri.UnescapeDataString(AudioFileSegments[audioFileName][0].AudioFile.LocalPath), Path.Combine(baseDir, audioFileName));
                         continue;

@@ -174,5 +174,28 @@ namespace DtbMerger2Library.Daisy202
 
             return new AudioFileReader(path).TotalTime;
         }
+
+        public static XElement CreateOrGetMeta(XDocument doc, string name)
+        {
+            var head = doc.Root?.Element(doc.Root.Name.Namespace + "head");
+            if (head == null)
+            {
+                return null;
+            }
+
+            var meta = head.Elements(head.Name.Namespace + "meta").FirstOrDefault(m => m.Attribute("name")?.Value == name);
+            if (meta == null)
+            {
+                meta = new XElement(head.Name.Namespace + "meta", new XAttribute("name", name));
+                head.Add(meta);
+            }
+
+            return meta;
+        }
+
+        public static string GetHHMMSSFromTimeSpan(TimeSpan val)
+        {
+            return TimeSpan.FromSeconds(Math.Ceiling(val.TotalSeconds)).ToString(@"hh\:mm\:ss");
+        }
     }
 }
