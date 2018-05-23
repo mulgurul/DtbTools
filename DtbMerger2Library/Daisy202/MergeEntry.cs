@@ -229,6 +229,19 @@ namespace DtbMerger2Library.Daisy202
             return res;
         }
 
+        private static bool IsBodyBlockElement(XElement elem)
+        {
+            switch (elem.Parent?.Name.LocalName)
+            {
+                case "body":
+                    return true;
+                case "div":
+                    return IsBodyBlockElement(elem.Parent);
+                default:
+                    return false;
+            }
+        }
+
         public IEnumerable<XElement> GetTextElements()
         {
             var textElements = GetSmilElements()
@@ -236,7 +249,7 @@ namespace DtbMerger2Library.Daisy202
                 .Select(Utils.GetUri)
                 .Select(uri =>
                     Utils.GetReferencedElement(ContentDocuments[Uri.UnescapeDataString(uri.AbsolutePath)], uri))
-                .Select(elem => elem.AncestorsAndSelf().FirstOrDefault(e => e.Parent?.Name?.LocalName == "body"))
+                .Select(elem => elem.AncestorsAndSelf().FirstOrDefault(IsBodyBlockElement))
                 .Where(e => e != null)
                 .Distinct()
                 .ToList();
@@ -291,19 +304,6 @@ namespace DtbMerger2Library.Daisy202
         public string DefaultAudioFileExtension =>
             Path.GetExtension(GetAudioSegments().FirstOrDefault()?.AudioFile.AbsolutePath);
 
-        public IEnumerable<MediaEntry> GetMediaEntries()
-        {
-            var res = GetTextElements()
-                .SelectMany(
-                    n => n.DescendantNodesAndSelf()
-                        .OfType<XElement>()
-                        .Where(e => e.Name.LocalName == "img")
-                        .Select(e => e.Attribute("src")?.Value.ToLowerInvariant())
-                        .Where(relUri => Uri.IsWellFormedUriString(relUri, UriKind.Relative))
-                        .Select(relUri => new MediaEntry(){RelativeUri = new Uri(relUri, UriKind.Relative), Source = new Uri(new Uri(n.BaseUri), relUri)}))
-                .Distinct();
-            return res;
-        }
 
         public override String ToString()
         {

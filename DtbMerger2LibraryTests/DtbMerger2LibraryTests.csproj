@@ -99,6 +99,9 @@
     <Content Include="DTBs\DTB1\content.html">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
+    <Content Include="DTBs\DTB1\cover.jpg">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
     <Content Include="DTBs\DTB1\ncc.html">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>

@@ -39,26 +39,30 @@ namespace DtbMerger2LibraryTests.Tree
         }
 
         [TestMethod]
-        public void AncestorsTest()
+        public void AncestorsAndDepthTest()
         {
             var root = new TestNode { Value = "Root Node" };
             Assert.IsNotNull(root.Ancestors, "Ancestors is null");
             Assert.IsFalse(root.Ancestors.Any(), "Root ancestors is not empty");
+            Assert.AreEqual(1, root.Depth, "Expected root to have depth 1");
             var node1 = new TestNode() {Value = "Node 1"};
             root.AddChild(node1);
             Assert.AreEqual(1, node1.Ancestors.Count(), "Expected 1 ancestors");
             Assert.AreSame(root, node1.Ancestors.First(), "Expected root to be first ancestor of node 1");
+            Assert.AreEqual(2, node1.Depth, "Expected node1 to have depth 2");
             var node1S1 = new TestNode() { Value = "Node 1.1" };
             node1.AddChild(node1S1);
             Assert.AreEqual(2, node1S1.Ancestors.Count(), "Expected 2 ancestors");
             Assert.AreSame(node1, node1S1.Ancestors.First(), "Expected node 1 to be first ancestor of node 1.1");
             Assert.AreSame(root, node1S1.Ancestors.Last(), "Expected root to be last ancestor of node 1.1");
+            Assert.AreEqual(3, node1S1.Depth, "Expected node1S1 to have depth 3");
             var node1S1S1 = new TestNode() { Value = "Node 1.1.1" };
             node1S1.AddChild(node1S1S1);
             Assert.AreEqual(3, node1S1S1.Ancestors.Count(), "Expected 3 ancestors");
             Assert.AreSame(node1S1, node1S1S1.Ancestors.First(), "Expected node 1.1 to be first ancestor of node 1.1.1");
             Assert.AreSame(node1, node1S1S1.Ancestors.ElementAt(1), "Expected node to be ancestor at index 1 of node 1.1");
             Assert.AreSame(root, node1S1S1.Ancestors.Last(), "Expected root to be last ancestor of node 1.1");
+            Assert.AreEqual(4, node1S1S1.Depth, "Expected node1S1S1 to have depth 4");
         }
 
 

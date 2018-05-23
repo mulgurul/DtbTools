@@ -72,6 +72,6 @@ namespace DtbMerger2Library.Tree
 
         public IEnumerable<T> DescententsAndSelf => new[] {this as T}.Union(Descendents);
 
-        public int Depth => DescententsAndSelf.Count();
+        public int Depth => (Parent?.Depth ?? 0) + 1;
     }
 }

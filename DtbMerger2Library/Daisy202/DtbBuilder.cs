@@ -5,7 +5,9 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using System.Xml;
 using System.Xml.Linq;
 
 namespace DtbMerger2Library.Daisy202
@@ -41,9 +43,14 @@ namespace DtbMerger2Library.Daisy202
             return $"AUD{index:D5}{AudioFileExtension}";
         }
 
-        private List<XDocument> smilFiles = new List<XDocument>();
+        private string GetImageFileName(Uri orgUri, int index)
+        {
+            return $"IMG{index:D5}_{Path.GetFileName(Uri.UnescapeDataString(orgUri.LocalPath))}";
+        }
 
-        private List<List<AudioSegment>> audioFileSegments = new List<List<AudioSegment>>();
+        private readonly List<XDocument> smilFiles = new List<XDocument>();
+
+        private readonly List<List<AudioSegment>> audioFileSegments = new List<List<AudioSegment>>();
 
         public IDictionary<string, List<AudioSegment>> AudioFileSegments => Enumerable.Range(0, audioFileSegments.Count)
             .ToDictionary(GetAudioFileName, i => audioFileSegments[i]);
@@ -72,13 +79,13 @@ namespace DtbMerger2Library.Daisy202
             audioFileSegments.Clear();
             ContentDocument = null;
             NccDocument = Utils.GenerateSkeletonXhtmlDocument();
-            index = 0;
+            entryIndex = 0;
             nccIdIndex = 0;
             contentIdIndex = 0;
             totalElapsedTime = TimeSpan.Zero;
         }
 
-        private int index = 0;
+        private int entryIndex = 0;
         private int nccIdIndex = 0;
         private int contentIdIndex = 0;
         private TimeSpan totalElapsedTime = TimeSpan.Zero;
@@ -116,8 +123,13 @@ namespace DtbMerger2Library.Daisy202
                 var uri = Utils.GetUri(nccAHrefAttr);
                 if (Utils.IsReferenceTo(uri, new Uri(me.Smil.BaseUri)))
                 {
-                    nccAHrefAttr.Value = $"{GetSmilFileName(index)}{uri.Fragment}";
+                    nccAHrefAttr.Value = $"{GetSmilFileName(entryIndex)}{uri.Fragment}";
                 }
+            }
+            //Fix heading depth
+            foreach (var hd in nccElements.Where(Utils.IsHeading))
+            {
+                hd.Name = hd.Name.Namespace + $"h{Math.Min(me.Depth, 6)}";
             }
 
             return nccElements;
@@ -159,7 +171,7 @@ namespace DtbMerger2Library.Daisy202
                     var uri = Utils.GetUri(contentAHrefAttr);
                     if (Utils.IsReferenceTo(uri, new Uri(me.Smil.BaseUri)))
                     {
-                        contentAHrefAttr.Value = $"{GetSmilFileName(index)}{uri.Fragment}";
+                        contentAHrefAttr.Value = $"{GetSmilFileName(entryIndex)}{uri.Fragment}";
                     }
                 }
             }
@@ -173,6 +185,7 @@ namespace DtbMerger2Library.Daisy202
             {
                 throw new InvalidOperationException("No merge entries added to builder");
             }
+
             ResetBuilder();
             var generator =
                 $"{Assembly.GetExecutingAssembly().GetName().Name} v{Assembly.GetExecutingAssembly().GetName().Version}";
@@ -189,15 +202,36 @@ namespace DtbMerger2Library.Daisy202
             {
                 var smilFile = Utils.GenerateSkeletonSmilDocument();
                 var smilElements = me.GetSmilElements().Select(Utils.CloneWithBaseUri).ToList();
-                NccDocument.Root?.Element(NccDocument?.Root.Name.Namespace + "body")?.Add(GetNccElements(me, smilElements));
+                NccDocument.Root?.Element(NccDocument?.Root.Name.Namespace + "body")
+                    ?.Add(GetNccElements(me, smilElements));
 
                 var contentElements = GetContentElements(me, smilElements);
                 if (contentElements.Any())
                 {
+                    var firstHeading = contentElements.FirstOrDefault(Utils.IsHeading);
+                    if (firstHeading != null)
+                    {
+                        firstHeading.Name = firstHeading.Name.Namespace + $"h{Math.Min(me.Depth, 6)}";
+                    }
+
                     ContentDocument.Root?.Element(ContentDocument?.Root.Name.Namespace + "body")?.Add(contentElements);
                 }
 
                 audioFileSegments.Add(me.GetAudioSegments().ToList());
+                var elapsedInThisSmil = TimeSpan.Zero;
+                foreach (var audio in smilElements.Descendants("audio"))
+                {
+                    var clipBegin = Utils.ParseSmilClip(audio.Attribute("clip-begin")?.Value);
+                    var clipEnd = Utils.ParseSmilClip(audio.Attribute("clip-end")?.Value);
+                    audio.SetAttributeValue("src", GetAudioFileName(entryIndex));
+                    audio.SetAttributeValue(
+                        "clip-begin",
+                        $"npt={elapsedInThisSmil.TotalSeconds.ToString("F3", CultureInfo.InvariantCulture)}s");
+                    elapsedInThisSmil += clipEnd.Subtract(clipBegin);
+                    audio.SetAttributeValue(
+                        "clip-end",
+                        $"npt={elapsedInThisSmil.TotalSeconds.ToString("F3", CultureInfo.InvariantCulture)}s");
+                }
 
                 var timeInThisSmil = TimeSpan.FromSeconds(smilElements
                     .SelectMany(e => e.Descendants("audio"))
@@ -214,26 +248,38 @@ namespace DtbMerger2Library.Daisy202
                 {
                     throw new ApplicationException("Generated smil document contains no main seq");
                 }
+
                 seq.SetAttributeValue(
-                    "dur", 
+                    "dur",
                     $"{timeInThisSmil.TotalSeconds.ToString("F3", CultureInfo.InvariantCulture)}s");
                 Utils.CreateOrGetMeta(smilFile, "ncc:generator")?.SetAttributeValue("content", generator);
                 Utils.CreateOrGetMeta(smilFile, "dc:identifier")?.SetAttributeValue("content", identifier);
                 seq.Add(smilElements);
                 smilFiles.Add(smilFile);
                 totalElapsedTime += TimeSpan.FromSeconds(Math.Ceiling(timeInThisSmil.TotalSeconds));
-                index++;
+                foreach (var imgSrc in contentElements.SelectMany(ce =>
+                    ce.DescendantsAndSelf(Utils.XhtmlNs + "img").Select(img => img.Attribute("src"))
+                        .Where(src => src != null)))
+                {
+                    imgSrc.Value = GetImageFileName(Utils.GetUri(imgSrc), entryIndex);
+                }
+
+                entryIndex++;
             }
 
-            NccDocument.Root?.Element(Utils.XhtmlNs+"head")?.Add(
+            NccDocument.Root?.Element(Utils.XhtmlNs + "head")?.Add(
                 entries.First().Ncc.Root?.Element(Utils.XhtmlNs + "head")?.Elements(Utils.XhtmlNs + "meta"));
 
-            Utils.CreateOrGetMeta(NccDocument, "ncc:totalTime")?.SetAttributeValue("content", Utils.GetHHMMSSFromTimeSpan(totalElapsedTime));
+            Utils.CreateOrGetMeta(NccDocument, "ncc:totalTime")
+                ?.SetAttributeValue("content", Utils.GetHHMMSSFromTimeSpan(totalElapsedTime));
             var fileCount =
                 1
                 + 2 * smilFiles.Count
                 + (ContentDocument == null ? 0 : 1)
-                + entries.Select(me => me.GetMediaEntries().Count()).Sum();
+                + ContentDocument
+                    ?.Descendants(Utils.XhtmlNs + "img")
+                    .Select(img => img.Attribute("src")?.Value)
+                    .Distinct().Count(src => !String.IsNullOrWhiteSpace(src));
             Utils.CreateOrGetMeta(NccDocument, "ncc:files")?.SetAttributeValue("content", fileCount);
             Utils.CreateOrGetMeta(NccDocument, "ncc:depth")?.SetAttributeValue(
                 "content",
@@ -245,17 +291,72 @@ namespace DtbMerger2Library.Daisy202
             {
                 Utils.CreateOrGetMeta(NccDocument, $"ncc:page{pt}")?.SetAttributeValue(
                     "content",
-                    entries.SelectMany(me => 
-                        me.GetNccElements()
-                            .Where(e => 
-                                e.Name == Utils.XhtmlNs + "span" 
-                                && e.Attribute("class")?.Value == $"page-{pt.ToLowerInvariant()}"))
-                    .Count());
+                    entries.SelectMany(me =>
+                            me.GetNccElements()
+                                .Where(e =>
+                                    e.Name == Utils.XhtmlNs + "span"
+                                    && e.Attribute("class")?.Value == $"page-{pt.ToLowerInvariant()}"))
+                        .Count());
             }
+
             Utils.CreateOrGetMeta(NccDocument, "ncc:multimediaType")?.SetAttributeValue(
                 "content",
-                ContentDocument==null? "audioNCC" : "audioFullText");
+                ContentDocument == null ? "audioNCC" : "audioFullText");
             Utils.CreateOrGetMeta(NccDocument, "ncc:generator")?.SetAttributeValue("content", generator);
+            //Remove whitespace only text nodes in smil files
+            foreach (var whiteSpace in SmilFiles.Values
+                .SelectMany(doc => doc.DescendantNodes().OfType<XText>())
+                .Where(text => String.IsNullOrWhiteSpace(text.Value))
+                .ToList())
+
+            {
+                whiteSpace.Remove();
+            }
+
+            //Remove whitespace at the start or end of h1-6 and p elements
+            foreach (var elem in new[] { NccDocument, ContentDocument }.Where(doc => doc != null)
+                .SelectMany(doc => doc.Descendants())
+                .Where(Utils.IsHeadingOrParagraph)
+                .ToList())
+            {
+                foreach (var text in elem.DescendantNodes().OfType<XText>())
+                {
+                    text.Value = Regex.Replace(text.Value, @"\s+", " ");
+                }
+                TrimWhitespace(elem);
+            }
+        }
+
+        private void TrimWhitespace(XElement elem)
+        {
+            if (elem.FirstNode is XText firstNode)
+            {
+                if (String.IsNullOrWhiteSpace(firstNode.Value))
+                {
+                    firstNode.Remove();
+                }
+                else
+                {
+                    firstNode.Value = firstNode.Value.TrimStart();
+                }
+                
+            }
+            if (elem.LastNode is XText lastNode)
+            {
+                if (String.IsNullOrWhiteSpace(lastNode.Value))
+                {
+                    lastNode.Remove();
+                }
+                else
+                {
+                    lastNode.Value = lastNode.Value.TrimEnd();
+                }
+            }
+
+            if (elem.Nodes().Count() == 1 && elem.Elements().Count() == 1)
+            {
+                TrimWhitespace(elem.Elements().First());
+            }
         }
 
         public void SaveDtb(string baseDir)
@@ -274,11 +375,25 @@ namespace DtbMerger2Library.Daisy202
             }
             Directory.CreateDirectory(baseDir);
             var xmlDocs = XmlDocuments;
+            var wrSettings = new XmlWriterSettings()
+            {
+                Indent = true,
+                IndentChars = "\t",
+                NamespaceHandling = NamespaceHandling.OmitDuplicates
+            };
             foreach (var xmlFileName in xmlDocs.Keys)
             {
-                xmlDocs[xmlFileName].Save(Path.Combine(baseDir, xmlFileName), SaveOptions.OmitDuplicateNamespaces);
+                using (var writer = XmlWriter.Create(Path.Combine(baseDir, xmlFileName), wrSettings))
+                {
+                    xmlDocs[xmlFileName].Save(writer);
+                }
             }
+            SaveAudioFiles(baseDir);
+            SaveMediaFiles(baseDir);
+        }
 
+        private void SaveAudioFiles(string baseDir)
+        {
             foreach (var audioFileName in AudioFileSegments.Keys)
             {
                 if (AudioFileSegments[audioFileName].Count == 1)
@@ -299,6 +414,24 @@ namespace DtbMerger2Library.Daisy202
                 }
                 //Now we need to edit audio files - not yet supported
                 throw new NotSupportedException("Only DTBs with one mp3/wav file per heading of default type is currently supported");
+            }
+        }
+
+        private void SaveMediaFiles(string baseDir)
+        {
+            int index = 0;
+            foreach (var entry in MergeEntries.SelectMany(me => me.DescententsAndSelf))
+            {
+                foreach (var imgUri in entry.GetTextElements()
+                    .SelectMany(e => e.DescendantsAndSelf(e.Name.Namespace + "img").Select(img => img.Attribute("src")))
+                    .Select(Utils.GetUri)
+                    .Distinct())
+                {
+                    File.Copy(
+                        Uri.UnescapeDataString(imgUri.LocalPath),
+                        Path.Combine(baseDir, GetImageFileName(imgUri, index)));
+                }
+                index++;
             }
         }
     }

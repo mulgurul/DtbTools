@@ -33,15 +33,6 @@ namespace DtbMerger2LibraryTests.Daisy202
         }
 
         [TestMethod]
-        public void GetMediaEntriesTest()
-        {
-            var entry = new MergeEntry() {SourceNavEntry = new UriBuilder(dtb1NccUri) { Fragment = "nav1" }.Uri};
-            var mediaEntries = entry.GetMediaEntries()?.ToList();
-            Assert.IsNotNull(mediaEntries, "Media entries is null");
-            Assert.IsTrue(mediaEntries.Any(), "Found no media entries");
-        }
-
-        [TestMethod]
         public void GetSmilElementsTest()
         {
             foreach (var frag in new[] {"nav1", "nav3_2"})
@@ -115,7 +106,7 @@ namespace DtbMerger2LibraryTests.Daisy202
 
         [TestMethod]
         [Ignore]//Need to map C:\Users\oha\VirtualBlizzardDrive to D: using subst D: C:\Users\oha\VirtualBlizzardDrive
-        public void LoadMergeEntriesFromBERLMacroTest()
+        public void LoadMergeEntriesFromBerlMacroTest()
         {
             var entries = MergeEntry.LoadMergeEntriesFromMacro(new Uri(
                 @"D:\BlizzardData\batch\BERL\Publisher\20180516_143247_001\merge.xml")).ToList();

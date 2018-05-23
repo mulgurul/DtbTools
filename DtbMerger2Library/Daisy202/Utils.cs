@@ -71,6 +71,11 @@ namespace DtbMerger2Library.Daisy202
             return HeadingLocalNames.Contains(elem?.Name?.LocalName);
         }
 
+        public static bool IsHeadingOrParagraph(XElement elem)
+        {
+            return elem.Name.LocalName == "p" || IsHeading(elem);
+        }
+
         public static Uri GetUri(XAttribute uriAttr)
         {
             if (uriAttr == null)
