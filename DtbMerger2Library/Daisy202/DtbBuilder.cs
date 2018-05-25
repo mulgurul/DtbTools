@@ -9,6 +9,8 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Xml;
 using System.Xml.Linq;
+using NAudio.Lame;
+using NAudio.Wave;
 
 namespace DtbMerger2Library.Daisy202
 {
@@ -392,13 +394,24 @@ namespace DtbMerger2Library.Daisy202
             SaveMediaFiles(baseDir);
         }
 
+        private WaveStream GetAudioPcmStream(string path)
+        {
+            switch (Path.GetExtension(path)?.ToLowerInvariant())
+            {
+                case ".mp3":
+                    return new Mp3FileReader(path);
+                case ".wav":
+                    return new WaveFileReader(path);
+                default:
+                    throw new NotSupportedException($"Audio file extension {Path.GetExtension(path)?.ToLowerInvariant()} is not supported");
+            }
+        }
+
         private void SaveAudioFiles(string baseDir)
         {
-            foreach (var audioFileName in AudioFileSegments.Keys)
+            foreach (var audioFileName in AudioFileSegments.Keys.Where(key => AudioFileSegments[key].Any()))
             {
                 if (AudioFileSegments[audioFileName].Count == 1)
-                    //&& AudioFileSegments[audioFileName][0].ClipBegin == TimeSpan.Zero
-                    //&& Path.GetExtension(AudioFileSegments[audioFileName][0].AudioFile.AbsolutePath).ToLowerInvariant() == AudioFileExtension)
                 {
                     var audSeg = AudioFileSegments[audioFileName].First();
                     if (audSeg.AudioFileDuration < audSeg.ClipEnd)
@@ -412,8 +425,83 @@ namespace DtbMerger2Library.Daisy202
                         continue;
                     }
                 }
-                //Now we need to edit audio files - not yet supported
-                throw new NotSupportedException("Only DTBs with one mp3/wav file per heading of default type is currently supported");
+
+                Stream underlyingStream = new FileStream(Path.Combine(baseDir, audioFileName), FileMode.Create, FileAccess.ReadWrite);
+                byte[] byteSuffix = null;
+                try
+                {
+                    Stream audioStream;
+                    WaveFormat waveFormat;
+                    var firstAudioPath = Uri.UnescapeDataString(
+                        AudioFileSegments[audioFileName].First().AudioFile.LocalPath);
+                    switch (AudioFileExtension)
+                    {
+                        case ".mp3":
+                            using (var mp3FR = new Mp3FileReader(firstAudioPath))
+                            {
+                                waveFormat = mp3FR.WaveFormat;
+                                audioStream = new LameMP3FileWriter(
+                                    underlyingStream, 
+                                    waveFormat, 
+                                    mp3FR.Mp3WaveFormat.AverageBytesPerSecond/8);
+                                if (mp3FR.Id3v2Tag != null)
+                                {
+                                    underlyingStream.Write(mp3FR.Id3v2Tag.RawData, 0, mp3FR.Id3v2Tag.RawData.Length);
+                                }
+
+                                byteSuffix = mp3FR.Id3v1Tag.ToArray();
+                            }
+                            break;
+                        case ".wav":
+                            waveFormat = new WaveFileReader(firstAudioPath).WaveFormat;
+                            audioStream = new WaveFileWriter(underlyingStream, new WaveFileReader(firstAudioPath).WaveFormat);
+                            break;
+                        default:
+                            throw new NotSupportedException($"Audio file extension {AudioFileExtension} is not supported");
+                    }
+
+                    try
+                    {
+                        foreach (var segment in AudioFileSegments[audioFileName])
+                        {
+                            using (var audioReader = 
+                                GetAudioPcmStream(Uri.UnescapeDataString(segment.AudioFile.LocalPath)))
+                            {
+                                if (!waveFormat.Equals(audioReader.WaveFormat))
+                                {
+                                    throw new NotSupportedException(
+                                        $"Audio file {segment.AudioFile} has different wave format from first audio file in segment");
+                                }
+                                audioReader.Seek(
+                                    (long)segment.ClipBegin.TotalSeconds * audioReader.WaveFormat.AverageBytesPerSecond,
+                                    SeekOrigin.Current);
+                                var bytesToRead =
+                                    (long) (segment.Duration.TotalSeconds * audioReader.WaveFormat.AverageBytesPerSecond);
+                                var bytesRead = 0;
+                                var buf = new Byte[10*1024];
+                                while (bytesRead < bytesToRead)
+                                {
+                                    int count = (int)Math.Min(bytesToRead - bytesRead, buf.Length);
+                                    bytesRead += audioReader.Read(buf, 0, count);
+                                    audioStream.Write(buf, 0, count);
+                                }
+                            }
+                        }
+
+                    }
+                    finally
+                    {
+                        audioStream?.Flush();
+                    }
+                }
+                finally
+                {
+                    if (byteSuffix != null)
+                    {
+                        underlyingStream.Write(byteSuffix, 0, byteSuffix.Length);
+                    }
+                    underlyingStream.Close();
+                }
             }
         }
 
