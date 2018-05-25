@@ -61,7 +61,7 @@ namespace DtbMerger2LibraryTests.Daisy202
         }
 
         [TestMethod]
-        //[Ignore]//Need to map C:\Users\oha\VirtualBlizzardDrive to D: using subst D: C:\Users\oha\VirtualBlizzardDrive
+        [Ignore]//Need to map C:\Users\oha\VirtualBlizzardDrive to D: using subst D: C:\Users\oha\VirtualBlizzardDrive
         public void SaveBerlDtbTest()
         {
             var builder = new DtbBuilder(MergeEntry.LoadMergeEntriesFromMacro(new Uri(
