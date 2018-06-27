@@ -13,14 +13,21 @@ namespace DtbMerger2Library.Daisy202
 {
     public class MergeEntry : TreeNode<MergeEntry>
     {
+        public static IEnumerable<MergeEntry> LoadMergeEntriesFromNcc(XDocument nccDoc)
+        {
+            return nccDoc.Root
+                ?.Element(nccDoc.Root.Name.Namespace + "body")
+                ?.Elements(nccDoc.Root.Name.Namespace + "h1")
+                .Select(LoadMergeEntryTreeFromHeading);
+        }
+
         #region Static Methods
         public static IEnumerable<MergeEntry> LoadMergeEntriesFromNcc(Uri nccUri)
         {
-            var ncc = XDocument.Load(Uri.UnescapeDataString(nccUri.AbsolutePath), LoadOptions.SetBaseUri | LoadOptions.SetLineInfo);
-            return ncc.Root
-                ?.Element(ncc.Root.Name.Namespace + "body")
-                ?.Elements(ncc.Root.Name.Namespace + "h1")
-                .Select(LoadMergeEntryTreeFromHeading);
+            return LoadMergeEntriesFromNcc(
+                XDocument.Load(
+                    Uri.UnescapeDataString(nccUri.AbsolutePath),
+                    LoadOptions.SetBaseUri | LoadOptions.SetLineInfo));
         }
 
         public static MergeEntry LoadMergeEntryTreeFromHeading(XElement heading)
@@ -49,20 +56,51 @@ namespace DtbMerger2Library.Daisy202
             return res;
         }
 
-        public static IEnumerable<MergeEntry> LoadMergeEntriesFromMacro(Uri macroUri)
+        public static IEnumerable<MergeEntry> LoadMergeEntriesFromMacro(XDocument macroDoc)
         {
-            return XDocument
-                       .Load(Uri.UnescapeDataString(macroUri.AbsolutePath), LoadOptions.SetBaseUri | LoadOptions.SetLineInfo)
-                       .Root?.Elements().Select(LoadMergeEntryFromMacroElement) ?? new MergeEntry[0];
+            return macroDoc.Root?.Elements().SelectMany(LoadMergeEntriesFromMacroElement) ?? new MergeEntry[0];
         }
 
-        public static MergeEntry LoadMergeEntryFromMacroElement(XElement elem)
+        public static IEnumerable<MergeEntry> LoadMergeEntriesFromMacro(Uri macroUri)
         {
-            var res = new MergeEntry()
+            return LoadMergeEntriesFromMacro(
+                XDocument.Load(
+                    Uri.UnescapeDataString(macroUri.AbsolutePath),
+                    LoadOptions.SetBaseUri | LoadOptions.SetLineInfo));
+
+        }
+
+        public static IEnumerable<MergeEntry> LoadMergeEntriesFromMacroElement(XElement elem)
+        {
+            ICollection<MergeEntry> res;
+            if (elem.Attribute("ItemID") != null)
             {
-                SourceNavEntry = new UriBuilder(new Uri(elem.Attribute("file")?.Value ?? "")) { Fragment = elem.Attribute("ItemID")?.Value ?? "" }.Uri
-            };
-            res.AddChildren(elem.Elements().Select(LoadMergeEntryFromMacroElement));
+                res = new[] {new MergeEntry()
+                    {
+                        SourceNavEntry =
+                            new UriBuilder(new Uri(elem.Attribute("file")?.Value ?? ""))
+                            {
+                                Fragment = elem.Attribute("ItemID")?.Value ?? ""
+                            }.Uri
+                    }};
+            }
+            else//If ItemID attribute is missing, entire ncc is added
+            {
+                res = LoadMergeEntriesFromNcc(Utils.GetUri(elem.Attribute("file"))).ToList();
+                if (Int32.TryParse(elem.Attribute("Skip")?.Value, out var skip))
+                {
+                    if (0 < skip && skip < res.Count)
+                    {
+                        while (skip > 0)
+                        {
+                            res.Remove(res.First());
+                            skip--;
+                        }
+                    }
+                }
+            }
+
+            res.Last().AddChildren(elem.Elements().SelectMany(LoadMergeEntriesFromMacroElement));
             return res;
         }
         #endregion
