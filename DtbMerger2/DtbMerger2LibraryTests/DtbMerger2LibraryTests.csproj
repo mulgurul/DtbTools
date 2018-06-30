@@ -59,6 +59,7 @@
   <ItemGroup>
     <Compile Include="Daisy202\MergeEntryTests.cs" />
     <Compile Include="Daisy202\BuildDtbTests.cs" />
+    <Compile Include="Daisy202\MacroEntryTests.cs" />
     <Compile Include="Daisy202\UtilsTests.cs" />
     <Compile Include="DTBs\DtbAudioGenerator.cs" />
     <Compile Include="DTBs\DtbAudioGeneratorTests.cs" />
