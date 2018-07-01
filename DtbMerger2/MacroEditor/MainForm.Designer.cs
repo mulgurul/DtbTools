@@ -28,10 +28,11 @@
         /// </summary>
         private void InitializeComponent()
         {
+            this.components = new System.ComponentModel.Container();
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(MainForm));
-            System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle7 = new System.Windows.Forms.DataGridViewCellStyle();
-            System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle8 = new System.Windows.Forms.DataGridViewCellStyle();
-            System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle9 = new System.Windows.Forms.DataGridViewCellStyle();
+            System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle4 = new System.Windows.Forms.DataGridViewCellStyle();
+            System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle5 = new System.Windows.Forms.DataGridViewCellStyle();
+            System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle6 = new System.Windows.Forms.DataGridViewCellStyle();
             this.mainMenuStrip = new System.Windows.Forms.MenuStrip();
             this.fileToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.openMacroToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -46,8 +47,10 @@
             this.moveEntryInToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.reloadMacroEntriesToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.deleteEntryToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.addDTBToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.insertDTBToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.mainTableLayoutPanel = new System.Windows.Forms.TableLayoutPanel();
+            this.addDTBButton = new System.Windows.Forms.Button();
             this.insertDTBButton = new System.Windows.Forms.Button();
             this.saveMacro = new System.Windows.Forms.Button();
             this.exitButton = new System.Windows.Forms.Button();
@@ -62,8 +65,11 @@
             this.deleteEntryButton = new System.Windows.Forms.Button();
             this.moveEntryInButton = new System.Windows.Forms.Button();
             this.moveEntryDownButton = new System.Windows.Forms.Button();
-            this.addDTBButton = new System.Windows.Forms.Button();
-            this.addDTBToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.undoToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.redoToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.redoButton = new System.Windows.Forms.Button();
+            this.undoButton = new System.Windows.Forms.Button();
+            this.mainToolTip = new System.Windows.Forms.ToolTip(this.components);
             this.mainMenuStrip.SuspendLayout();
             this.mainTableLayoutPanel.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.propertiesDataGridView)).BeginInit();
@@ -117,7 +123,9 @@
             this.reloadMacroEntriesToolStripMenuItem,
             this.deleteEntryToolStripMenuItem,
             this.addDTBToolStripMenuItem,
-            this.insertDTBToolStripMenuItem});
+            this.insertDTBToolStripMenuItem,
+            this.undoToolStripMenuItem,
+            this.redoToolStripMenuItem});
             this.editToolStripMenuItem.Name = "editToolStripMenuItem";
             resources.ApplyResources(this.editToolStripMenuItem, "editToolStripMenuItem");
             // 
@@ -167,6 +175,12 @@
             resources.ApplyResources(this.deleteEntryToolStripMenuItem, "deleteEntryToolStripMenuItem");
             this.deleteEntryToolStripMenuItem.Click += new System.EventHandler(this.DeleteEntryClickHandler);
             // 
+            // addDTBToolStripMenuItem
+            // 
+            this.addDTBToolStripMenuItem.Name = "addDTBToolStripMenuItem";
+            resources.ApplyResources(this.addDTBToolStripMenuItem, "addDTBToolStripMenuItem");
+            this.addDTBToolStripMenuItem.Click += new System.EventHandler(this.AddDTBClickHandler);
+            // 
             // insertDTBToolStripMenuItem
             // 
             this.insertDTBToolStripMenuItem.Name = "insertDTBToolStripMenuItem";
@@ -176,6 +190,8 @@
             // mainTableLayoutPanel
             // 
             resources.ApplyResources(this.mainTableLayoutPanel, "mainTableLayoutPanel");
+            this.mainTableLayoutPanel.Controls.Add(this.undoButton, 3, 3);
+            this.mainTableLayoutPanel.Controls.Add(this.redoButton, 5, 3);
             this.mainTableLayoutPanel.Controls.Add(this.addDTBButton, 3, 1);
             this.mainTableLayoutPanel.Controls.Add(this.insertDTBButton, 5, 1);
             this.mainTableLayoutPanel.Controls.Add(this.saveMacro, 1, 4);
@@ -189,6 +205,12 @@
             this.mainTableLayoutPanel.Controls.Add(this.moveEntryInButton, 5, 2);
             this.mainTableLayoutPanel.Controls.Add(this.moveEntryDownButton, 4, 3);
             this.mainTableLayoutPanel.Name = "mainTableLayoutPanel";
+            // 
+            // addDTBButton
+            // 
+            resources.ApplyResources(this.addDTBButton, "addDTBButton");
+            this.addDTBButton.Name = "addDTBButton";
+            this.addDTBButton.UseVisualStyleBackColor = true;
             // 
             // insertDTBButton
             // 
@@ -218,45 +240,46 @@
             this.macroTreeView.HideSelection = false;
             this.macroTreeView.Name = "macroTreeView";
             this.mainTableLayoutPanel.SetRowSpan(this.macroTreeView, 4);
-            this.macroTreeView.ShowNodeToolTips = true;
+            this.macroTreeView.ShowLines = false;
+            this.macroTreeView.ShowRootLines = false;
             this.macroTreeView.AfterSelect += new System.Windows.Forms.TreeViewEventHandler(this.MacroTreeViewAfterSelectHandler);
             // 
             // propertiesDataGridView
             // 
             this.propertiesDataGridView.AllowUserToAddRows = false;
             this.propertiesDataGridView.AllowUserToDeleteRows = false;
-            dataGridViewCellStyle7.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleLeft;
-            dataGridViewCellStyle7.BackColor = System.Drawing.SystemColors.Control;
-            dataGridViewCellStyle7.Font = new System.Drawing.Font("Microsoft Sans Serif", 7.8F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            dataGridViewCellStyle7.ForeColor = System.Drawing.SystemColors.WindowText;
-            dataGridViewCellStyle7.SelectionBackColor = System.Drawing.SystemColors.Highlight;
-            dataGridViewCellStyle7.SelectionForeColor = System.Drawing.SystemColors.HighlightText;
-            dataGridViewCellStyle7.WrapMode = System.Windows.Forms.DataGridViewTriState.True;
-            this.propertiesDataGridView.ColumnHeadersDefaultCellStyle = dataGridViewCellStyle7;
+            dataGridViewCellStyle4.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleLeft;
+            dataGridViewCellStyle4.BackColor = System.Drawing.SystemColors.Control;
+            dataGridViewCellStyle4.Font = new System.Drawing.Font("Microsoft Sans Serif", 7.8F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            dataGridViewCellStyle4.ForeColor = System.Drawing.SystemColors.WindowText;
+            dataGridViewCellStyle4.SelectionBackColor = System.Drawing.SystemColors.Highlight;
+            dataGridViewCellStyle4.SelectionForeColor = System.Drawing.SystemColors.HighlightText;
+            dataGridViewCellStyle4.WrapMode = System.Windows.Forms.DataGridViewTriState.True;
+            this.propertiesDataGridView.ColumnHeadersDefaultCellStyle = dataGridViewCellStyle4;
             this.propertiesDataGridView.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
             this.propertiesDataGridView.Columns.AddRange(new System.Windows.Forms.DataGridViewColumn[] {
             this.ObjectColumn,
             this.NameColumn,
             this.ValueColumn});
             this.mainTableLayoutPanel.SetColumnSpan(this.propertiesDataGridView, 3);
-            dataGridViewCellStyle8.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleLeft;
-            dataGridViewCellStyle8.BackColor = System.Drawing.SystemColors.Window;
-            dataGridViewCellStyle8.Font = new System.Drawing.Font("Microsoft Sans Serif", 7.8F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            dataGridViewCellStyle8.ForeColor = System.Drawing.SystemColors.ControlText;
-            dataGridViewCellStyle8.SelectionBackColor = System.Drawing.SystemColors.Highlight;
-            dataGridViewCellStyle8.SelectionForeColor = System.Drawing.SystemColors.HighlightText;
-            dataGridViewCellStyle8.WrapMode = System.Windows.Forms.DataGridViewTriState.False;
-            this.propertiesDataGridView.DefaultCellStyle = dataGridViewCellStyle8;
+            dataGridViewCellStyle5.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleLeft;
+            dataGridViewCellStyle5.BackColor = System.Drawing.SystemColors.Window;
+            dataGridViewCellStyle5.Font = new System.Drawing.Font("Microsoft Sans Serif", 7.8F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            dataGridViewCellStyle5.ForeColor = System.Drawing.SystemColors.ControlText;
+            dataGridViewCellStyle5.SelectionBackColor = System.Drawing.SystemColors.Highlight;
+            dataGridViewCellStyle5.SelectionForeColor = System.Drawing.SystemColors.HighlightText;
+            dataGridViewCellStyle5.WrapMode = System.Windows.Forms.DataGridViewTriState.False;
+            this.propertiesDataGridView.DefaultCellStyle = dataGridViewCellStyle5;
             resources.ApplyResources(this.propertiesDataGridView, "propertiesDataGridView");
             this.propertiesDataGridView.Name = "propertiesDataGridView";
-            dataGridViewCellStyle9.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleLeft;
-            dataGridViewCellStyle9.BackColor = System.Drawing.SystemColors.Control;
-            dataGridViewCellStyle9.Font = new System.Drawing.Font("Microsoft Sans Serif", 7.8F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            dataGridViewCellStyle9.ForeColor = System.Drawing.SystemColors.WindowText;
-            dataGridViewCellStyle9.SelectionBackColor = System.Drawing.SystemColors.Highlight;
-            dataGridViewCellStyle9.SelectionForeColor = System.Drawing.SystemColors.HighlightText;
-            dataGridViewCellStyle9.WrapMode = System.Windows.Forms.DataGridViewTriState.True;
-            this.propertiesDataGridView.RowHeadersDefaultCellStyle = dataGridViewCellStyle9;
+            dataGridViewCellStyle6.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleLeft;
+            dataGridViewCellStyle6.BackColor = System.Drawing.SystemColors.Control;
+            dataGridViewCellStyle6.Font = new System.Drawing.Font("Microsoft Sans Serif", 7.8F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            dataGridViewCellStyle6.ForeColor = System.Drawing.SystemColors.WindowText;
+            dataGridViewCellStyle6.SelectionBackColor = System.Drawing.SystemColors.Highlight;
+            dataGridViewCellStyle6.SelectionForeColor = System.Drawing.SystemColors.HighlightText;
+            dataGridViewCellStyle6.WrapMode = System.Windows.Forms.DataGridViewTriState.True;
+            this.propertiesDataGridView.RowHeadersDefaultCellStyle = dataGridViewCellStyle6;
             this.propertiesDataGridView.RowTemplate.Height = 24;
             this.propertiesDataGridView.CellEndEdit += new System.Windows.Forms.DataGridViewCellEventHandler(this.PropertiesDataGridViewCellEndEditHandler);
             // 
@@ -322,17 +345,31 @@
             this.moveEntryDownButton.UseVisualStyleBackColor = true;
             this.moveEntryDownButton.Click += new System.EventHandler(this.MoveEntryDownClickHandler);
             // 
-            // addDTBButton
+            // undoToolStripMenuItem
             // 
-            resources.ApplyResources(this.addDTBButton, "addDTBButton");
-            this.addDTBButton.Name = "addDTBButton";
-            this.addDTBButton.UseVisualStyleBackColor = true;
+            this.undoToolStripMenuItem.Name = "undoToolStripMenuItem";
+            resources.ApplyResources(this.undoToolStripMenuItem, "undoToolStripMenuItem");
+            this.undoToolStripMenuItem.Click += new System.EventHandler(this.UndoClickHandler);
             // 
-            // addDTBToolStripMenuItem
+            // redoToolStripMenuItem
             // 
-            this.addDTBToolStripMenuItem.Name = "addDTBToolStripMenuItem";
-            resources.ApplyResources(this.addDTBToolStripMenuItem, "addDTBToolStripMenuItem");
-            this.addDTBToolStripMenuItem.Click += new System.EventHandler(this.AddDTBClickHandler);
+            this.redoToolStripMenuItem.Name = "redoToolStripMenuItem";
+            resources.ApplyResources(this.redoToolStripMenuItem, "redoToolStripMenuItem");
+            this.redoToolStripMenuItem.Click += new System.EventHandler(this.RedoClickHandler);
+            // 
+            // redoButton
+            // 
+            resources.ApplyResources(this.redoButton, "redoButton");
+            this.redoButton.Name = "redoButton";
+            this.redoButton.UseVisualStyleBackColor = true;
+            this.redoButton.Click += new System.EventHandler(this.RedoClickHandler);
+            // 
+            // undoButton
+            // 
+            resources.ApplyResources(this.undoButton, "undoButton");
+            this.undoButton.Name = "undoButton";
+            this.undoButton.UseVisualStyleBackColor = true;
+            this.undoButton.Click += new System.EventHandler(this.UndoClickHandler);
             // 
             // MainForm
             // 
@@ -387,6 +424,11 @@
         private System.Windows.Forms.Button insertDTBButton;
         private System.Windows.Forms.ToolStripMenuItem addDTBToolStripMenuItem;
         private System.Windows.Forms.Button addDTBButton;
+        private System.Windows.Forms.ToolStripMenuItem undoToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem redoToolStripMenuItem;
+        private System.Windows.Forms.Button undoButton;
+        private System.Windows.Forms.Button redoButton;
+        private System.Windows.Forms.ToolTip mainToolTip;
     }
 }
 

@@ -45,6 +45,14 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Actions\AddEntriesAction.cs" />
+    <Compile Include="Actions\AddModes.cs" />
+    <Compile Include="Actions\DeleteEntryAction.cs" />
+    <Compile Include="Actions\IAction.cs" />
+    <Compile Include="Actions\MoveEntryDownAction.cs" />
+    <Compile Include="Actions\MoveEntryOutAction.cs" />
+    <Compile Include="Actions\MoveEntryInAction.cs" />
+    <Compile Include="Actions\MoveEntryUpAction.cs" />
     <Compile Include="MainForm.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -84,5 +92,6 @@
       <Name>DtbMerger2Library</Name>
     </ProjectReference>
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

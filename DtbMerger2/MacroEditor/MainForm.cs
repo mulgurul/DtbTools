@@ -10,13 +10,156 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.Xml.Linq;
 using DtbMerger2Library.Daisy202;
+using MacroEditor.Actions;
 using Uri = System.Uri;
 
 namespace MacroEditor
 {
     public partial class MainForm : Form
     {
-        private Boolean hasMacroChanged = false;
+        public MainForm()
+        {
+            InitializeComponent();
+        }
+
+        #region Undo/Redo
+
+        private readonly Stack<IAction> undoStack = new Stack<IAction>();
+        private readonly Stack<IAction> redoStack = new Stack<IAction>();
+        private XDocument macro;
+
+        public void DoAction(IAction action)
+        {
+            if (action.CanExecute)
+            {
+                SuspendLayout();
+                try
+                {
+                    var postSelCand = GetPostActionSelectedMacroElementCandidates();
+                    try
+                    {
+                        action.Execute();
+                    }
+                    catch (Exception e)
+                    {
+                        MessageBox.Show(
+                            $"An unexpected {e.GetType()} occured while performing action '{action.Description}': {e.Message}",
+                            action.Description,
+                            MessageBoxButtons.OK,
+                            MessageBoxIcon.Error);
+                        return;
+                    }
+
+                    if (action.CanUnExecute)
+                    {
+                        undoStack.Push(action);
+                    }
+                    else
+                    {
+                        undoStack.Clear();
+                        redoStack.Clear();
+                    }
+                    SelectedMacroElement = postSelCand.FirstOrDefault(CanSelectMacroElement) ?? SelectedMacroElement;
+                    UpdateEntryManipulationControls();
+                }
+                finally
+                {
+                    ResumeLayout();
+                }
+            }
+        }
+
+        private IEnumerable<XElement> GetPostActionSelectedMacroElementCandidates()
+        {
+            return new[]
+            {
+                SelectedMacroElement,
+                SelectedMacroElement?.ElementsBeforeSelf().LastOrDefault(),
+                SelectedMacroElement?.ElementsAfterSelf().FirstOrDefault(),
+                SelectedMacroElement?.Parent
+            }.Where(e => e != null);
+        }
+
+        public void Undo()
+        {
+            if (CanUndo)
+            {
+                SuspendLayout();
+                try
+                {
+                    var postSelCand = GetPostActionSelectedMacroElementCandidates();
+                    var action = undoStack.Pop();
+                    try
+                    {
+                        action.UnExecute();
+                    }
+                    catch (Exception e)
+                    {
+                        MessageBox.Show(
+                            $"An unexpected {e.GetType()} occured while undoing action '{action.Description}':\n{e.Message}\nUndo/redo stacks will be cleared",
+                            $"Undo '{action.Description}'",
+                            MessageBoxButtons.OK,
+                            MessageBoxIcon.Error);
+                        undoStack.Clear();
+                        redoStack.Clear();
+                        return;
+
+                    }
+                    redoStack.Push(action);
+                    SelectedMacroElement = postSelCand.FirstOrDefault(CanSelectMacroElement) ?? SelectedMacroElement;
+                    UpdateEntryManipulationControls();
+
+                }
+                finally
+                {
+                    ResumeLayout();
+                }
+            }
+        }
+
+        public void Redo()
+        {
+            if (CanRedo)
+            {
+                SuspendLayout();
+                try
+                {
+                    var postSelCand = GetPostActionSelectedMacroElementCandidates();
+                    var action = redoStack.Pop();
+                    try
+                    {
+                        action.Execute();
+                    }
+                    catch (Exception e)
+                    {
+                        MessageBox.Show(
+                            $"An unexpected {e.GetType()} occured while redoing action '{action.Description}':\n{e.Message}.\nUndo/redo stacks will be cleared",
+                            $"Undo '{action.Description}'",
+                            MessageBoxButtons.OK,
+                            MessageBoxIcon.Error);
+                        undoStack.Clear();
+                        redoStack.Clear();
+                    }
+                    undoStack.Push(action);
+                    SelectedMacroElement = postSelCand.FirstOrDefault(CanSelectMacroElement) ?? SelectedMacroElement;
+                    UpdateEntryManipulationControls();
+
+                }
+                finally
+                {
+                    ResumeLayout();
+                }
+            }
+        }
+
+        public bool CanUndo => undoStack.Any() && undoStack.Peek().CanUnExecute;
+
+        public bool CanRedo => redoStack.Any() && redoStack.Peek().CanExecute;
+        
+
+        #endregion
+
+        private bool hasMacroChanged = false;
 
         public bool HasMacroChanged
         {
@@ -28,12 +171,50 @@ namespace MacroEditor
             }
         }
 
-        public MainForm()
+        public XDocument Macro
         {
-            InitializeComponent();
+            get => macro;
+            set
+            {
+                if (macro != value)
+                {
+                    if (macro != null)
+                    {
+                        macro.Changed -= MacroChangedHandler;
+                    }
+                    macro = value;
+                    if (macro != null)
+                    {
+                        macro.Changed += MacroChangedHandler;
+                    }
+                    undoStack.Clear();
+                    redoStack.Clear();
+                    HasMacroChanged = false;
+                    UpdateMacroView();
+                    UpdatePropertiesView();
+                    UpdateEntryManipulationControls();
+                }
+            }
         }
 
-        public XDocument Macro { get; set; }
+        private void MacroChangedHandler(Object o, XObjectChangeEventArgs xObjectChangeEventArgs)
+        {
+            HasMacroChanged = true;
+            switch (xObjectChangeEventArgs.ObjectChange)
+            {
+                case XObjectChange.Add:
+                case XObjectChange.Remove:
+                    UpdateMacroView();
+                    break;
+                case XObjectChange.Name:
+                case XObjectChange.Value:
+                    UpdatePropertiesView();
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
+            UpdateEntryManipulationControls();
+        }
 
         public string MacroFileName =>
             Macro?.BaseUri == null
@@ -42,14 +223,14 @@ namespace MacroEditor
 
         public void UpdateMacroView()
         {
-            var selectedMacroEntry = SelectedMacroEntry;
+            var selectedMacroElement = SelectedMacroElement;
             macroTreeView.Nodes.Clear();
             if (Macro?.Root != null)
             {
                 macroTreeView.Nodes.Add(new TreeNode(
                     $"Macro [{Macro.Root.Attribute("name")?.Value??"Unnamed"}]",
                     Macro.Root.Elements().Select(elem => new MacroEntry(elem)).Select(GetMacroEntryTreeNode).ToArray()));
-                var selectedTreeNode = FindMacroElement(selectedMacroEntry?.SourceElement, macroTreeView.Nodes[0]);
+                var selectedTreeNode = FindTreeNodeForMacroElement(selectedMacroElement);
                 if (selectedTreeNode != null)
                 {
                     macroTreeView.SelectedNode = selectedTreeNode;
@@ -59,8 +240,21 @@ namespace MacroEditor
             UpdateEntryManipulationControls();
         }
 
-        private TreeNode FindMacroElement(XElement elem, TreeNode currentNode)
+        public bool CanSelectMacroElement(XElement elem)
         {
+            return FindTreeNodeForMacroElement(elem) != null;
+        }
+
+        private TreeNode FindTreeNodeForMacroElement(XElement elem, TreeNode currentNode = null)
+        {
+            if (currentNode == null)
+            {
+                if (macroTreeView.Nodes.Count == 0)
+                {
+                    return null;
+                }
+                currentNode = macroTreeView.Nodes[0];
+            }
             if (elem == null)
             {
                 return null;
@@ -71,7 +265,7 @@ namespace MacroEditor
             }
             foreach (TreeNode node in currentNode.Nodes)
             {
-                var candidateNode = FindMacroElement(elem, node);
+                var candidateNode = FindTreeNodeForMacroElement(elem, node);
                 if (candidateNode != null)
                 {
                     return candidateNode;
@@ -99,6 +293,17 @@ namespace MacroEditor
 
         private void OpenMacro()
         {
+            if (HasMacroChanged)
+            {
+                if (MessageBox.Show(
+                        "The current macro has unsaved changed. If you continue the changes will be lost",
+                        "EOpen Macro",
+                        MessageBoxButtons.OKCancel,
+                        MessageBoxIcon.Information) == DialogResult.Cancel)
+                {
+                    return;
+                }
+            }
             var ofd = new OpenFileDialog
             {
                 Title = "Select macro file",
@@ -111,11 +316,9 @@ namespace MacroEditor
             if (ofd.ShowDialog(this) == DialogResult.OK)
             {
                 Macro = XDocument.Load(ofd.FileName, LoadOptions.SetBaseUri | LoadOptions.SetLineInfo);
-                HasMacroChanged = false;
-                Macro.Changed += (sender, args) => { HasMacroChanged = true; };
-                UpdateMacroView();
             }
         }
+
 
         private void SaveMacro()
         {
@@ -169,9 +372,6 @@ namespace MacroEditor
                 {
                     Macro.Save(sfd.FileName);
                     Macro = XDocument.Load(sfd.FileName, LoadOptions.SetBaseUri | LoadOptions.SetLineInfo);
-                    Macro.Changed += (sender, args) => { HasMacroChanged = true; };
-                    HasMacroChanged = false;
-                    UpdateMacroView();
                 }
                 catch (Exception e)
                 {
@@ -186,7 +386,13 @@ namespace MacroEditor
 
         public MacroEntry SelectedMacroEntry => macroTreeView.SelectedNode?.Tag as MacroEntry;
 
-        private void MacroTreeViewAfterSelectHandler(object sender, TreeViewEventArgs e)
+        public XElement SelectedMacroElement
+        {
+            get => SelectedMacroEntry?.SourceElement;
+            set => macroTreeView.SelectedNode = FindTreeNodeForMacroElement(value);
+        }
+
+        private void UpdatePropertiesView()
         {
             propertiesDataGridView.Rows.Clear();
             var macroEntry = SelectedMacroEntry;
@@ -199,12 +405,17 @@ namespace MacroEditor
                     propertiesDataGridView.Rows.Add(attr, attr.Name, attr.Value);
                 }
             }
+
+        }
+
+        private void MacroTreeViewAfterSelectHandler(object sender, TreeViewEventArgs e)
+        {
+            UpdatePropertiesView();
             UpdateEntryManipulationControls();
         }
 
         private void PropertiesDataGridViewCellEndEditHandler(object sender, DataGridViewCellEventArgs e)
         {
-            Debug.Print($"End edit ({e.ColumnIndex},{e.RowIndex}), new value is {propertiesDataGridView.Rows[e.RowIndex].Cells[e.ColumnIndex].Value}");
             if (e.ColumnIndex == 2)
             {
                 var row = propertiesDataGridView.Rows[e.RowIndex];
@@ -260,139 +471,95 @@ namespace MacroEditor
             MoveEntryIn();
         }
 
-        private void DefaultifyNodeAndElem(ref TreeNode treeNode, ref XElement elem)
-        {
-            if (treeNode == null)
-            {
-                treeNode = macroTreeView.SelectedNode;
-            }
-            if (elem == null)
-            {
-                elem = (treeNode?.Tag as MacroEntry)?.SourceElement;
-            }
-        }
+        public bool CanMoveUp => 
+            SelectedMacroElement != null && new MoveEntryUpAction(SelectedMacroElement).CanExecute;
 
-        public bool CanMoveUp(TreeNode treeNode = null, XElement elem = null)
-        {
-            DefaultifyNodeAndElem(ref treeNode, ref elem);
-            if (treeNode != null && elem != null)
-            {
-                return treeNode.PrevNode != null && elem.ElementsBeforeSelf().Any();
-            }
-            return false;
-        }
+        public bool CanMoveDown =>
+            SelectedMacroElement != null && new MoveEntryDownAction(SelectedMacroElement).CanExecute;
 
-        private bool CanMoveDown(TreeNode treeNode = null, XElement elem = null)
-        {
-            DefaultifyNodeAndElem(ref treeNode, ref elem);
-            if (treeNode != null && elem != null)
-            {
-                return treeNode.NextNode != null && elem.ElementsAfterSelf().Any();
-            }
-            return false;
-        }
-        private bool CanMoveIn(TreeNode treeNode = null, XElement elem = null)
-        {
-            return CanMoveUp(treeNode, elem);
-        }
-        private bool CanMoveOut(TreeNode treeNode = null, XElement elem = null)
-        {
-            DefaultifyNodeAndElem(ref treeNode, ref elem);
-            if (treeNode != null && elem != null)
-            {
-                return (treeNode.Parent.Tag as MacroEntry) != null;
-            }
-            return false;
-        }
+        public bool CanDeleteEntry =>
+            SelectedMacroElement != null && new DeleteEntryAction(SelectedMacroElement).CanExecute;
 
-        private bool CanDeleteEntry(TreeNode treeNode = null, XElement elem = null)
-        {
-            DefaultifyNodeAndElem(ref treeNode, ref elem);
-            return treeNode != null && elem != null;
-        }
+        public bool CanMoveIn =>
+            SelectedMacroElement != null && new MoveEntryInAction(SelectedMacroElement).CanExecute;
 
-        private bool CanInsertDTBAfterEntry(TreeNode treeNode = null, XElement elem = null)
-        {
-            return CanDeleteEntry();
-        }
+        public bool CanMoveOut =>
+            SelectedMacroElement != null && new MoveEntryOutAction(SelectedMacroElement).CanExecute;
+
+
+
+        public bool CanInsertEntries =>
+            SelectedMacroElement != null &&
+            new AddEntriesAction(SelectedMacroElement, new XElement[0], AddModes.InsertBefore).CanExecute;
 
         private void MoveEntryUp()
         {
-            var treeNode = macroTreeView.SelectedNode;
-            var elem = SelectedMacroEntry?.SourceElement;
-            if (CanMoveUp(treeNode, elem) && elem!=null)
-            {
-                var prevElem = elem.ElementsBeforeSelf().Last();
-                var prevTreeNode = treeNode.PrevNode;
-                elem.Remove();
-                prevElem.AddBeforeSelf(elem);
-                treeNode.Remove();
-                prevTreeNode.Parent.Nodes.Insert(prevTreeNode.Index, treeNode);
-                macroTreeView.SelectedNode = treeNode;
-            }
+            DoAction(new MoveEntryUpAction(SelectedMacroElement));
         }
 
         private void MoveEntryDown()
         {
-            var treeNode = macroTreeView.SelectedNode;
-            var elem = SelectedMacroEntry?.SourceElement;
-            if (CanMoveDown(treeNode, elem) && elem != null)
-            {
-                var nextElem = elem.ElementsAfterSelf().First();
-                var nextTreeNode = treeNode.NextNode;
-                elem.Remove();
-                nextElem.AddAfterSelf(elem);
-                treeNode.Remove();
-                nextTreeNode.Parent.Nodes.Insert(nextTreeNode.Index + 1, treeNode);
-                macroTreeView.SelectedNode = treeNode;
-            }
+            DoAction(new MoveEntryDownAction(SelectedMacroElement));
         }
 
         private void MoveEntryIn()
         {
-            var treeNode = macroTreeView.SelectedNode;
-            var elem = SelectedMacroEntry?.SourceElement;
-            if (CanMoveIn(treeNode, elem) && elem != null)
-            {
-                var prevElem = elem.ElementsBeforeSelf().Last();
-                var prevTreeNode = treeNode.PrevNode;
-                elem.Remove();
-                prevElem.Add(elem);
-                treeNode.Remove();
-                prevTreeNode.Nodes.Add(treeNode);
-                macroTreeView.SelectedNode = treeNode;
-            }
+            DoAction(new MoveEntryInAction(SelectedMacroElement));
+            //var treeNode = macroTreeView.SelectedNode;
+            //var elem = SelectedMacroEntry?.SourceElement;
+            //if (CanMoveIn(treeNode, elem) && elem != null)
+            //{
+            //    var prevElem = elem.ElementsBeforeSelf().Last();
+            //    var prevTreeNode = treeNode.PrevNode;
+            //    elem.Remove();
+            //    prevElem.Add(elem);
+            //    treeNode.Remove();
+            //    prevTreeNode.Nodes.Add(treeNode);
+            //    macroTreeView.SelectedNode = treeNode;
+            //}
         }
 
         private void MoveEntryOut()
         {
-            var treeNode = macroTreeView.SelectedNode;
-            var elem = SelectedMacroEntry?.SourceElement;
-            if (CanMoveOut(treeNode, elem) && elem != null)
-            {
-                var parent = elem.Parent;
-                var parentTreeNode = treeNode.Parent;
-                elem.Remove();
-                parent?.AddAfterSelf(elem);
-                treeNode.Remove();
-                parentTreeNode.Parent.Nodes.Insert(parentTreeNode.Index + 1, treeNode);
-                macroTreeView.SelectedNode = treeNode;
-            }
+            DoAction(new MoveEntryOutAction(SelectedMacroElement));
+            //var treeNode = macroTreeView.SelectedNode;
+            //var elem = SelectedMacroEntry?.SourceElement;
+            //if (CanMoveOut(treeNode, elem) && elem != null)
+            //{
+            //    var parent = elem.Parent;
+            //    var parentTreeNode = treeNode.Parent;
+            //    elem.Remove();
+            //    parent?.AddAfterSelf(elem);
+            //    treeNode.Remove();
+            //    parentTreeNode.Parent.Nodes.Insert(parentTreeNode.Index + 1, treeNode);
+            //    macroTreeView.SelectedNode = treeNode;
+            //}
         }
 
         public void UpdateEntryManipulationControls()
         {
-            moveEntryDownButton.Enabled = CanMoveDown();
-            moveEntryDownToolStripMenuItem.Enabled = moveEntryDownButton.Enabled;
-            moveEntryUpButton.Enabled = CanMoveUp();
-            moveEntryUpToolStripMenuItem.Enabled = moveEntryUpButton.Enabled;
-            moveEntryInButton.Enabled = CanMoveIn();
-            moveEntryInToolStripMenuItem.Enabled = moveEntryInButton.Enabled;
-            moveEntryOutButton.Enabled = CanMoveOut();
-            moveEntryOutToolStripMenuItem.Enabled = moveEntryOutButton.Enabled;
-            deleteEntryButton.Enabled = CanDeleteEntry();
-            insertDTBButton.Enabled = CanInsertDTBAfterEntry();
-            insertDTBToolStripMenuItem.Enabled = insertDTBButton.Enabled;
+            moveEntryDownButton.Enabled = CanMoveDown;
+            moveEntryDownToolStripMenuItem.Enabled = CanMoveDown;
+            moveEntryUpButton.Enabled = CanMoveUp;
+            moveEntryUpToolStripMenuItem.Enabled = CanMoveUp;
+            moveEntryInButton.Enabled = CanMoveIn;
+            moveEntryInToolStripMenuItem.Enabled = CanMoveIn;
+            moveEntryOutButton.Enabled = CanMoveOut;
+            moveEntryOutToolStripMenuItem.Enabled = CanMoveOut;
+            deleteEntryToolStripMenuItem.Enabled = CanDeleteEntry;
+            deleteEntryButton.Enabled = CanDeleteEntry;
+            insertDTBButton.Enabled = CanInsertEntries;
+            insertDTBToolStripMenuItem.Enabled = CanInsertEntries;
+            undoToolStripMenuItem.Enabled = CanUndo;
+            undoButton.Enabled = CanUndo;
+            mainToolTip.SetToolTip(
+                undoButton,
+                undoStack.Any() ? undoStack.Select(a => a.Description).Aggregate((t, d) => $"{t}\n{d}") : "");
+            redoToolStripMenuItem.Enabled = CanRedo;
+            redoButton.Enabled = CanRedo;
+            mainToolTip.SetToolTip(
+                redoButton,
+                redoStack.Any() ? redoStack.Select(a => a.Description).Aggregate((t, d) => $"{t}\n{d}") : "");
         }
 
         private void ReloadMacroEntriesClickHandler(object sender, EventArgs e)
@@ -412,44 +579,7 @@ namespace MacroEditor
 
         private void DeleteEntry()
         {
-            var treeNode = macroTreeView.SelectedNode;
-            var elem = SelectedMacroEntry?.SourceElement;
-            if (CanDeleteEntry(treeNode, elem) && elem != null)
-            {
-                if (elem.Elements().Any())
-                {
-                    switch (MessageBox.Show(
-                        "Do you with to delete the child entries as well? Choosing no will replace the entry with it's child entries",
-                        "Delete Entry",
-                        MessageBoxButtons.YesNoCancel,
-                        MessageBoxIcon.Question,
-                        MessageBoxDefaultButton.Button1))
-                    {
-                        case DialogResult.Yes:
-                            break;
-                        case DialogResult.No:
-                            while (elem.HasElements)
-                            {
-                                var child = elem.Elements().Last();
-                                child.Remove();
-                                elem.AddAfterSelf(child);
-                            }
-
-                            while (treeNode.Nodes.Count > 0)
-                            {
-                                var child = treeNode.Nodes[treeNode.Nodes.Count - 1];
-                                child.Remove();
-                                treeNode.Parent.Nodes.Insert(treeNode.Index + 1, child);
-                            }
-                            break;
-                        default:
-                            return;
-                    }
-                    macroTreeView.SelectedNode = treeNode.PrevNode ?? treeNode.Parent;
-                    elem.Remove();
-                    treeNode.Remove();
-                }
-            }
+            DoAction(new DeleteEntryAction(SelectedMacroElement));
         }
 
         private IEnumerable<XElement> LoadMacroEntriesFromNcc(string title)
@@ -490,8 +620,7 @@ namespace MacroEditor
                 {
                     return;
                 }
-                SelectedMacroEntry.SourceElement.AddBeforeSelf(elements);
-                UpdateMacroView();
+                DoAction(new AddEntriesAction(SelectedMacroElement, elements, AddModes.InsertBefore, "Insert DTB"));
             }
 
         }
@@ -513,32 +642,17 @@ namespace MacroEditor
             {
                 return;
             }
-
-            if (Macro == null)
+            if (Macro?.Root == null)
             {
                 Macro = new XDocument(new XElement("Macro", elements));
-                Macro.Changed += (sender, args) =>
-                {
-                    HasMacroChanged = true;
-                };
-                HasMacroChanged = true;
+                return;
             }
-            else if (SelectedMacroEntry == null)
-            {
-                if (Macro.Root == null)
-                {
-                    Macro.Add(new XElement("Macro", elements));
-                }
-                else
-                {
-                    Macro.Root.Add(elements);
-                }
-            }
-            else
-            {
-                SelectedMacroEntry.SourceElement.Add(elements);
-            }
-            UpdateMacroView();
+
+            DoAction(new AddEntriesAction(
+                SelectedMacroElement ?? Macro.Root, 
+                elements, 
+                AddModes.AddAsChildren,
+                "Add DTB"));
         }
 
         private void SaveMacroClickHandler(object sender, EventArgs e)
@@ -559,6 +673,16 @@ namespace MacroEditor
                     e.Cancel = true;
                 }
             }
+        }
+
+        private void UndoClickHandler(object sender, EventArgs e)
+        {
+            Undo();
+        }
+
+        private void RedoClickHandler(object sender, EventArgs e)
+        {
+            Redo();
         }
     }
 }
