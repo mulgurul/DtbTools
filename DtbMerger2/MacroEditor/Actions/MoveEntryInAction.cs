@@ -11,24 +11,29 @@ namespace MacroEditor.Actions
     {
         public XElement ElementToMove { get; }
 
+        public XElement PreviousElement { get; }
+
         public MoveEntryInAction(XElement elementToMove)
         {
             ElementToMove = elementToMove;
+            PreviousElement = ElementToMove.ElementsBeforeSelf().LastOrDefault();
         }
 
         public void Execute()
         {
-            throw new NotImplementedException();
+            ElementToMove.Remove();
+            PreviousElement.Add(ElementToMove);
         }
 
         public void UnExecute()
         {
-            throw new NotImplementedException();
+            ElementToMove.Remove();
+            PreviousElement.AddAfterSelf(ElementToMove);
         }
 
-        public Boolean CanExecute => false;
+        public Boolean CanExecute => PreviousElement != null;
 
-        public Boolean CanUnExecute => false;
+        public Boolean CanUnExecute => PreviousElement != null;
 
         public String Description => "Move entry in";
     }

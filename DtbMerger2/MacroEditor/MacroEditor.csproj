@@ -53,6 +53,8 @@
     <Compile Include="Actions\MoveEntryOutAction.cs" />
     <Compile Include="Actions\MoveEntryInAction.cs" />
     <Compile Include="Actions\MoveEntryUpAction.cs" />
+    <Compile Include="Actions\RenameEntryAction.cs" />
+    <Compile Include="Actions\SetAttributeAction.cs" />
     <Compile Include="MainForm.cs">
       <SubType>Form</SubType>
     </Compile>

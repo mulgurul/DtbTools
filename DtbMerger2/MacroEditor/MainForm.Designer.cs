@@ -49,7 +49,13 @@
             this.deleteEntryToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.addDTBToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.insertDTBToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.undoToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.redoToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.actionsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.generateMergedDtbToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.mainTableLayoutPanel = new System.Windows.Forms.TableLayoutPanel();
+            this.undoButton = new System.Windows.Forms.Button();
+            this.redoButton = new System.Windows.Forms.Button();
             this.addDTBButton = new System.Windows.Forms.Button();
             this.insertDTBButton = new System.Windows.Forms.Button();
             this.saveMacro = new System.Windows.Forms.Button();
@@ -65,10 +71,6 @@
             this.deleteEntryButton = new System.Windows.Forms.Button();
             this.moveEntryInButton = new System.Windows.Forms.Button();
             this.moveEntryDownButton = new System.Windows.Forms.Button();
-            this.undoToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.redoToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.redoButton = new System.Windows.Forms.Button();
-            this.undoButton = new System.Windows.Forms.Button();
             this.mainToolTip = new System.Windows.Forms.ToolTip(this.components);
             this.mainMenuStrip.SuspendLayout();
             this.mainTableLayoutPanel.SuspendLayout();
@@ -80,7 +82,8 @@
             this.mainMenuStrip.ImageScalingSize = new System.Drawing.Size(20, 20);
             this.mainMenuStrip.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.fileToolStripMenuItem,
-            this.editToolStripMenuItem});
+            this.editToolStripMenuItem,
+            this.actionsToolStripMenuItem});
             resources.ApplyResources(this.mainMenuStrip, "mainMenuStrip");
             this.mainMenuStrip.Name = "mainMenuStrip";
             // 
@@ -187,6 +190,31 @@
             resources.ApplyResources(this.insertDTBToolStripMenuItem, "insertDTBToolStripMenuItem");
             this.insertDTBToolStripMenuItem.Click += new System.EventHandler(this.InsertDTBClickHandler);
             // 
+            // undoToolStripMenuItem
+            // 
+            this.undoToolStripMenuItem.Name = "undoToolStripMenuItem";
+            resources.ApplyResources(this.undoToolStripMenuItem, "undoToolStripMenuItem");
+            this.undoToolStripMenuItem.Click += new System.EventHandler(this.UndoClickHandler);
+            // 
+            // redoToolStripMenuItem
+            // 
+            this.redoToolStripMenuItem.Name = "redoToolStripMenuItem";
+            resources.ApplyResources(this.redoToolStripMenuItem, "redoToolStripMenuItem");
+            this.redoToolStripMenuItem.Click += new System.EventHandler(this.RedoClickHandler);
+            // 
+            // actionsToolStripMenuItem
+            // 
+            this.actionsToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.generateMergedDtbToolStripMenuItem});
+            this.actionsToolStripMenuItem.Name = "actionsToolStripMenuItem";
+            resources.ApplyResources(this.actionsToolStripMenuItem, "actionsToolStripMenuItem");
+            // 
+            // generateMergedDtbToolStripMenuItem
+            // 
+            this.generateMergedDtbToolStripMenuItem.Name = "generateMergedDtbToolStripMenuItem";
+            resources.ApplyResources(this.generateMergedDtbToolStripMenuItem, "generateMergedDtbToolStripMenuItem");
+            this.generateMergedDtbToolStripMenuItem.Click += new System.EventHandler(this.GenerateMergedDtbClickHandler);
+            // 
             // mainTableLayoutPanel
             // 
             resources.ApplyResources(this.mainTableLayoutPanel, "mainTableLayoutPanel");
@@ -206,11 +234,26 @@
             this.mainTableLayoutPanel.Controls.Add(this.moveEntryDownButton, 4, 3);
             this.mainTableLayoutPanel.Name = "mainTableLayoutPanel";
             // 
+            // undoButton
+            // 
+            resources.ApplyResources(this.undoButton, "undoButton");
+            this.undoButton.Name = "undoButton";
+            this.undoButton.UseVisualStyleBackColor = true;
+            this.undoButton.Click += new System.EventHandler(this.UndoClickHandler);
+            // 
+            // redoButton
+            // 
+            resources.ApplyResources(this.redoButton, "redoButton");
+            this.redoButton.Name = "redoButton";
+            this.redoButton.UseVisualStyleBackColor = true;
+            this.redoButton.Click += new System.EventHandler(this.RedoClickHandler);
+            // 
             // addDTBButton
             // 
             resources.ApplyResources(this.addDTBButton, "addDTBButton");
             this.addDTBButton.Name = "addDTBButton";
             this.addDTBButton.UseVisualStyleBackColor = true;
+            this.addDTBButton.Click += new System.EventHandler(this.AddDTBClickHandler);
             // 
             // insertDTBButton
             // 
@@ -242,6 +285,8 @@
             this.mainTableLayoutPanel.SetRowSpan(this.macroTreeView, 4);
             this.macroTreeView.ShowLines = false;
             this.macroTreeView.ShowRootLines = false;
+            this.macroTreeView.AfterCollapse += new System.Windows.Forms.TreeViewEventHandler(this.MacroTreeViewAfterCollapseHandler);
+            this.macroTreeView.AfterExpand += new System.Windows.Forms.TreeViewEventHandler(this.MacroTreeViewAfterExpandHandler);
             this.macroTreeView.AfterSelect += new System.Windows.Forms.TreeViewEventHandler(this.MacroTreeViewAfterSelectHandler);
             // 
             // propertiesDataGridView
@@ -345,32 +390,6 @@
             this.moveEntryDownButton.UseVisualStyleBackColor = true;
             this.moveEntryDownButton.Click += new System.EventHandler(this.MoveEntryDownClickHandler);
             // 
-            // undoToolStripMenuItem
-            // 
-            this.undoToolStripMenuItem.Name = "undoToolStripMenuItem";
-            resources.ApplyResources(this.undoToolStripMenuItem, "undoToolStripMenuItem");
-            this.undoToolStripMenuItem.Click += new System.EventHandler(this.UndoClickHandler);
-            // 
-            // redoToolStripMenuItem
-            // 
-            this.redoToolStripMenuItem.Name = "redoToolStripMenuItem";
-            resources.ApplyResources(this.redoToolStripMenuItem, "redoToolStripMenuItem");
-            this.redoToolStripMenuItem.Click += new System.EventHandler(this.RedoClickHandler);
-            // 
-            // redoButton
-            // 
-            resources.ApplyResources(this.redoButton, "redoButton");
-            this.redoButton.Name = "redoButton";
-            this.redoButton.UseVisualStyleBackColor = true;
-            this.redoButton.Click += new System.EventHandler(this.RedoClickHandler);
-            // 
-            // undoButton
-            // 
-            resources.ApplyResources(this.undoButton, "undoButton");
-            this.undoButton.Name = "undoButton";
-            this.undoButton.UseVisualStyleBackColor = true;
-            this.undoButton.Click += new System.EventHandler(this.UndoClickHandler);
-            // 
             // MainForm
             // 
             resources.ApplyResources(this, "$this");
@@ -429,6 +448,8 @@
         private System.Windows.Forms.Button undoButton;
         private System.Windows.Forms.Button redoButton;
         private System.Windows.Forms.ToolTip mainToolTip;
+        private System.Windows.Forms.ToolStripMenuItem actionsToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem generateMergedDtbToolStripMenuItem;
     }
 }
 

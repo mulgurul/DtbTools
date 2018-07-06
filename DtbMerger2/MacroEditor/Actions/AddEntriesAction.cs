@@ -27,11 +27,9 @@ namespace MacroEditor.Actions
             {
                 case AddModes.AddAsChildren:
                     CanExecute = contextElement != null;
-                    CanUnExecute = contextElement != null;
                     break;
                 case AddModes.InsertBefore:
                     CanExecute = contextElement?.Parent != null;
-                    CanUnExecute = contextElement?.Parent != null;
                     break;
                 default:
                     throw new ArgumentOutOfRangeException(nameof(addMode), addMode, null);
@@ -39,16 +37,29 @@ namespace MacroEditor.Actions
         }
         public void Execute()
         {
-            throw new NotImplementedException();
+            switch (AddMode)
+            {
+                case AddModes.AddAsChildren:
+                    ContextElement.Add(elementsToAdd);
+                    break;
+                case AddModes.InsertBefore:
+                    ContextElement.AddBeforeSelf(elementsToAdd);
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
         }
 
         public void UnExecute()
         {
-            throw new NotImplementedException();
+            foreach (var elem in elementsToAdd)
+            {
+                elem.Remove();
+            }
         }
 
         public bool CanExecute { get; }
-        public bool CanUnExecute { get; }
+        public bool CanUnExecute => true;
         public string Description { get; }
     }
 }

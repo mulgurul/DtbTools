@@ -4,6 +4,7 @@ using System.ComponentModel;
 using System.Data;
 using System.Diagnostics;
 using System.Drawing;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -17,6 +18,7 @@ namespace MacroEditor
 {
     public partial class MainForm : Form
     {
+
         public MainForm()
         {
             InitializeComponent();
@@ -43,6 +45,7 @@ namespace MacroEditor
                     catch (Exception e)
                     {
                         MessageBox.Show(
+                            this,
                             $"An unexpected {e.GetType()} occured while performing action '{action.Description}': {e.Message}",
                             action.Description,
                             MessageBoxButtons.OK,
@@ -96,6 +99,7 @@ namespace MacroEditor
                     catch (Exception e)
                     {
                         MessageBox.Show(
+                            this,
                             $"An unexpected {e.GetType()} occured while undoing action '{action.Description}':\n{e.Message}\nUndo/redo stacks will be cleared",
                             $"Undo '{action.Description}'",
                             MessageBoxButtons.OK,
@@ -133,6 +137,7 @@ namespace MacroEditor
                     catch (Exception e)
                     {
                         MessageBox.Show(
+                            this,
                             $"An unexpected {e.GetType()} occured while redoing action '{action.Description}':\n{e.Message}.\nUndo/redo stacks will be cleared",
                             $"Undo '{action.Description}'",
                             MessageBoxButtons.OK,
@@ -217,7 +222,7 @@ namespace MacroEditor
         }
 
         public string MacroFileName =>
-            Macro?.BaseUri == null
+            String.IsNullOrWhiteSpace(Macro?.BaseUri)
                 ? null
                 : new Uri(Macro.BaseUri).LocalPath;
 
@@ -235,9 +240,30 @@ namespace MacroEditor
                 {
                     macroTreeView.SelectedNode = selectedTreeNode;
                 }
+                UpdateMacroTreeNodeStates(macroTreeView.Nodes[0]);
             }
             Text = $"{Application.ProductName} [{MacroFileName}]{(HasMacroChanged?"*":"")}";
             UpdateEntryManipulationControls();
+        }
+
+        private void UpdateMacroTreeNodeStates(TreeNode node)
+        {
+            if (node.Tag is MacroEntry macroEntry)
+            {
+                if (macroEntry.SourceElement?.Annotations<TreeNodeOpenAnnotation>().Any()??false)
+                {
+                    node.Expand();
+                }
+                else
+                {
+                    node.Collapse();
+                }
+            }
+
+            foreach (TreeNode childNode in node.Nodes)
+            {
+                UpdateMacroTreeNodeStates(childNode);
+            }
         }
 
         public bool CanSelectMacroElement(XElement elem)
@@ -315,7 +341,20 @@ namespace MacroEditor
             };
             if (ofd.ShowDialog(this) == DialogResult.OK)
             {
-                Macro = XDocument.Load(ofd.FileName, LoadOptions.SetBaseUri | LoadOptions.SetLineInfo);
+                try
+                {
+                    Macro = XDocument.Load(ofd.FileName, LoadOptions.SetBaseUri | LoadOptions.SetLineInfo);
+
+                }
+                catch (Exception e)
+                {
+                    MessageBox.Show(
+                        this,
+                        $"An {e.GetType()} occurred while loading macro {ofd.FileName}: {e.Message}",
+                        "Load Macro",
+                        MessageBoxButtons.OK,
+                        MessageBoxIcon.Error);
+                }
             }
         }
 
@@ -341,6 +380,7 @@ namespace MacroEditor
                 catch (Exception e)
                 {
                     MessageBox.Show(
+                        this,
                         $"Could not save macro as {Macro.BaseUri} due to an unexpected {e.GetType()}: {e.Message}",
                         "Save Macro",
                         MessageBoxButtons.OK,
@@ -376,6 +416,7 @@ namespace MacroEditor
                 catch (Exception e)
                 {
                     MessageBox.Show(
+                        this,
                         $"Could not save macro as {sfd.FileName} due to an unexpected {e.GetType()}: {e.Message}",
                         "Save Macro",
                         MessageBoxButtons.OK,
@@ -421,21 +462,26 @@ namespace MacroEditor
                 var row = propertiesDataGridView.Rows[e.RowIndex];
                 if (row.Cells[0].Value is XAttribute attr)
                 {
-                    attr.Value = row.Cells[2].Value.ToString();
+                    DoAction(new SetAttributeAction(attr.Parent, attr.Name, row.Cells[2].Value.ToString()));
                 }
 
                 if (row.Cells[0].Value is XElement elem)
                 {
                     var val = row.Cells[2].Value?.ToString().Trim()??"";
+                    XName newName = null;
                     switch (row.Cells[1].Value.ToString())
                     {
                         case "LocalName":
-                            elem.Name = elem.Name.Namespace+ val;
+                            newName = elem.Name.Namespace+val;
                             break;
                         case "NameSpace":
                             XNamespace ns = val;
-                            elem.Name = ns + elem.Name.LocalName;
+                            newName = ns + elem.Name.LocalName;
                             break;
+                    }
+                    if (newName != elem.Name)
+                    {
+                        DoAction(new RenameEntryAction(elem, newName));
                     }
                 }
             }
@@ -486,7 +532,7 @@ namespace MacroEditor
         public bool CanMoveOut =>
             SelectedMacroElement != null && new MoveEntryOutAction(SelectedMacroElement).CanExecute;
 
-
+        public bool CanGenerateMergedDTB => Macro?.Root?.Elements().Any() ?? false;
 
         public bool CanInsertEntries =>
             SelectedMacroElement != null &&
@@ -505,35 +551,11 @@ namespace MacroEditor
         private void MoveEntryIn()
         {
             DoAction(new MoveEntryInAction(SelectedMacroElement));
-            //var treeNode = macroTreeView.SelectedNode;
-            //var elem = SelectedMacroEntry?.SourceElement;
-            //if (CanMoveIn(treeNode, elem) && elem != null)
-            //{
-            //    var prevElem = elem.ElementsBeforeSelf().Last();
-            //    var prevTreeNode = treeNode.PrevNode;
-            //    elem.Remove();
-            //    prevElem.Add(elem);
-            //    treeNode.Remove();
-            //    prevTreeNode.Nodes.Add(treeNode);
-            //    macroTreeView.SelectedNode = treeNode;
-            //}
         }
 
         private void MoveEntryOut()
         {
             DoAction(new MoveEntryOutAction(SelectedMacroElement));
-            //var treeNode = macroTreeView.SelectedNode;
-            //var elem = SelectedMacroEntry?.SourceElement;
-            //if (CanMoveOut(treeNode, elem) && elem != null)
-            //{
-            //    var parent = elem.Parent;
-            //    var parentTreeNode = treeNode.Parent;
-            //    elem.Remove();
-            //    parent?.AddAfterSelf(elem);
-            //    treeNode.Remove();
-            //    parentTreeNode.Parent.Nodes.Insert(parentTreeNode.Index + 1, treeNode);
-            //    macroTreeView.SelectedNode = treeNode;
-            //}
         }
 
         public void UpdateEntryManipulationControls()
@@ -560,6 +582,7 @@ namespace MacroEditor
             mainToolTip.SetToolTip(
                 redoButton,
                 redoStack.Any() ? redoStack.Select(a => a.Description).Aggregate((t, d) => $"{t}\n{d}") : "");
+            generateMergedDtbToolStripMenuItem.Enabled = CanGenerateMergedDTB;
         }
 
         private void ReloadMacroEntriesClickHandler(object sender, EventArgs e)
@@ -601,6 +624,7 @@ namespace MacroEditor
                 catch (Exception e)
                 {
                     MessageBox.Show(
+                        this,
                         $"Could not load macro elements from ncc {ofd.FileName} due to an unexpected {e.GetType()}: {e.Message}",
                         title,
                         MessageBoxButtons.OK,
@@ -665,6 +689,7 @@ namespace MacroEditor
             if (HasMacroChanged)
             {
                 if (MessageBox.Show(
+                        this,
                         "The current macro has unsaved changed. If you continue the changes will be lost",
                         "Exit Macro Editor",
                         MessageBoxButtons.OKCancel,
@@ -683,6 +708,85 @@ namespace MacroEditor
         private void RedoClickHandler(object sender, EventArgs e)
         {
             Redo();
+        }
+
+        private class TreeNodeOpenAnnotation
+        {
+        }
+
+        private void MacroTreeViewAfterExpandHandler(object sender, TreeViewEventArgs e)
+        {
+            if (e.Node.Tag is MacroEntry macroEntry)
+            {
+                macroEntry.SourceElement?.AddAnnotation(new TreeNodeOpenAnnotation());
+            }
+        }
+
+        private void MacroTreeViewAfterCollapseHandler(object sender, TreeViewEventArgs e)
+        {
+            if (e.Node.Tag is MacroEntry macroEntry)
+            {
+                macroEntry.SourceElement?.RemoveAnnotations<TreeNodeOpenAnnotation>();
+            }
+        }
+
+        private void GenerateMergedDtbClickHandler(object sender, EventArgs e)
+        {
+            GenerateMergedDtb();
+        }
+
+
+
+        private void GenerateMergedDtb()
+        {
+            if (CanGenerateMergedDTB)
+            {
+                var process = "";
+                UseWaitCursor = true;
+                try
+                {
+                    process = "loading merge entries from Macro";
+                    var builder = new DtbBuilder(MergeEntry.LoadMergeEntriesFromMacro(Macro));
+                    process = "building DTB";
+                    builder.BuildDtb();
+                    var fbd = new FolderBrowserDialog
+                    {
+                        Description = "Select output folder for DTB",
+                        ShowNewFolderButton = true
+                    };
+                    if (!String.IsNullOrWhiteSpace(MacroFileName) &&
+                        Directory.Exists(Path.GetDirectoryName(MacroFileName)))
+                    {
+                        fbd.SelectedPath = Path.GetDirectoryName(MacroFileName);
+                    }
+
+                    if (fbd.ShowDialog(this) == DialogResult.OK)
+                    {
+                        process = "saving DTB";
+                        builder.SaveDtb(fbd.SelectedPath);
+                        MessageBox.Show(
+                            this,
+                            $"Succesfully generated merged DTB from macro and saved to\n{fbd.SelectedPath}",
+                            "Generate Merged DTB",
+                            MessageBoxButtons.OK,
+                            MessageBoxIcon.Information);
+                    }
+                }
+                catch (Exception e)
+                {
+                    MessageBox.Show(
+                        this,
+                        $"An {e.GetType()} occured while {process}: {e.Message}",
+                        "Generate Merged DTB",
+                        MessageBoxButtons.OK,
+                        MessageBoxIcon.Error);
+                    return;
+                }
+                finally
+                {
+                    UseWaitCursor = false;
+                }
+            }
         }
     }
 }
