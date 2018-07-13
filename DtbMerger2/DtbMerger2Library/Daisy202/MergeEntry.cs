@@ -58,7 +58,7 @@ namespace DtbMerger2Library.Daisy202
 
         public static IEnumerable<MergeEntry> LoadMergeEntriesFromMacro(XDocument macroDoc)
         {
-            return macroDoc.Root?.Elements().SelectMany(LoadMergeEntriesFromMacroElement) ?? new MergeEntry[0];
+            return macroDoc.Root?.Elements().SelectMany(e => LoadMergeEntriesFromMacroElement(e)) ?? new MergeEntry[0];
         }
 
         public static IEnumerable<MergeEntry> LoadMergeEntriesFromMacro(Uri macroUri)
@@ -70,7 +70,7 @@ namespace DtbMerger2Library.Daisy202
 
         }
 
-        public static IEnumerable<MergeEntry> LoadMergeEntriesFromMacroElement(XElement elem)
+        public static IEnumerable<MergeEntry> LoadMergeEntriesFromMacroElement(XElement elem, bool deep = true)
         {
             ICollection<MergeEntry> res;
             if (elem.Attribute("ItemID") != null)
@@ -100,7 +100,10 @@ namespace DtbMerger2Library.Daisy202
                 }
             }
 
-            res.Last().AddChildren(elem.Elements().SelectMany(LoadMergeEntriesFromMacroElement));
+            if (deep)
+            {
+                res.Last().AddChildren(elem.Elements().SelectMany(e => LoadMergeEntriesFromMacroElement(e)));
+            }
             return res;
         }
         #endregion
@@ -341,6 +344,18 @@ namespace DtbMerger2Library.Daisy202
 
         public string DefaultAudioFileExtension =>
             Path.GetExtension(GetAudioSegments().FirstOrDefault()?.AudioFile.AbsolutePath);
+
+        public XElement MacroElement
+        {
+            get
+            {
+                return new XElement(
+                    "Section",
+                    new XAttribute("file", SourceNavEntry.LocalPath),
+                    new XAttribute("ItemID", SourceNavEntry.Fragment.TrimStart('#')),
+                    ChildNodes.Select(ch => ch.MacroElement));
+            }
+        }
 
 
         public override String ToString()
