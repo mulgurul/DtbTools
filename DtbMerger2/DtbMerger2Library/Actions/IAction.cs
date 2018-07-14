@@ -1,7 +1,4 @@
-﻿using System.Text;
-using System.Threading.Tasks;
-
-namespace MacroEditor.Actions
+﻿namespace DtbMerger2Library.Actions
 {
     public interface IAction
     {

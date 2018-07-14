@@ -2,7 +2,7 @@
 using System.Linq;
 using System.Xml.Linq;
 
-namespace MacroEditor.Actions
+namespace DtbMerger2Library.Actions
 {
     public class MoveEntryUpAction : IAction
     {

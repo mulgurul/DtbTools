@@ -1,4 +1,4 @@
-﻿namespace MacroEditor.Actions
+﻿namespace DtbMerger2Library.Actions
 {
     public enum AddModes
     {
