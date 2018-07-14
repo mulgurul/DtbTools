@@ -4,11 +4,11 @@ using System.Xml.Linq;
 
 namespace DtbMerger2Library.Actions
 {
-    public class MoveEntryDownAction : IAction
+    public class MoveElementDownAction : IAction
     {
         public XElement ElementToMove { get; }
 
-        public MoveEntryDownAction(XElement elementToMove)
+        public MoveElementDownAction(XElement elementToMove)
         {
             ElementToMove = elementToMove;
         }

@@ -4,7 +4,7 @@ using System.Xml.Linq;
 
 namespace DtbMerger2Library.Actions
 {
-    public class AddEntriesAction : IAction
+    public class AddElementsAction : IAction
     {
         public AddModes AddMode { get; }
 
@@ -14,7 +14,7 @@ namespace DtbMerger2Library.Actions
 
         public IEnumerable<XElement> ElementsToAdd => elementsToAdd?.AsReadOnly();
 
-        public AddEntriesAction(XElement contextElement, IEnumerable<XElement> elementsToAdd, AddModes addMode, string description = "Add entries")
+        public AddElementsAction(XElement contextElement, IEnumerable<XElement> elementsToAdd, AddModes addMode, string description = "Add entries")
         {
             ContextElement = contextElement;
             this.elementsToAdd = new List<XElement>(elementsToAdd);

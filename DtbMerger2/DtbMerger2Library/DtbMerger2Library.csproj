@@ -46,15 +46,15 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Actions\AddEntriesAction.cs" />
+    <Compile Include="Actions\AddElementsAction.cs" />
     <Compile Include="Actions\AddModes.cs" />
-    <Compile Include="Actions\DeleteEntryAction.cs" />
+    <Compile Include="Actions\DeleteElementsAction.cs" />
     <Compile Include="Actions\IAction.cs" />
-    <Compile Include="Actions\MoveEntryDownAction.cs" />
-    <Compile Include="Actions\MoveEntryInAction.cs" />
-    <Compile Include="Actions\MoveEntryOutAction.cs" />
-    <Compile Include="Actions\MoveEntryUpAction.cs" />
-    <Compile Include="Actions\RenameEntryAction.cs" />
+    <Compile Include="Actions\MoveElementDownAction.cs" />
+    <Compile Include="Actions\MoveElementInAction.cs" />
+    <Compile Include="Actions\MoveElementOutAction.cs" />
+    <Compile Include="Actions\MoveElementUpAction.cs" />
+    <Compile Include="Actions\RenameElementAction.cs" />
     <Compile Include="Actions\SetAttributeAction.cs" />
     <Compile Include="AudioSegment.cs" />
     <Compile Include="Daisy202\DtbBuilder.cs" />

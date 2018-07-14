@@ -4,7 +4,7 @@ using System.Xml.Linq;
 
 namespace DtbMerger2Library.Actions
 {
-    public class MoveEntryOutAction : IAction
+    public class MoveElementOutAction : IAction
     {
         public XElement ElementToMove { get; }
 
@@ -12,7 +12,7 @@ namespace DtbMerger2Library.Actions
 
         public int IndexBeforeMove { get; private set; }
 
-        public MoveEntryOutAction(XElement elementToMove)
+        public MoveElementOutAction(XElement elementToMove)
         {
             ElementToMove = elementToMove;
             ParentElementBeforeMove = ElementToMove.Parent;

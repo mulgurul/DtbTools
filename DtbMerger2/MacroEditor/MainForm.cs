@@ -481,7 +481,7 @@ namespace MacroEditor
                     }
                     if (newName != elem.Name)
                     {
-                        DoAction(new RenameEntryAction(elem, newName));
+                        DoAction(new RenameElementAction(elem, newName));
                     }
                 }
             }
@@ -518,44 +518,44 @@ namespace MacroEditor
         }
 
         public bool CanMoveUp => 
-            SelectedMacroElement != null && new MoveEntryUpAction(SelectedMacroElement).CanExecute;
+            SelectedMacroElement != null && new MoveElementUpAction(SelectedMacroElement).CanExecute;
 
         public bool CanMoveDown =>
-            SelectedMacroElement != null && new MoveEntryDownAction(SelectedMacroElement).CanExecute;
+            SelectedMacroElement != null && new MoveElementDownAction(SelectedMacroElement).CanExecute;
 
         public bool CanDeleteEntry =>
-            SelectedMacroElement != null && new DeleteEntryAction(SelectedMacroElement).CanExecute;
+            SelectedMacroElement != null && new DeleteElementsAction(SelectedMacroElement).CanExecute;
 
         public bool CanMoveIn =>
-            SelectedMacroElement != null && new MoveEntryInAction(SelectedMacroElement).CanExecute;
+            SelectedMacroElement != null && new MoveElementInAction(SelectedMacroElement).CanExecute;
 
         public bool CanMoveOut =>
-            SelectedMacroElement != null && new MoveEntryOutAction(SelectedMacroElement).CanExecute;
+            SelectedMacroElement != null && new MoveElementOutAction(SelectedMacroElement).CanExecute;
 
         public bool CanGenerateMergedDTB => Macro?.Root?.Elements().Any() ?? false;
 
         public bool CanInsertEntries =>
             SelectedMacroElement != null &&
-            new AddEntriesAction(SelectedMacroElement, new XElement[0], AddModes.InsertBefore).CanExecute;
+            new AddElementsAction(SelectedMacroElement, new XElement[0], AddModes.InsertBefore).CanExecute;
 
         private void MoveEntryUp()
         {
-            DoAction(new MoveEntryUpAction(SelectedMacroElement));
+            DoAction(new MoveElementUpAction(SelectedMacroElement));
         }
 
         private void MoveEntryDown()
         {
-            DoAction(new MoveEntryDownAction(SelectedMacroElement));
+            DoAction(new MoveElementDownAction(SelectedMacroElement));
         }
 
         private void MoveEntryIn()
         {
-            DoAction(new MoveEntryInAction(SelectedMacroElement));
+            DoAction(new MoveElementInAction(SelectedMacroElement));
         }
 
         private void MoveEntryOut()
         {
-            DoAction(new MoveEntryOutAction(SelectedMacroElement));
+            DoAction(new MoveElementOutAction(SelectedMacroElement));
         }
 
         public void UpdateEntryManipulationControls()
@@ -602,7 +602,7 @@ namespace MacroEditor
 
         private void DeleteEntry()
         {
-            DoAction(new DeleteEntryAction(SelectedMacroElement));
+            DoAction(new DeleteElementsAction(SelectedMacroElement));
         }
 
         private IEnumerable<XElement> LoadMacroEntriesFromNcc(string title)
@@ -644,7 +644,7 @@ namespace MacroEditor
                 {
                     return;
                 }
-                DoAction(new AddEntriesAction(SelectedMacroElement, elements, AddModes.InsertBefore, "Insert DTB"));
+                DoAction(new AddElementsAction(SelectedMacroElement, elements, AddModes.InsertBefore, "Insert DTB"));
             }
 
         }
@@ -672,7 +672,7 @@ namespace MacroEditor
                 return;
             }
 
-            DoAction(new AddEntriesAction(
+            DoAction(new AddElementsAction(
                 SelectedMacroElement ?? Macro.Root, 
                 elements, 
                 AddModes.AddAsChildren,

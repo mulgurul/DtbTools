@@ -4,7 +4,7 @@ using System.Xml.Linq;
 
 namespace DtbMerger2Library.Actions
 {
-    public class DeleteEntryAction : IAction
+    public class DeleteElementsAction : IAction
     {
         public XElement ElementToDelete { get; }
 
@@ -12,7 +12,7 @@ namespace DtbMerger2Library.Actions
         private int index = -1;
 
 
-        public DeleteEntryAction(XElement elementToDelete)
+        public DeleteElementsAction(XElement elementToDelete)
         {
             ElementToDelete = elementToDelete;
         }
