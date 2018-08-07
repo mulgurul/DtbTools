@@ -73,9 +73,9 @@
             this.moveEntryInButton = new System.Windows.Forms.Button();
             this.moveEntryDownButton = new System.Windows.Forms.Button();
             this.buildProgressBar = new System.Windows.Forms.ProgressBar();
+            this.buildMessageLabel = new System.Windows.Forms.Label();
             this.mainToolTip = new System.Windows.Forms.ToolTip(this.components);
             this.saveDtbBackgroundWorker = new System.ComponentModel.BackgroundWorker();
-            this.buildMessageLabel = new System.Windows.Forms.Label();
             this.mainMenuStrip.SuspendLayout();
             this.mainTableLayoutPanel.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.propertiesDataGridView)).BeginInit();
@@ -412,6 +412,12 @@
             this.buildProgressBar.Step = 1;
             this.buildProgressBar.Style = System.Windows.Forms.ProgressBarStyle.Continuous;
             // 
+            // buildMessageLabel
+            // 
+            resources.ApplyResources(this.buildMessageLabel, "buildMessageLabel");
+            this.mainTableLayoutPanel.SetColumnSpan(this.buildMessageLabel, 3);
+            this.buildMessageLabel.Name = "buildMessageLabel";
+            // 
             // saveDtbBackgroundWorker
             // 
             this.saveDtbBackgroundWorker.WorkerReportsProgress = true;
@@ -419,12 +425,6 @@
             this.saveDtbBackgroundWorker.DoWork += new System.ComponentModel.DoWorkEventHandler(this.SaveDtbBackgroundWorkerDoWorkHandler);
             this.saveDtbBackgroundWorker.ProgressChanged += new System.ComponentModel.ProgressChangedEventHandler(this.SaveDtbBackgroundWorkerProgressChangedHandler);
             this.saveDtbBackgroundWorker.RunWorkerCompleted += new System.ComponentModel.RunWorkerCompletedEventHandler(this.SaveDtbBackgroundWorkerRunWorkerCompletedHandler);
-            // 
-            // buildMessageLabel
-            // 
-            resources.ApplyResources(this.buildMessageLabel, "buildMessageLabel");
-            this.mainTableLayoutPanel.SetColumnSpan(this.buildMessageLabel, 3);
-            this.buildMessageLabel.Name = "buildMessageLabel";
             // 
             // MainForm
             // 
