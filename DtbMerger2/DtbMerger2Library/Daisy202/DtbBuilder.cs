@@ -16,6 +16,7 @@ namespace DtbMerger2Library.Daisy202
 {
     public class DtbBuilder
     {
+
         public TimeSpan AllowedFileEndAudio { get; set; } = TimeSpan.FromSeconds(1.5);
 
         public List<MergeEntry> MergeEntries { get; private set; }
@@ -258,7 +259,7 @@ namespace DtbMerger2Library.Daisy202
                 Utils.CreateOrGetMeta(smilFile, "dc:identifier")?.SetAttributeValue("content", identifier);
                 seq.Add(smilElements);
                 smilFiles.Add(smilFile);
-                totalElapsedTime += TimeSpan.FromSeconds(Math.Ceiling(timeInThisSmil.TotalSeconds));
+                totalElapsedTime += timeInThisSmil;
                 foreach (var imgSrc in contentElements.SelectMany(ce =>
                     ce.DescendantsAndSelf(Utils.XhtmlNs + "img").Select(img => img.Attribute("src"))
                         .Where(src => src != null)))
@@ -271,6 +272,13 @@ namespace DtbMerger2Library.Daisy202
 
             NccDocument.Root?.Element(Utils.XhtmlNs + "head")?.Add(
                 entries.First().Ncc.Root?.Element(Utils.XhtmlNs + "head")?.Elements(Utils.XhtmlNs + "meta"));
+            NccDocument.Root?.Element(Utils.XhtmlNs + "head")?.Add(
+                entries.First().Ncc.Root?.Element(Utils.XhtmlNs + "head")?.Elements(Utils.XhtmlNs + "title"));
+
+            ContentDocument?.Root?.Element(Utils.XhtmlNs + "head")?.Add(
+                NccDocument.Root?.Element(Utils.XhtmlNs + "head")?.Element(Utils.XhtmlNs + "title"));
+            ContentDocument?.Root?.Element(Utils.XhtmlNs + "head")?.Add(
+                NccDocument.Root?.Element(Utils.XhtmlNs + "head")?.Elements(Utils.XhtmlNs + "meta").Where(meta => meta.Attribute("name")?.Value == "dc:identifier"));
 
             Utils.CreateOrGetMeta(NccDocument, "ncc:totalTime")
                 ?.SetAttributeValue("content", Utils.GetHHMMSSFromTimeSpan(totalElapsedTime));
@@ -361,10 +369,18 @@ namespace DtbMerger2Library.Daisy202
             }
         }
 
-        public void SaveDtb(string baseDir)
+        public bool SaveDtb(string baseDir, Func<int, string, bool> progressDelegate = null)
         {
+            if (progressDelegate == null)
+            {
+                progressDelegate = (p, m) => false;
+            }
             if (Directory.Exists(baseDir))
             {
+                if (progressDelegate(0, $"Deleting pre-existing files in {baseDir}"))
+                {
+                    return false;
+                }
                 foreach (var dir in Directory.GetDirectories(baseDir))
                 {
                     Directory.Delete(dir, true);
@@ -383,15 +399,23 @@ namespace DtbMerger2Library.Daisy202
                 IndentChars = "\t",
                 NamespaceHandling = NamespaceHandling.OmitDuplicates
             };
+            var i = 0;
             foreach (var xmlFileName in xmlDocs.Keys)
             {
+                if (progressDelegate(100 * i / xmlDocs.Keys.Count, $"Saving xml file {xmlFileName}"))
+                {
+                    return false;
+                }
                 using (var writer = XmlWriter.Create(Path.Combine(baseDir, xmlFileName), wrSettings))
                 {
                     xmlDocs[xmlFileName].Save(writer);
                 }
+                i++;
             }
-            SaveAudioFiles(baseDir);
-            SaveMediaFiles(baseDir);
+
+            if (!SaveAudioFiles(baseDir, progressDelegate)) return false;
+            if (!SaveMediaFiles(baseDir, progressDelegate)) return false;
+            return true;
         }
 
         private WaveStream GetAudioPcmStream(string path)
@@ -407,10 +431,21 @@ namespace DtbMerger2Library.Daisy202
             }
         }
 
-        private void SaveAudioFiles(string baseDir)
+        private bool SaveAudioFiles(string baseDir, Func<int, string, bool> progressDelegate = null)
         {
+            if (progressDelegate == null)
+            {
+                progressDelegate = (p, m) => false;
+            }
+
+            var count = AudioFileSegments.Keys.Count(key => AudioFileSegments[key].Any());
+            var index = 0;
             foreach (var audioFileName in AudioFileSegments.Keys.Where(key => AudioFileSegments[key].Any()))
             {
+                if (progressDelegate((100 * index) / count, $"Saving audio file {audioFileName}"))
+                {
+                    return false;
+                }
                 if (AudioFileSegments[audioFileName].Count == 1)
                 {
                     var audSeg = AudioFileSegments[audioFileName].First();
@@ -437,19 +472,19 @@ namespace DtbMerger2Library.Daisy202
                     switch (AudioFileExtension)
                     {
                         case ".mp3":
-                            using (var mp3FR = new Mp3FileReader(firstAudioPath))
+                            using (var mp3Fr = new Mp3FileReader(firstAudioPath))
                             {
-                                waveFormat = mp3FR.WaveFormat;
+                                waveFormat = mp3Fr.WaveFormat;
                                 audioStream = new LameMP3FileWriter(
                                     underlyingStream, 
                                     waveFormat, 
-                                    mp3FR.Mp3WaveFormat.AverageBytesPerSecond/8);
-                                if (mp3FR.Id3v2Tag != null)
+                                    mp3Fr.Mp3WaveFormat.AverageBytesPerSecond/8);
+                                if (mp3Fr.Id3v2Tag != null)
                                 {
-                                    underlyingStream.Write(mp3FR.Id3v2Tag.RawData, 0, mp3FR.Id3v2Tag.RawData.Length);
+                                    underlyingStream.Write(mp3Fr.Id3v2Tag.RawData, 0, mp3Fr.Id3v2Tag.RawData.Length);
                                 }
 
-                                byteSuffix = mp3FR.Id3v1Tag.ToArray();
+                                byteSuffix = mp3Fr.Id3v1Tag?.ToArray();
                             }
                             break;
                         case ".wav":
@@ -481,9 +516,9 @@ namespace DtbMerger2Library.Daisy202
                                 var buf = new Byte[10*1024];
                                 while (bytesRead < bytesToRead)
                                 {
-                                    int count = (int)Math.Min(bytesToRead - bytesRead, buf.Length);
-                                    bytesRead += audioReader.Read(buf, 0, count);
-                                    audioStream.Write(buf, 0, count);
+                                    var byteCount = (int)Math.Min(bytesToRead - bytesRead, buf.Length);
+                                    bytesRead += audioReader.Read(buf, 0, byteCount);
+                                    audioStream.Write(buf, 0, byteCount);
                                 }
                             }
                         }
@@ -502,14 +537,26 @@ namespace DtbMerger2Library.Daisy202
                     }
                     underlyingStream.Close();
                 }
+
+                index++;
             }
+
+            return true;
         }
 
-        private void SaveMediaFiles(string baseDir)
+        private bool SaveMediaFiles(string baseDir, Func<int, string, bool> progressDelegate = null)
         {
+            if (progressDelegate == null)
+            {
+                progressDelegate = (p, m) => false;
+            }
             int index = 0;
             foreach (var entry in MergeEntries.SelectMany(me => me.DescententsAndSelf))
             {
+                if (progressDelegate((100 * index) / MergeEntries.Count, "Saving media files"))
+                {
+                    return false;
+                }
                 foreach (var imgUri in entry.GetTextElements()
                     .SelectMany(e => e.DescendantsAndSelf(e.Name.Namespace + "img").Select(img => img.Attribute("src")))
                     .Select(Utils.GetUri)
@@ -521,6 +568,8 @@ namespace DtbMerger2Library.Daisy202
                 }
                 index++;
             }
+
+            return true;
         }
     }
 }

@@ -157,12 +157,15 @@ namespace DtbMerger2Library.Daisy202
                     {
                         smil = GetNccElements()
                             .SelectMany(e =>
-                                e.Descendants(e.Name.Namespace + "a").Select(a => a.Attribute("href")?.Value.ToLowerInvariant()))
+                                e.Descendants(e.Name.Namespace + "a").Select(a => 
+                                    a.Attribute("href"))
+                                        .Where(a => !String.IsNullOrWhiteSpace(a?.Value))
+                                        .Select(Utils.GetUri))
+                            .Select(uri => Uri.UnescapeDataString(uri.AbsolutePath).ToLowerInvariant())
                             .Distinct()
-                            .Where(href => !String.IsNullOrEmpty(href))
-                            .Select(href => 
+                            .Select(path => 
                                 XDocument.Load(
-                                    Uri.UnescapeDataString(new Uri(new Uri(ncc.BaseUri), href).AbsolutePath), 
+                                    path, 
                                     LoadOptions.SetBaseUri | LoadOptions.SetLineInfo))
                             .SingleOrDefault();
                     }

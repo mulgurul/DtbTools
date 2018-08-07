@@ -30,9 +30,6 @@ namespace DtbMerger2Library.Daisy202
                         Utils.XhtmlNs + "head",
                         new XElement(
                             Utils.XhtmlNs + "meta",
-                            new XAttribute("charset", "utf-8")),
-                        new XElement(
-                            Utils.XhtmlNs + "meta",
                             new XAttribute("http-equiv", "Content-type"),
                             new XAttribute("content", "text/html; charset=utf-8"))),
                     new XElement(Utils.XhtmlNs + "body")));
@@ -166,7 +163,7 @@ namespace DtbMerger2Library.Daisy202
                 dest = new Uri(new Uri("http://temp.org"), dest);
             }
 
-            return dest.AbsolutePath == source.AbsolutePath;
+            return dest.AbsolutePath.ToLowerInvariant() == source.AbsolutePath.ToLowerInvariant();
         }
 
         public static TimeSpan GetAudioFileDuration(Uri audioFile)
@@ -200,7 +197,7 @@ namespace DtbMerger2Library.Daisy202
 
         public static string GetHHMMSSFromTimeSpan(TimeSpan val)
         {
-            return TimeSpan.FromSeconds(Math.Ceiling(val.TotalSeconds)).ToString(@"hh\:mm\:ss");
+            return TimeSpan.FromSeconds(Math.Round(val.TotalSeconds)).ToString(@"hh\:mm\:ss");
         }
     }
 }

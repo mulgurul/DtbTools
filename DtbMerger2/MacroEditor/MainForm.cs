@@ -7,6 +7,7 @@ using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.Xml.Linq;
@@ -593,6 +594,7 @@ namespace MacroEditor
         private void MainFormLoadHandler(object sender, EventArgs e)
         {
             UpdateEntryManipulationControls();
+            HideProgressControls();
         }
 
         private void DeleteEntryClickHandler(object sender, EventArgs e)
@@ -735,14 +737,108 @@ namespace MacroEditor
             GenerateMergedDtb();
         }
 
+        private void EnableProgressControls()
+        {
+            if (InvokeRequired)
+            {
+                Invoke(new Action(EnableProgressControls));
+            }
+            else
+            {
+                buildProgressBar.Visible = true;
+                cancelButton.Visible = true;
+                cancelButton.Enabled = true;
+                cancelButton.Tag = false;
+                cancelButton.Click += CancelClickHandler;
+            }
+        }
 
+        
 
+        private void DisableProgressControls()
+        {
+            if (InvokeRequired)
+            {
+                Invoke(new Action(DisableProgressControls));
+            }
+            else
+            {
+                buildProgressBar.Visible = false;
+                cancelButton.Visible = false;
+                cancelButton.Enabled = false;
+                cancelButton.Click -= CancelClickHandler;
+            }
+        }
+
+        private void CancelClickHandler(object sender, EventArgs e)
+        {
+            cancelButton.Tag = true;
+        }
+
+        private void SetProgress(int progressPct, string message)
+        {
+            if (InvokeRequired)
+            {
+                Invoke(new Action<int, string>(SetProgress), progressPct, message);
+            }
+            else
+            {
+                buildProgressBar.Value = progressPct;
+            }
+        }
+
+        private void ShowMessage(string message, string caption, MessageBoxButtons buttons, MessageBoxIcon icon)
+        {
+            if (InvokeRequired)
+            {
+                Invoke(new Action<string, string, MessageBoxButtons, MessageBoxIcon>(ShowMessage), message, caption, buttons, icon);
+            }
+            else
+            {
+                MessageBox.Show(this, message, caption, buttons, icon);
+            }
+        }
+
+        private bool SaveDtbProgressHandler(int progressPercentage, string progressMessage)
+        {
+            SetProgress(progressPercentage, progressMessage);
+            return (bool)cancelButton.Tag;
+
+        }
+
+        private void SaveDtb(DtbBuilder builder, string path)
+        {
+            EnableProgressControls();
+            try
+            {
+                if (builder.SaveDtb(path, SaveDtbProgressHandler))
+                {
+                    ShowMessage(
+                        $"Succesfully generated merged DTB from macro and saved to\n{path}",
+                        "Generate Merged DTB",
+                        MessageBoxButtons.OK,
+                        MessageBoxIcon.Information);
+                }
+            }
+            catch (Exception e)
+            {
+                ShowMessage(
+                    $"An {e.GetType()} occured while saving DTB: {e.Message}",
+                    "Generate Merged DTB",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error);
+
+            }
+            finally
+            {
+                DisableProgressControls();
+            }
+        }
         private void GenerateMergedDtb()
         {
             if (CanGenerateMergedDTB)
             {
                 var process = "";
-                UseWaitCursor = true;
                 try
                 {
                     process = "loading merge entries from Macro";
@@ -763,13 +859,8 @@ namespace MacroEditor
                     if (fbd.ShowDialog(this) == DialogResult.OK)
                     {
                         process = "saving DTB";
-                        builder.SaveDtb(fbd.SelectedPath);
-                        MessageBox.Show(
-                            this,
-                            $"Succesfully generated merged DTB from macro and saved to\n{fbd.SelectedPath}",
-                            "Generate Merged DTB",
-                            MessageBoxButtons.OK,
-                            MessageBoxIcon.Information);
+                        ShowProgressControls();
+                        saveDtbBackgroundWorker.RunWorkerAsync(new Tuple<DtbBuilder, string>(builder, fbd.SelectedPath));
                     }
                 }
                 catch (Exception e)
@@ -782,11 +873,84 @@ namespace MacroEditor
                         MessageBoxIcon.Error);
                     return;
                 }
-                finally
+            }
+        }
+
+        private void HideProgressControls()
+        {
+            buildProgressBar.Visible = false;
+            buildMessageLabel.Visible = false;
+            cancelButton.Visible = false;
+            cancelButton.Enabled = false;
+            mainTableLayoutPanel.RowStyles[4].Height = 0;
+        }
+
+        private void ShowProgressControls()
+        {
+            buildProgressBar.Visible = true;
+            buildMessageLabel.Visible = true;
+            cancelButton.Visible = true;
+            cancelButton.Enabled = true;
+            mainTableLayoutPanel.RowStyles[4].Height = mainTableLayoutPanel.RowStyles[5].Height;
+
+        }
+
+        private void SaveDtbBackgroundWorkerDoWorkHandler(object sender, DoWorkEventArgs e)
+        {
+            var bw = (BackgroundWorker) sender;
+            var builder = ((Tuple<DtbBuilder, string>) e.Argument).Item1;
+            var path = ((Tuple<DtbBuilder, string>)e.Argument).Item2;
+            if (!builder.SaveDtb(path, (pct, msg) =>
+            {
+                Debug.Print($"{pct} - {msg}");
+                bw.ReportProgress(pct, msg);
+                return bw.CancellationPending;
+            }))
+            {
+                e.Cancel = true;
+            }
+        }
+
+        private void SaveDtbBackgroundWorkerProgressChangedHandler(object sender, ProgressChangedEventArgs e)
+        {
+            buildProgressBar.Value = e.ProgressPercentage;
+            buildMessageLabel.Text = (string) e.UserState;
+            buildProgressBar.Update();
+        }
+
+        private void CancelButtonClickHandler(object sender, EventArgs e)
+        {
+            if (saveDtbBackgroundWorker.IsBusy)
+            {
+                saveDtbBackgroundWorker.CancelAsync();
+                cancelButton.Enabled = false;
+            }
+        }
+
+        private void SaveDtbBackgroundWorkerRunWorkerCompletedHandler(object sender, RunWorkerCompletedEventArgs e)
+        {
+            if (!e.Cancelled)
+            {
+                if (e.Error != null)
                 {
-                    UseWaitCursor = false;
+                    ShowMessage(
+                        $"An {e.Error.GetType()} occured while saving DTB: {e.Error.Message}",
+                        "Generate Merged DTB",
+                        MessageBoxButtons.OK,
+                        MessageBoxIcon.Error);
+
+                }
+                else
+                {
+                    ShowMessage(
+                        $"Succesfully generated and saved merged DTB from macro",
+                        "Generate Merged DTB",
+                        MessageBoxButtons.OK,
+                        MessageBoxIcon.Information);
+
                 }
             }
+            HideProgressControls();
         }
     }
 }

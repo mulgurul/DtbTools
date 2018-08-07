@@ -54,6 +54,7 @@
             this.actionsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.generateMergedDtbToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.mainTableLayoutPanel = new System.Windows.Forms.TableLayoutPanel();
+            this.cancelButton = new System.Windows.Forms.Button();
             this.undoButton = new System.Windows.Forms.Button();
             this.redoButton = new System.Windows.Forms.Button();
             this.addDTBButton = new System.Windows.Forms.Button();
@@ -71,7 +72,10 @@
             this.deleteEntryButton = new System.Windows.Forms.Button();
             this.moveEntryInButton = new System.Windows.Forms.Button();
             this.moveEntryDownButton = new System.Windows.Forms.Button();
+            this.buildProgressBar = new System.Windows.Forms.ProgressBar();
             this.mainToolTip = new System.Windows.Forms.ToolTip(this.components);
+            this.saveDtbBackgroundWorker = new System.ComponentModel.BackgroundWorker();
+            this.buildMessageLabel = new System.Windows.Forms.Label();
             this.mainMenuStrip.SuspendLayout();
             this.mainTableLayoutPanel.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.propertiesDataGridView)).BeginInit();
@@ -218,21 +222,31 @@
             // mainTableLayoutPanel
             // 
             resources.ApplyResources(this.mainTableLayoutPanel, "mainTableLayoutPanel");
+            this.mainTableLayoutPanel.Controls.Add(this.cancelButton, 5, 4);
             this.mainTableLayoutPanel.Controls.Add(this.undoButton, 3, 3);
             this.mainTableLayoutPanel.Controls.Add(this.redoButton, 5, 3);
             this.mainTableLayoutPanel.Controls.Add(this.addDTBButton, 3, 1);
             this.mainTableLayoutPanel.Controls.Add(this.insertDTBButton, 5, 1);
-            this.mainTableLayoutPanel.Controls.Add(this.saveMacro, 1, 4);
-            this.mainTableLayoutPanel.Controls.Add(this.exitButton, 5, 4);
+            this.mainTableLayoutPanel.Controls.Add(this.saveMacro, 1, 5);
+            this.mainTableLayoutPanel.Controls.Add(this.exitButton, 5, 5);
             this.mainTableLayoutPanel.Controls.Add(this.macroTreeView, 0, 0);
             this.mainTableLayoutPanel.Controls.Add(this.propertiesDataGridView, 3, 0);
-            this.mainTableLayoutPanel.Controls.Add(this.openMacroButton, 0, 4);
+            this.mainTableLayoutPanel.Controls.Add(this.openMacroButton, 0, 5);
             this.mainTableLayoutPanel.Controls.Add(this.moveEntryUpButton, 4, 1);
             this.mainTableLayoutPanel.Controls.Add(this.moveEntryOutButton, 3, 2);
             this.mainTableLayoutPanel.Controls.Add(this.deleteEntryButton, 4, 2);
             this.mainTableLayoutPanel.Controls.Add(this.moveEntryInButton, 5, 2);
             this.mainTableLayoutPanel.Controls.Add(this.moveEntryDownButton, 4, 3);
+            this.mainTableLayoutPanel.Controls.Add(this.buildProgressBar, 0, 4);
+            this.mainTableLayoutPanel.Controls.Add(this.buildMessageLabel, 2, 4);
             this.mainTableLayoutPanel.Name = "mainTableLayoutPanel";
+            // 
+            // cancelButton
+            // 
+            resources.ApplyResources(this.cancelButton, "cancelButton");
+            this.cancelButton.Name = "cancelButton";
+            this.cancelButton.UseVisualStyleBackColor = true;
+            this.cancelButton.Click += new System.EventHandler(this.CancelButtonClickHandler);
             // 
             // undoButton
             // 
@@ -390,6 +404,28 @@
             this.moveEntryDownButton.UseVisualStyleBackColor = true;
             this.moveEntryDownButton.Click += new System.EventHandler(this.MoveEntryDownClickHandler);
             // 
+            // buildProgressBar
+            // 
+            this.mainTableLayoutPanel.SetColumnSpan(this.buildProgressBar, 2);
+            resources.ApplyResources(this.buildProgressBar, "buildProgressBar");
+            this.buildProgressBar.Name = "buildProgressBar";
+            this.buildProgressBar.Step = 1;
+            this.buildProgressBar.Style = System.Windows.Forms.ProgressBarStyle.Continuous;
+            // 
+            // saveDtbBackgroundWorker
+            // 
+            this.saveDtbBackgroundWorker.WorkerReportsProgress = true;
+            this.saveDtbBackgroundWorker.WorkerSupportsCancellation = true;
+            this.saveDtbBackgroundWorker.DoWork += new System.ComponentModel.DoWorkEventHandler(this.SaveDtbBackgroundWorkerDoWorkHandler);
+            this.saveDtbBackgroundWorker.ProgressChanged += new System.ComponentModel.ProgressChangedEventHandler(this.SaveDtbBackgroundWorkerProgressChangedHandler);
+            this.saveDtbBackgroundWorker.RunWorkerCompleted += new System.ComponentModel.RunWorkerCompletedEventHandler(this.SaveDtbBackgroundWorkerRunWorkerCompletedHandler);
+            // 
+            // buildMessageLabel
+            // 
+            resources.ApplyResources(this.buildMessageLabel, "buildMessageLabel");
+            this.mainTableLayoutPanel.SetColumnSpan(this.buildMessageLabel, 3);
+            this.buildMessageLabel.Name = "buildMessageLabel";
+            // 
             // MainForm
             // 
             resources.ApplyResources(this, "$this");
@@ -403,6 +439,7 @@
             this.mainMenuStrip.ResumeLayout(false);
             this.mainMenuStrip.PerformLayout();
             this.mainTableLayoutPanel.ResumeLayout(false);
+            this.mainTableLayoutPanel.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)(this.propertiesDataGridView)).EndInit();
             this.ResumeLayout(false);
             this.PerformLayout();
@@ -450,6 +487,10 @@
         private System.Windows.Forms.ToolTip mainToolTip;
         private System.Windows.Forms.ToolStripMenuItem actionsToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem generateMergedDtbToolStripMenuItem;
+        private System.Windows.Forms.Button cancelButton;
+        private System.Windows.Forms.ProgressBar buildProgressBar;
+        private System.ComponentModel.BackgroundWorker saveDtbBackgroundWorker;
+        private System.Windows.Forms.Label buildMessageLabel;
     }
 }
 

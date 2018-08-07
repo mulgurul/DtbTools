@@ -93,6 +93,42 @@ namespace DtbMerger2LibraryTests.Daisy202
             {
                 Assert.IsTrue(builder.AudioFileSegments.Keys.Contains(audio.Attribute("src")?.Value), $"Found no audio segment matching {audio} in {audio.BaseUri}");
             }
+            Assert.IsNotNull(builder.NccDocument.Root, "Ncc has no root element");
+            var nccElements = (
+                    builder.NccDocument.Root
+                        .Element(Utils.XhtmlNs + "body")
+                        ?.Elements()
+                    ??new XElement[0]).ToList();
+            var textElements = 
+                builder
+                    .XmlDocuments
+                    .Values
+                    .SelectMany(d =>
+                        d.Root?.Element(Utils.XhtmlNs + "body")?.Elements() ?? new XElement[0])
+                    .ToList();
+            Assert.IsTrue(nccElements.Any(), "Ncc document has no body elements");
+            foreach (var element in nccElements.Concat(textElements))
+            {
+                var elemIdentifier = $"{element.BaseUri.Split('/').LastOrDefault()??""}#{element.Attribute("id")?.Value}";
+                Assert.AreEqual(Utils.XhtmlNs, element.Name.Namespace, $"Ncc element has invalid namespace {element.Name}");
+                var aHref = element.DescendantsAndSelf(Utils.XhtmlNs + "a").SingleOrDefault()?.Attribute("href");
+                if (aHref == null)
+                {
+                    Assert.IsFalse(
+                        nccElements.Contains(element),
+                        $"Ncc element {elemIdentifier} has no child a element");
+                    continue;
+                }
+                var smilUri = Utils.GetUri(aHref);
+                var fileName = smilUri.AbsolutePath.Split('/').LastOrDefault();
+                Assert.IsNotNull(fileName, $"Ncc/text a element {elemIdentifier} does not point to file");
+                Assert.IsTrue(
+                    builder.SmilFiles.ContainsKey(fileName),
+                    $"Ncc/text a element {elemIdentifier} points to invalid smil file {fileName}");
+                Assert.IsTrue(
+                    builder.SmilFiles[fileName].Descendants("par").Any(par => $"#{par.Attribute("id")?.Value}" == smilUri.Fragment),
+                    $"Par element {aHref.Value} pointed to by Ncc/text element {elemIdentifier} not found");
+            }
         }
 
         private void ValidateSavedDtb(DtbBuilder builder, string destDir)
