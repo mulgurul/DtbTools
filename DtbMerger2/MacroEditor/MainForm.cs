@@ -206,18 +206,32 @@ namespace MacroEditor
         private void MacroChangedHandler(Object o, XObjectChangeEventArgs xObjectChangeEventArgs)
         {
             HasMacroChanged = true;
-            switch (xObjectChangeEventArgs.ObjectChange)
+            if (o is XAttribute attr)
             {
-                case XObjectChange.Add:
-                case XObjectChange.Remove:
+                if (attr.Parent == Macro?.Root)
+                {
                     UpdateMacroView();
-                    break;
-                case XObjectChange.Name:
-                case XObjectChange.Value:
+                }
+                else
+                {
                     UpdatePropertiesView();
-                    break;
-                default:
-                    throw new ArgumentOutOfRangeException();
+                }
+            }
+            else if (o is XElement)
+            {
+                switch (xObjectChangeEventArgs.ObjectChange)
+                {
+                    case XObjectChange.Add:
+                    case XObjectChange.Remove:
+                    case XObjectChange.Value:
+                        UpdateMacroView();
+                        break;
+                    case XObjectChange.Name:
+                        UpdatePropertiesView();
+                        break;
+                    default:
+                        throw new ArgumentOutOfRangeException();
+                }
             }
             UpdateEntryManipulationControls();
         }
@@ -235,7 +249,11 @@ namespace MacroEditor
             {
                 macroTreeView.Nodes.Add(new TreeNode(
                     $"Macro [{Macro.Root.Attribute("name")?.Value??"Unnamed"}]",
-                    Macro.Root.Elements().Select(elem => new MacroEntry(elem)).Select(GetMacroEntryTreeNode).ToArray()));
+                    Macro.Root.Elements().Select(elem => new MacroEntry(elem)).Select(GetMacroEntryTreeNode).ToArray())
+                    {
+                        Tag = Macro.Root
+                    });
+
                 var selectedTreeNode = FindTreeNodeForMacroElement(selectedMacroElement);
                 if (selectedTreeNode != null)
                 {
@@ -274,6 +292,10 @@ namespace MacroEditor
 
         private TreeNode FindTreeNodeForMacroElement(XElement elem, TreeNode currentNode = null)
         {
+            if (elem == Macro?.Root && macroTreeView.Nodes.Count > 0)
+            {
+                return macroTreeView.Nodes[0];
+            }
             if (currentNode == null)
             {
                 if (macroTreeView.Nodes.Count == 0)
@@ -430,24 +452,26 @@ namespace MacroEditor
 
         public XElement SelectedMacroElement
         {
-            get => SelectedMacroEntry?.SourceElement;
+            get => SelectedMacroEntry?.SourceElement??(macroTreeView.SelectedNode?.Tag as XElement);
             set => macroTreeView.SelectedNode = FindTreeNodeForMacroElement(value);
         }
 
         private void UpdatePropertiesView()
         {
             propertiesDataGridView.Rows.Clear();
-            var macroEntry = SelectedMacroEntry;
-            if (macroEntry != null)
+            var macroElem = SelectedMacroElement;
+            if (macroElem != null)
             {
-                propertiesDataGridView.Rows.Add(macroEntry.SourceElement, "LocalName", macroEntry.SourceElement.Name.LocalName);
-                propertiesDataGridView.Rows.Add(macroEntry.SourceElement, "NameSpace", macroEntry.SourceElement.Name.NamespaceName);
-                foreach (var attr in macroEntry.SourceElement.Attributes())
+                if (macroElem != Macro?.Root)
+                {
+                    propertiesDataGridView.Rows.Add(macroElem, "LocalName", macroElem.Name.LocalName);
+                    propertiesDataGridView.Rows.Add(macroElem, "NameSpace", macroElem.Name.NamespaceName);
+                }
+                foreach (var attr in macroElem.Attributes())
                 {
                     propertiesDataGridView.Rows.Add(attr, attr.Name, attr.Value);
                 }
             }
-
         }
 
         private void MacroTreeViewAfterSelectHandler(object sender, TreeViewEventArgs e)
@@ -456,9 +480,9 @@ namespace MacroEditor
             UpdateEntryManipulationControls();
         }
 
-        private void PropertiesDataGridViewCellEndEditHandler(object sender, DataGridViewCellEventArgs e)
+        private void PropertiesDataGridViewCellValueChangedHandler(object sender, DataGridViewCellEventArgs e)
         {
-            if (e.ColumnIndex == 2)
+            if (e.RowIndex > -1 && e.ColumnIndex == 2)
             {
                 var row = propertiesDataGridView.Rows[e.RowIndex];
                 if (row.Cells[0].Value is XAttribute attr)
@@ -595,6 +619,7 @@ namespace MacroEditor
         {
             UpdateEntryManipulationControls();
             HideProgressControls();
+            Text = $"{Application.ProductName} v{Application.ProductVersion}";
         }
 
         private void DeleteEntryClickHandler(object sender, EventArgs e)
