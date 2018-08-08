@@ -15,26 +15,20 @@
     {
         "Entry"
         {
-        "MsmKey" = "8:_15CDC4784A38C33C0ED58D7FC8D62D04"
-        "OwnerKey" = "8:_3BDB4AC1738CE11CC8430BD5601728D0"
+        "MsmKey" = "8:_B6FF90E0A49AEA4F41FA5D13AFEC4FF8"
+        "OwnerKey" = "8:_C788215068A14D332A60C8B76744E9D6"
         "MsmSig" = "8:_UNDEFINED"
         }
         "Entry"
         {
-        "MsmKey" = "8:_15CDC4784A38C33C0ED58D7FC8D62D04"
-        "OwnerKey" = "8:_E46036D4BCD0CF6C427DE1D5A2BEAB4F"
-        "MsmSig" = "8:_UNDEFINED"
-        }
-        "Entry"
-        {
-        "MsmKey" = "8:_15CDC4784A38C33C0ED58D7FC8D62D04"
+        "MsmKey" = "8:_B6FF90E0A49AEA4F41FA5D13AFEC4FF8"
         "OwnerKey" = "8:_C4064B1925C5461EBAB3088F9374F300"
         "MsmSig" = "8:_UNDEFINED"
         }
         "Entry"
         {
-        "MsmKey" = "8:_3BDB4AC1738CE11CC8430BD5601728D0"
-        "OwnerKey" = "8:_C4064B1925C5461EBAB3088F9374F300"
+        "MsmKey" = "8:_B6FF90E0A49AEA4F41FA5D13AFEC4FF8"
+        "OwnerKey" = "8:_D6EE8EA6383BEEDEA73131C77850B6A9"
         "MsmSig" = "8:_UNDEFINED"
         }
         "Entry"
@@ -45,13 +39,19 @@
         }
         "Entry"
         {
-        "MsmKey" = "8:_E46036D4BCD0CF6C427DE1D5A2BEAB4F"
-        "OwnerKey" = "8:_3BDB4AC1738CE11CC8430BD5601728D0"
+        "MsmKey" = "8:_C788215068A14D332A60C8B76744E9D6"
+        "OwnerKey" = "8:_C4064B1925C5461EBAB3088F9374F300"
         "MsmSig" = "8:_UNDEFINED"
         }
         "Entry"
         {
-        "MsmKey" = "8:_E46036D4BCD0CF6C427DE1D5A2BEAB4F"
+        "MsmKey" = "8:_D6EE8EA6383BEEDEA73131C77850B6A9"
+        "OwnerKey" = "8:_C788215068A14D332A60C8B76744E9D6"
+        "MsmSig" = "8:_UNDEFINED"
+        }
+        "Entry"
+        {
+        "MsmKey" = "8:_D6EE8EA6383BEEDEA73131C77850B6A9"
         "OwnerKey" = "8:_C4064B1925C5461EBAB3088F9374F300"
         "MsmSig" = "8:_UNDEFINED"
         }
@@ -70,25 +70,25 @@
         "Entry"
         {
         "MsmKey" = "8:_UNDEFINED"
+        "OwnerKey" = "8:_C788215068A14D332A60C8B76744E9D6"
+        "MsmSig" = "8:_UNDEFINED"
+        }
+        "Entry"
+        {
+        "MsmKey" = "8:_UNDEFINED"
+        "OwnerKey" = "8:_D6EE8EA6383BEEDEA73131C77850B6A9"
+        "MsmSig" = "8:_UNDEFINED"
+        }
+        "Entry"
+        {
+        "MsmKey" = "8:_UNDEFINED"
+        "OwnerKey" = "8:_B6FF90E0A49AEA4F41FA5D13AFEC4FF8"
+        "MsmSig" = "8:_UNDEFINED"
+        }
+        "Entry"
+        {
+        "MsmKey" = "8:_UNDEFINED"
         "OwnerKey" = "8:_F2569EFEA1FE5865AC27494F5825BDDE"
-        "MsmSig" = "8:_UNDEFINED"
-        }
-        "Entry"
-        {
-        "MsmKey" = "8:_UNDEFINED"
-        "OwnerKey" = "8:_15CDC4784A38C33C0ED58D7FC8D62D04"
-        "MsmSig" = "8:_UNDEFINED"
-        }
-        "Entry"
-        {
-        "MsmKey" = "8:_UNDEFINED"
-        "OwnerKey" = "8:_E46036D4BCD0CF6C427DE1D5A2BEAB4F"
-        "MsmSig" = "8:_UNDEFINED"
-        }
-        "Entry"
-        {
-        "MsmKey" = "8:_UNDEFINED"
-        "OwnerKey" = "8:_3BDB4AC1738CE11CC8430BD5601728D0"
         "MsmSig" = "8:_UNDEFINED"
         }
     }
@@ -186,13 +186,18 @@
         }
         "File"
         {
-            "{9F6F8455-1EF1-4B85-886A-4223BCC8E7F7}:_15CDC4784A38C33C0ED58D7FC8D62D04"
+            "{9F6F8455-1EF1-4B85-886A-4223BCC8E7F7}:_B6FF90E0A49AEA4F41FA5D13AFEC4FF8"
             {
             "AssemblyRegister" = "3:1"
             "AssemblyIsInGAC" = "11:FALSE"
             "AssemblyAsmDisplayName" = "8:NAudio, Version=1.8.4.0, Culture=neutral, processorArchitecture=MSIL"
                 "ScatterAssemblies"
                 {
+                    "_B6FF90E0A49AEA4F41FA5D13AFEC4FF8"
+                    {
+                    "Name" = "8:NAudio.dll"
+                    "Attributes" = "3:512"
+                    }
                 }
             "SourcePath" = "8:NAudio.dll"
             "TargetName" = "8:"
@@ -212,13 +217,18 @@
             "IsDependency" = "11:TRUE"
             "IsolateTo" = "8:"
             }
-            "{9F6F8455-1EF1-4B85-886A-4223BCC8E7F7}:_3BDB4AC1738CE11CC8430BD5601728D0"
+            "{9F6F8455-1EF1-4B85-886A-4223BCC8E7F7}:_C788215068A14D332A60C8B76744E9D6"
             {
             "AssemblyRegister" = "3:1"
             "AssemblyIsInGAC" = "11:FALSE"
-            "AssemblyAsmDisplayName" = "8:DtbMerger2Library, Version=1.0.6793.17595, Culture=neutral, processorArchitecture=MSIL"
+            "AssemblyAsmDisplayName" = "8:DtbMerger2Library, Version=1.0.1.15063, Culture=neutral, processorArchitecture=MSIL"
                 "ScatterAssemblies"
                 {
+                    "_C788215068A14D332A60C8B76744E9D6"
+                    {
+                    "Name" = "8:DtbMerger2Library.dll"
+                    "Attributes" = "3:512"
+                    }
                 }
             "SourcePath" = "8:DtbMerger2Library.dll"
             "TargetName" = "8:"
@@ -238,13 +248,18 @@
             "IsDependency" = "11:TRUE"
             "IsolateTo" = "8:"
             }
-            "{9F6F8455-1EF1-4B85-886A-4223BCC8E7F7}:_E46036D4BCD0CF6C427DE1D5A2BEAB4F"
+            "{9F6F8455-1EF1-4B85-886A-4223BCC8E7F7}:_D6EE8EA6383BEEDEA73131C77850B6A9"
             {
             "AssemblyRegister" = "3:1"
             "AssemblyIsInGAC" = "11:FALSE"
             "AssemblyAsmDisplayName" = "8:NAudio.Lame, Version=1.0.5.22475, Culture=neutral, processorArchitecture=MSIL"
                 "ScatterAssemblies"
                 {
+                    "_D6EE8EA6383BEEDEA73131C77850B6A9"
+                    {
+                    "Name" = "8:NAudio.Lame.dll"
+                    "Attributes" = "3:512"
+                    }
                 }
             "SourcePath" = "8:NAudio.Lame.dll"
             "TargetName" = "8:"
@@ -271,6 +286,11 @@
             "AssemblyAsmDisplayName" = "8:System.Net.Http, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a"
                 "ScatterAssemblies"
                 {
+                    "_F2569EFEA1FE5865AC27494F5825BDDE"
+                    {
+                    "Name" = "8:System.Net.Http.dll"
+                    "Attributes" = "3:512"
+                    }
                 }
             "SourcePath" = "8:System.Net.Http.dll"
             "TargetName" = "8:"
@@ -346,15 +366,15 @@
         {
         "Name" = "8:Microsoft Visual Studio"
         "ProductName" = "8:MacroEditor "
-        "ProductCode" = "8:{FDF088C6-AF53-4983-B665-0DAC99314A6D}"
-        "PackageCode" = "8:{19E22995-FB92-453A-B7BD-3121B991A069}"
+        "ProductCode" = "8:{412C860C-B021-484A-AC65-8D1DE98F7F54}"
+        "PackageCode" = "8:{17C75050-75B5-45C2-903A-F05E643EB1DF}"
         "UpgradeCode" = "8:{35AAFEF2-F9C9-4A63-9D02-7700203AC172}"
         "AspNetVersion" = "8:4.0.30319.0"
         "RestartWWWService" = "11:FALSE"
-        "RemovePreviousVersions" = "11:FALSE"
+        "RemovePreviousVersions" = "11:TRUE"
         "DetectNewerInstalledVersion" = "11:TRUE"
         "InstallAllUsers" = "11:FALSE"
-        "ProductVersion" = "8:1.0.1"
+        "ProductVersion" = "8:1.0.2"
         "Manufacturer" = "8:Nota"
         "ARPHELPTELEPHONE" = "8:"
         "ARPHELPLINK" = "8:"
@@ -880,6 +900,34 @@
         }
         "ProjectOutput"
         {
+            "{5259A561-127C-4D43-A0A1-72F10C7B3BF8}:_A2AACD0CB25244379FE40AFCE4F49395"
+            {
+            "SourcePath" = "8:"
+            "TargetName" = "8:"
+            "Tag" = "8:"
+            "Folder" = "8:_96A4A170F4A64DFE9B274FCB17565575"
+            "Condition" = "8:"
+            "Transitive" = "11:FALSE"
+            "Vital" = "11:TRUE"
+            "ReadOnly" = "11:FALSE"
+            "Hidden" = "11:FALSE"
+            "System" = "11:FALSE"
+            "Permanent" = "11:FALSE"
+            "SharedLegacy" = "11:FALSE"
+            "PackageAs" = "3:1"
+            "Register" = "3:1"
+            "Exclude" = "11:FALSE"
+            "IsDependency" = "11:FALSE"
+            "IsolateTo" = "8:"
+            "ProjectOutputGroupRegister" = "3:1"
+            "OutputConfiguration" = "8:"
+            "OutputGroupCanonicalName" = "8:ContentFiles"
+            "OutputProjectGuid" = "8:{DCDA14CD-72BE-4EB6-BDFF-926D552567BB}"
+            "ShowKeyOutput" = "11:TRUE"
+                "ExcludeFilters"
+                {
+                }
+            }
             "{5259A561-127C-4D43-A0A1-72F10C7B3BF8}:_C4064B1925C5461EBAB3088F9374F300"
             {
             "SourcePath" = "8:..\\MacroEditor\\obj\\Release\\MacroEditor.exe"
