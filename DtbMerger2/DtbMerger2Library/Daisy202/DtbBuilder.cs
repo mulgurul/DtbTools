@@ -24,6 +24,7 @@ namespace DtbMerger2Library.Daisy202
         public DtbBuilder() : this(new MergeEntry[0])
         {
             MergeEntries = new List<MergeEntry>();
+            RefreshPrefix();
         }
 
         public DtbBuilder(IEnumerable<MergeEntry> entries)
@@ -33,9 +34,16 @@ namespace DtbMerger2Library.Daisy202
             NccDocumentName = "ncc.html";
         }
 
+        private string audioPrefix;
+
+        private void RefreshPrefix()
+        {
+            audioPrefix = $"{Guid.NewGuid().ToString().Substring(0, 4).ToUpperInvariant()}";
+        }
+
         private string GetSmilFileName(int index)
         {
-            return $"SM{index:D5}.smil";
+            return $"SM{audioPrefix}{index:D5}.smil";
         }
 
         public string AudioFileExtension =>
@@ -43,7 +51,7 @@ namespace DtbMerger2Library.Daisy202
 
         private string GetAudioFileName(int index)
         {
-            return $"AUD{index:D5}{AudioFileExtension}";
+            return $"AUD{audioPrefix}{index:D5}{AudioFileExtension}";
         }
 
         private string GetImageFileName(Uri orgUri, int index)
@@ -86,6 +94,7 @@ namespace DtbMerger2Library.Daisy202
             nccIdIndex = 0;
             contentIdIndex = 0;
             totalElapsedTime = TimeSpan.Zero;
+            RefreshPrefix();
         }
 
         private int entryIndex = 0;
@@ -446,6 +455,7 @@ namespace DtbMerger2Library.Daisy202
                 {
                     return false;
                 }
+                index++;
                 if (AudioFileSegments[audioFileName].Count == 1)
                 {
                     var audSeg = AudioFileSegments[audioFileName].First();
@@ -538,7 +548,7 @@ namespace DtbMerger2Library.Daisy202
                     underlyingStream.Close();
                 }
 
-                index++;
+                
             }
 
             return true;
@@ -551,9 +561,10 @@ namespace DtbMerger2Library.Daisy202
                 progressDelegate = (p, m) => false;
             }
             int index = 0;
-            foreach (var entry in MergeEntries.SelectMany(me => me.DescententsAndSelf))
+            var entries = MergeEntries.SelectMany(me => me.DescententsAndSelf).ToList();
+            foreach (var entry in entries)
             {
-                if (progressDelegate((100 * index) / MergeEntries.Count, "Saving media files"))
+                if (progressDelegate((100 * index) / entries.Count, "Saving media files"))
                 {
                     return false;
                 }
