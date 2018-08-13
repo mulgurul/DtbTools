@@ -2,15 +2,14 @@
 using System.Globalization;
 using System.IO;
 using System.Linq;
-using System.Text.RegularExpressions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Microsoft.Speech.Synthesis;
+using System.Speech.Synthesis;
+using System.Text.RegularExpressions;
 
 namespace DtbSynthesizerLibraryTests
 {
     [TestClass]
-    //[Ignore]//Not really tests, just playing with the installed voices
-    public class MicrosoftSpeechTests
+    public class SystemSpeechTests
     {
         public TestContext TestContext { get; set; }
 
@@ -37,20 +36,13 @@ namespace DtbSynthesizerLibraryTests
             var synth = new SpeechSynthesizer();
             try
             {
-                synth.SetOutputToWaveFile(GetAudioFilePath("MicrosoftSpeechSpeakTest.wav"));
+                synth.SetOutputToWaveFile(GetAudioFilePath("SystemSpeechSpeakTest.wav"));
                 var testData = new[]
                 {
                     new[] {"da", "Jeg hedder {0} og jeg snakker dansk"},
                     new[] {"da-DK", "Jeg hedder {0} og jeg snakker dansk"},
                     new[] {"en", "My name is {0} and I speak english"},
                     new[] {"en-US", "My name is {0} and I speak american english"},
-                    new[] {"en-GB", "My name is {0} and I speak british english"},
-                    new[] {"en-CA", "My name is {0} and I speak canadian english"},
-                    new[] {"en-AU", "My name is {0} and I speak australian english"},
-                    new[] {"en-IN", "My name is {0} and I speak indian english"},
-                    new[] {"sv-SE", "Jag heter {0} och jag talar svenska"},
-                    new[] {"nb-NO", "Mitt navn er {0} og jeg snakker norsk"},
-
                 };
                 foreach (var pair in testData)
                 {
