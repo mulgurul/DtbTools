@@ -1,10 +1,7 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 using System.Windows.Forms;
 
-namespace MacroEditor
+namespace DtbMerger2MacroEditor
 {
     static class Program
     {

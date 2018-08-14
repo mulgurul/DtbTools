@@ -1,4 +1,4 @@
-﻿namespace MacroEditor
+﻿namespace DtbMerger2MacroEditor
 {
     partial class MainForm
     {
