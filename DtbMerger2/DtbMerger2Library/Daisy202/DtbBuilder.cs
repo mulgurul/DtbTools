@@ -47,7 +47,7 @@ namespace DtbMerger2Library.Daisy202
         }
 
         public string AudioFileExtension =>
-            Path.GetExtension(audioFileSegments.FirstOrDefault()?.FirstOrDefault()?.AudioFile.AbsolutePath.ToLowerInvariant());
+            Path.GetExtension(audioFileSegments.FirstOrDefault()?.FirstOrDefault()?.AudioFile.LocalPath.ToLowerInvariant());
 
         private string GetAudioFileName(int index)
         {

@@ -26,7 +26,7 @@ namespace DtbMerger2Library.Daisy202
         {
             return LoadMergeEntriesFromNcc(
                 XDocument.Load(
-                    Uri.UnescapeDataString(nccUri.AbsolutePath),
+                    Uri.UnescapeDataString(nccUri.AbsoluteUri),
                     LoadOptions.SetBaseUri | LoadOptions.SetLineInfo));
         }
 
@@ -65,7 +65,7 @@ namespace DtbMerger2Library.Daisy202
         {
             return LoadMergeEntriesFromMacro(
                 XDocument.Load(
-                    Uri.UnescapeDataString(macroUri.AbsolutePath),
+                    Uri.UnescapeDataString(macroUri.AbsoluteUri),
                     LoadOptions.SetBaseUri | LoadOptions.SetLineInfo));
 
         }
@@ -141,7 +141,7 @@ namespace DtbMerger2Library.Daisy202
                     {
                         throw new InvalidOperationException("SourceNavEntry Uri must be absolute");
                     }
-                    ncc = XDocument.Load(Uri.UnescapeDataString(SourceNavEntry.AbsolutePath), LoadOptions.SetBaseUri|LoadOptions.SetLineInfo);
+                    ncc = XDocument.Load(Uri.UnescapeDataString(SourceNavEntry.AbsoluteUri), LoadOptions.SetBaseUri|LoadOptions.SetLineInfo);
                 }
                 return ncc;
             }
@@ -161,7 +161,7 @@ namespace DtbMerger2Library.Daisy202
                                     a.Attribute("href"))
                                         .Where(a => !String.IsNullOrWhiteSpace(a?.Value))
                                         .Select(Utils.GetUri))
-                            .Select(uri => Uri.UnescapeDataString(uri.AbsolutePath).ToLowerInvariant())
+                            .Select(uri => Uri.UnescapeDataString(uri.AbsoluteUri).ToLowerInvariant())
                             .Distinct()
                             .Select(path => 
                                 XDocument.Load(
@@ -188,9 +188,8 @@ namespace DtbMerger2Library.Daisy202
                     foreach (var path in GetSmilElements()
                         .Select(par => par.Element(par.Name.Namespace + "text")?.Attribute("src"))
                         .Select(Utils.GetUri)
-                        .Select(uri => uri?.AbsolutePath)
+                        .Select(uri => uri?.LocalPath)
                         .Where(path => !String.IsNullOrEmpty(path))
-                        .Select(Uri.UnescapeDataString)
                         .Distinct())
                     {
                         contentDocuments.Add(path, XDocument.Load(path, LoadOptions.SetBaseUri | LoadOptions.SetLineInfo));
@@ -292,7 +291,7 @@ namespace DtbMerger2Library.Daisy202
                 .Select(par => par.Element(par.Name.Namespace + "text")?.Attribute("src"))
                 .Select(Utils.GetUri)
                 .Select(uri =>
-                    Utils.GetReferencedElement(ContentDocuments[Uri.UnescapeDataString(uri.AbsolutePath)], uri))
+                    Utils.GetReferencedElement(ContentDocuments[uri.LocalPath], uri))
                 .Select(elem => elem.AncestorsAndSelf().FirstOrDefault(IsBodyBlockElement))
                 .Where(e => e != null)
                 .Distinct()
@@ -346,7 +345,7 @@ namespace DtbMerger2Library.Daisy202
         }
 
         public string DefaultAudioFileExtension =>
-            Path.GetExtension(GetAudioSegments().FirstOrDefault()?.AudioFile.AbsolutePath);
+            Path.GetExtension(GetAudioSegments().FirstOrDefault()?.AudioFile.LocalPath);
 
         public XElement MacroElement
         {
