@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Xml.Linq;
 using DtbMerger2Library.Daisy202;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
@@ -12,6 +14,8 @@ namespace DtbMerger2LibraryTests.Daisy202
     public class MergeEntryTests
     {
         private readonly Uri dtb1NccUri = new Uri(new Uri(new Uri(Directory.GetCurrentDirectory()), "Out/"), "DTB1/ncc.html");
+        private readonly Uri macroUri = new Uri(new Uri(new Uri(Directory.GetCurrentDirectory()), "Out/"), "macro.xml");
+        private readonly Uri macroContentLinksUri = new Uri(new Uri(new Uri(Directory.GetCurrentDirectory()), "Out/"), "macro_content_links.xml");
 
 
         [TestMethod]
@@ -115,6 +119,41 @@ namespace DtbMerger2LibraryTests.Daisy202
             Assert.IsTrue(entries.SelectMany(e => e.GetSmilElements()).Any(), "Found no smil elements");
             Assert.IsTrue(entries.SelectMany(e => e.GetAudioSegments()).Any(), "Found no audio segments");
             Assert.IsTrue(entries.SelectMany(e => e.GetTextElements()).Any(), "Found no text elements");
+        }
+
+        [TestMethod]
+        public void LoadMacroTest()
+        {
+            LoadMacroTest(macroUri);
+        }
+
+        private void LoadMacroTest(Uri uri)
+        {
+            var macro = XDocument.Load(uri.AbsoluteUri, LoadOptions.SetBaseUri);
+            var mergeEntries = MergeEntry.LoadMergeEntriesFromMacro(macro).ToList();
+            CheckMergeEntriesLoadedFromMacro(macro, mergeEntries);
+            mergeEntries = MergeEntry.LoadMergeEntriesFromMacro(macro).ToList();
+            CheckMergeEntriesLoadedFromMacro(macro, mergeEntries);
+        }
+
+        private void CheckMergeEntriesLoadedFromMacro(XDocument macro, List<MergeEntry> mergeEntries)
+        {
+            var expectedMergeEntryCount = macro.Root?.Elements().Count() ?? 0;
+            Assert.AreEqual(expectedMergeEntryCount, mergeEntries.Count(), $"Expected {expectedMergeEntryCount} merge entries");
+            Assert.IsTrue(
+                mergeEntries.Select(me => new Uri(me.Ncc.BaseUri.ToLowerInvariant()).AbsolutePath)
+                    .All(baseUri => baseUri.EndsWith("/ncc.htm") || baseUri.EndsWith("/ncc.html")),
+                "Some merge entries were loaded from non-ncc documents");
+            foreach (var fileAttr in macro.Elements().SelectMany(e => e.Attributes("file")))
+            {
+                fileAttr.Value = Path.Combine(Directory.GetCurrentDirectory(), fileAttr.Value);
+            }
+        }
+
+        [TestMethod]
+        public void LoadMacroWithContentLinksTest()
+        {
+            LoadMacroTest(macroContentLinksUri);
         }
     }
 }

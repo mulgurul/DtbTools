@@ -76,6 +76,7 @@ namespace DtbMerger2LibraryTests.Daisy202
             var entries = builder.MergeEntries.SelectMany(me => me.DescententsAndSelf).ToList();
             Assert.AreEqual(entries.Count, builder.SmilFiles.Count, "Expected one smil file per merge file entry");
             Assert.AreEqual(entries.Count, builder.AudioFileSegments.Count, "Expected one audio file per merge file entry");
+            Assert.IsFalse(builder.NccDocument.Root?.Elements(Utils.XhtmlNs+"body").Elements(Utils.XhtmlNs+"p").Any()??false, "Found <p> elements in ncc");
             var nccHeadings = builder.NccDocument.Root?.Element(Utils.XhtmlNs + "body")?.Elements()
                 .Where(Utils.IsHeading).ToList()??new List<XElement>();
             Assert.AreEqual(entries.Count, nccHeadings?.Count??0, "Expected one heading in built ncc per merge entry");
@@ -85,6 +86,16 @@ namespace DtbMerger2LibraryTests.Daisy202
                     Utils.XhtmlNs+$"h{Math.Min(entries[i].Depth, 6)}", 
                     nccHeadings[i].Name, 
                     $"Expected heading {nccHeadings[i]} at index {i} to be a {Utils.XhtmlNs+$"h{ entries[i].Depth}"} heading");
+            }
+
+            foreach (var smilFile in builder.SmilFiles.Values)
+            {
+                var dcFormat = smilFile
+                    .Descendants("meta")
+                    .Where(meta => meta.Attribute("name")?.Value == "dc:format")
+                    .Select(meta => meta.Attribute("content")?.Value)
+                    .FirstOrDefault();
+                Assert.AreEqual("Daisy 2.02", dcFormat, $"Expected dc:format to be 'Daisy 2.02");
             }
 
             foreach (var audio in builder.SmilFiles.Values

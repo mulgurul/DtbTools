@@ -97,13 +97,19 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <Content Include="DTBs\DTB1\content.html">
+    <None Include="DTBs\DTB1\content.html">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="DTBs\DTB1\cover.jpg">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="DTBs\DTB1\ncc.html">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <Content Include="DTBs\macro_content_links.xml">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
-    <Content Include="DTBs\DTB1\cover.jpg">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
-    <Content Include="DTBs\DTB1\ncc.html">
+    <Content Include="DTBs\macro.xml">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
     <Content Include="libmp3lame.32.dll">

@@ -289,6 +289,8 @@ namespace DtbMerger2Library.Daisy202
             ContentDocument?.Root?.Element(Utils.XhtmlNs + "head")?.Add(
                 NccDocument.Root?.Element(Utils.XhtmlNs + "head")?.Elements(Utils.XhtmlNs + "meta").Where(meta => meta.Attribute("name")?.Value == "dc:identifier"));
 
+            Utils.CreateOrGetMeta(NccDocument, "dc:format")
+                ?.SetAttributeValue("content", "Daisy 2.02");
             Utils.CreateOrGetMeta(NccDocument, "ncc:totalTime")
                 ?.SetAttributeValue("content", Utils.GetHHMMSSFromTimeSpan(totalElapsedTime));
             var fileCount =

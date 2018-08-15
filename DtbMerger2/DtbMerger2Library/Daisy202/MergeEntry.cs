@@ -72,21 +72,37 @@ namespace DtbMerger2Library.Daisy202
 
         public static IEnumerable<MergeEntry> LoadMergeEntriesFromMacroElement(XElement elem, bool deep = true)
         {
+            var nccUri = Utils.GetUri(elem.Attribute("file"));
+            if (nccUri == null)
+            {
+                throw new InvalidOperationException("Macro element does not have a file attribute with an Uri value");
+            }
             ICollection<MergeEntry> res;
             if (elem.Attribute("ItemID") != null)
             {
-                res = new[] {new MergeEntry()
+                var nccElementUri = new UriBuilder(nccUri)
+                {
+                    Fragment = elem.Attribute("ItemID")?.Value ?? ""
+                }.Uri;
+                if (!Utils.IsNccUri(nccElementUri))
+                {
+                    nccElementUri = Utils.GetNccHeadingUriFromContentHeadingUri(nccElementUri);
+                    if (nccElementUri == null)
                     {
-                        SourceNavEntry =
-                            new UriBuilder(new Uri(elem.Attribute("file")?.Value ?? ""))
-                            {
-                                Fragment = elem.Attribute("ItemID")?.Value ?? ""
-                            }.Uri
-                    }};
+                        throw new InvalidOperationException(
+                            $"Could not find ncc heading for textual content heading {elem.Attribute("file")?.Value}#{elem.Attribute("ItemID")?.Value}");
+                    }
+                }
+
+                res = new[] {new MergeEntry() {SourceNavEntry = nccElementUri}};
             }
             else//If ItemID attribute is missing, entire ncc is added
             {
-                res = LoadMergeEntriesFromNcc(Utils.GetUri(elem.Attribute("file"))).ToList();
+                if (!Utils.IsNccUri(nccUri))
+                {
+                    throw new InvalidOperationException("Macro element without ItemID fragment specifier points no non-ncc document");
+                }
+                res = LoadMergeEntriesFromNcc(nccUri).ToList();
                 if (Int32.TryParse(elem.Attribute("Skip")?.Value, out var skip))
                 {
                     if (0 < skip && skip < res.Count)
@@ -234,7 +250,7 @@ namespace DtbMerger2Library.Daisy202
             {
                 return null;
             }
-            var par = Utils.GetReferencedElement(Smil, hrefAttr);
+            var par = Utils.GetReferencedElement(hrefAttr, Smil);
             if (par?.Name.LocalName == "text")
             {
                 par = par.Parent;
@@ -291,7 +307,7 @@ namespace DtbMerger2Library.Daisy202
                 .Select(par => par.Element(par.Name.Namespace + "text")?.Attribute("src"))
                 .Select(Utils.GetUri)
                 .Select(uri =>
-                    Utils.GetReferencedElement(ContentDocuments[uri.LocalPath], uri))
+                    Utils.GetReferencedElement(uri, ContentDocuments[uri.LocalPath]))
                 .Select(elem => elem.AncestorsAndSelf().FirstOrDefault(IsBodyBlockElement))
                 .Where(e => e != null)
                 .Distinct()

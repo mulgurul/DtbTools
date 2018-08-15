@@ -45,6 +45,10 @@ namespace DtbMerger2Library.Daisy202
                     new XElement(
                         "head",
                         new XElement(
+                            "meta",
+                            new XAttribute("name", "dc:format"),
+                            new XAttribute("content", "Daisy 2.02")),
+                        new XElement(
                             "layout",
                             new XElement("region", new XAttribute("id", "txtView")))),
                     new XElement(
@@ -87,12 +91,15 @@ namespace DtbMerger2Library.Daisy202
             return new Uri(new Uri(uriAttr.BaseUri), uriAttr.Value);
         }
 
-        public static XElement GetReferencedElement(XDocument destDoc, Uri uri)
+        public static XElement GetReferencedElement(Uri uri, XDocument destDoc = null)
         {
-            if (destDoc == null) throw new ArgumentNullException(nameof(destDoc));
             if (uri == null) throw new ArgumentNullException(nameof(uri));
+            if (destDoc == null)
+            {
+                destDoc = XDocument.Load(uri.AbsoluteUri, LoadOptions.SetBaseUri);
+            }
             var destDocUri = new Uri(destDoc.BaseUri);
-            if (!String.Equals(destDocUri.AbsolutePath, uri.AbsolutePath, StringComparison.InvariantCultureIgnoreCase))
+            if (!String.Equals(destDocUri.GetLeftPart(UriPartial.Query), uri.GetLeftPart(UriPartial.Query), StringComparison.InvariantCultureIgnoreCase))
             {
                 return null;
             }
@@ -103,9 +110,9 @@ namespace DtbMerger2Library.Daisy202
             return destDoc.XPathSelectElement($"//*[@id='{uri.Fragment.TrimStart('#')}']");
         }
 
-        public static XElement GetReferencedElement(XDocument destDoc, XAttribute uriAttr)
+        public static XElement GetReferencedElement(XAttribute uriAttr, XDocument destDoc = null)
         {
-            return GetReferencedElement(destDoc, GetUri(uriAttr));
+            return GetReferencedElement(GetUri(uriAttr), destDoc);
 
         }
 
@@ -163,7 +170,7 @@ namespace DtbMerger2Library.Daisy202
                 dest = new Uri(new Uri("http://temp.org"), dest);
             }
 
-            return dest.AbsolutePath.ToLowerInvariant() == source.AbsolutePath.ToLowerInvariant();
+            return dest.GetLeftPart(UriPartial.Query).ToLowerInvariant() == source.GetLeftPart(UriPartial.Query).ToLowerInvariant();
         }
 
         public static TimeSpan GetAudioFileDuration(Uri audioFile)
@@ -198,6 +205,66 @@ namespace DtbMerger2Library.Daisy202
         public static string GetHHMMSSFromTimeSpan(TimeSpan val)
         {
             return TimeSpan.FromSeconds(Math.Round(val.TotalSeconds)).ToString(@"hh\:mm\:ss");
+        }
+
+        public static bool IsNccUri(Uri uri)
+        {
+            if (uri == null) throw new ArgumentNullException(nameof(uri));
+            return new[] {"ncc.htm", "ncc.html"}.Contains(uri.GetLeftPart(UriPartial.Query).Split('/').Last());
+        }
+
+        /// <summary>
+        /// Tries to get a ncc heading <see cref="Uri"/> from a textual content document heading <see cref="Uri"/> (that corresponds)
+        /// </summary>
+        /// <param name="contentHeadingUri">The textual content document heading <see cref="Uri"/></param>
+        /// <returns>The ncc heading <see cref="Uri"/> or <c>null</c> if a such could not be found</returns>
+        public static Uri GetNccHeadingUriFromContentHeadingUri(Uri contentHeadingUri)
+        {
+            var smilUri = GetReferencedElement(contentHeadingUri)
+                ?.Descendants(XhtmlNs + "a")
+                .Select(a => a.Attribute("href"))
+                .Select(GetUri)
+                .FirstOrDefault();
+            if (smilUri == null)
+            {
+                return null;
+            }
+            var smilPar = GetReferencedElement(smilUri);
+            if (smilPar == null)
+            {
+                return null;
+            }
+
+            if (smilPar.Name == "text")
+            {
+                smilPar = smilPar.Parent;
+            }
+
+            if (smilPar?.Name != "par")
+            {
+                return null;
+            }
+            var ncc = new[] {"ncc.htm", "ncc.html"}
+                .Select(fn => new Uri(new Uri(smilPar.BaseUri??""), fn))
+                .Where(uri => File.Exists(uri.LocalPath))
+                .Select(nccUri => XDocument.Load(nccUri.AbsoluteUri, LoadOptions.SetBaseUri))
+                .FirstOrDefault();
+
+            return ncc
+                ?.Root
+                ?.Element(XhtmlNs + "body")
+                ?.Elements()
+                .Where(IsHeading)
+                .Where(h =>
+                    h
+                        .Descendants(XhtmlNs + "a")
+                        .SelectMany(a => a.Attributes("href"))
+                        .Select(GetUri)
+                        .Select(uri => GetReferencedElement(uri, smilPar.Document))
+                        .Any(elem => elem == smilPar || smilPar.Elements("text").Any(text => text == elem))
+                    && h.Attribute("id") != null)
+                .Select(h => new Uri(new Uri(h.BaseUri), $"#{h.Attribute("id")?.Value??""}"))
+                .FirstOrDefault();
         }
     }
 }
