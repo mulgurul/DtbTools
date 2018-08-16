@@ -75,7 +75,7 @@ namespace DtbMerger2LibraryTests.Daisy202
         {
             var entries = builder.MergeEntries.SelectMany(me => me.DescententsAndSelf).ToList();
             Assert.AreEqual(entries.Count, builder.SmilFiles.Count, "Expected one smil file per merge file entry");
-            Assert.AreEqual(entries.Count, builder.AudioFileSegments.Count, "Expected one audio file per merge file entry");
+            Assert.AreEqual(entries.Count, builder.AudioSegmentsByAudioFileDictionary.Count, "Expected one audio file per merge file entry");
             Assert.IsFalse(builder.NccDocument.Root?.Elements(Utils.XhtmlNs+"body").Elements(Utils.XhtmlNs+"p").Any()??false, "Found <p> elements in ncc");
             var nccHeadings = builder.NccDocument.Root?.Element(Utils.XhtmlNs + "body")?.Elements()
                 .Where(Utils.IsHeading).ToList()??new List<XElement>();
@@ -102,7 +102,7 @@ namespace DtbMerger2LibraryTests.Daisy202
                 .SelectMany(doc => doc.Descendants("audio"))
                 .Where(audio => audio.Attribute("src") != null))
             {
-                Assert.IsTrue(builder.AudioFileSegments.Keys.Contains(audio.Attribute("src")?.Value), $"Found no audio segment matching {audio} in {audio.BaseUri}");
+                Assert.IsTrue(builder.AudioSegmentsByAudioFileDictionary.Keys.Contains(audio.Attribute("src")?.Value), $"Found no audio segment matching {audio} in {audio.BaseUri}");
             }
             Assert.IsNotNull(builder.NccDocument.Root, "Ncc has no root element");
             var nccElements = (

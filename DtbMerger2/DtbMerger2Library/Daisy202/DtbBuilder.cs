@@ -14,19 +14,36 @@ using NAudio.Wave;
 
 namespace DtbMerger2Library.Daisy202
 {
+    /// <summary>
+    /// Builds and saves a merged DTB mased on a list of <see cref="MergeEntries"/>
+    /// </summary>
     public class DtbBuilder
     {
-
+        /// <summary>
+        /// The allowed un-referenced audio at the end of an audio file.
+        /// When the unreferenced audio at the end of an audio file exceeds this value, 
+        /// the excess audio is removed from the saved audio file.
+        /// </summary>
         public TimeSpan AllowedFileEndAudio { get; set; } = TimeSpan.FromSeconds(1.5);
 
+        /// <summary>
+        /// The list of <see cref="MergeEntry"/>s representing the DTB to build
+        /// </summary>
         public List<MergeEntry> MergeEntries { get; private set; }
 
+        /// <summary>
+        /// Default constructor, initializing the builder with an empty <see cref="MergeEntry"/> list
+        /// </summary>
         public DtbBuilder() : this(new MergeEntry[0])
         {
             MergeEntries = new List<MergeEntry>();
             RefreshPrefix();
         }
 
+        /// <summary>
+        /// Constructor that initializerd the builder with a <see cref="MergeEntry"/> list
+        /// </summary>
+        /// <param name="entries"></param>
         public DtbBuilder(IEnumerable<MergeEntry> entries)
         {
             MergeEntries = new List<MergeEntry>(entries);
@@ -46,6 +63,9 @@ namespace DtbMerger2Library.Daisy202
             return $"SM{audioPrefix}{index:D5}.smil";
         }
 
+        /// <summary>
+        /// Gets the extension of audio files built by the builder
+        /// </summary>
         public string AudioFileExtension =>
             Path.GetExtension(audioFileSegments.FirstOrDefault()?.FirstOrDefault()?.AudioFile.LocalPath.ToLowerInvariant());
 
@@ -63,20 +83,41 @@ namespace DtbMerger2Library.Daisy202
 
         private readonly List<List<AudioSegment>> audioFileSegments = new List<List<AudioSegment>>();
 
-        public IDictionary<string, List<AudioSegment>> AudioFileSegments => Enumerable.Range(0, audioFileSegments.Count)
+        /// <summary>
+        /// A dictionary that maps the list of <see cref="AudioSegment"/>s making up each audio file of the merged DTB to the audio file name
+        /// </summary>
+        public IDictionary<string, List<AudioSegment>> AudioSegmentsByAudioFileDictionary => Enumerable.Range(0, audioFileSegments.Count)
             .ToDictionary(GetAudioFileName, i => audioFileSegments[i]);
 
+        /// <summary>
+        /// A dictionary listing the smil file <see cref="XDocument"/>s of the merged DTB by smil file name
+        /// </summary>
         public IDictionary<string, XDocument> SmilFiles => Enumerable.Range(0, smilFiles.Count)
             .ToDictionary(GetSmilFileName, i => smilFiles[i]);
 
-        public string ContentDocumentName { get; private set; }
+        /// <summary>
+        /// Gets the name of the textual content document of the merged DTB
+        /// </summary>
+        public string ContentDocumentName { get;  }
 
+        /// <summary>
+        /// Gets the textual content <see cref="XDocument"/> of the merged DTB
+        /// </summary>
         public XDocument ContentDocument { get; private set; }
 
-        public string NccDocumentName { get; private set; }
+        /// <summary>
+        /// Gets the name of the ncc document of the merged DTB
+        /// </summary>
+        public string NccDocumentName { get;  }
 
+        /// <summary>
+        /// Gets the ncc <see cref="XDocument"/> of the merged DTB
+        /// </summary>
         public XDocument NccDocument { get; private set; }
 
+        /// <summary>
+        /// Gets a dictionary, that maps the name of the smil files to their <see cref="XDocument"/> representations
+        /// </summary>
         public IDictionary<string, XDocument> XmlDocuments => SmilFiles
             .Union(new[] {
                 new KeyValuePair<String, XDocument>(NccDocumentName, NccDocument),
@@ -84,6 +125,10 @@ namespace DtbMerger2Library.Daisy202
             .Where(kvp => kvp.Value != null)
             .ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
 
+        /// <summary>
+        /// Resets the builder, preparing it for (another) DTB build.
+        /// The <see cref="MergeEntries"/> list is not altered.
+        /// </summary>
         public void ResetBuilder()
         {
             smilFiles.Clear();
@@ -104,7 +149,7 @@ namespace DtbMerger2Library.Daisy202
 
         private List<XElement> GetNccElements(MergeEntry me, List<XElement> smilElements)
         {
-            var nccElements = me.GetNccElements().Select(Utils.CloneWithBaseUri).ToList();
+            var nccElements = me.NccElements.Select(Utils.CloneWithBaseUri).ToList();
             //Set new id attributes on ncc elements, fixing references from smil <text> elements
             foreach (var idAttr in nccElements
                 .SelectMany(e => e.DescendantsAndSelf())
@@ -116,7 +161,7 @@ namespace DtbMerger2Library.Daisy202
                 //Find and fix smil <text> elements src attributes, that link to ncc elements
                 foreach (var textSrcAttr in smilElements
                     .Select(e => e.Element("text")?.Attribute("src"))
-                    .Where(attr => Utils.IsReferenceTo(Utils.GetUri(attr), new Uri(me.Ncc.BaseUri))))
+                    .Where(attr => Utils.AreSameFile(Utils.GetUri(attr), new Uri(me.Ncc.BaseUri))))
                 {
                     var textSrcUri = Utils.GetUri(textSrcAttr);
                     if (textSrcUri.Fragment == $"#{idAttr.Value}")
@@ -133,7 +178,7 @@ namespace DtbMerger2Library.Daisy202
                 .Where(href => href != null))
             {
                 var uri = Utils.GetUri(nccAHrefAttr);
-                if (Utils.IsReferenceTo(uri, new Uri(me.Smil.BaseUri)))
+                if (Utils.AreSameFile(uri, new Uri(me.Smil.BaseUri)))
                 {
                     nccAHrefAttr.Value = $"{GetSmilFileName(entryIndex)}{uri.Fragment}";
                 }
@@ -147,9 +192,9 @@ namespace DtbMerger2Library.Daisy202
             return nccElements;
         }
 
-        public List<XElement> GetContentElements(MergeEntry me, List<XElement> smilElements)
+        private List<XElement> GetContentElements(MergeEntry me, List<XElement> smilElements)
         {
-            var contentElements = me.GetTextElements().Select(Utils.CloneWithBaseUri).ToList();
+            var contentElements = me.TextElements.Select(Utils.CloneWithBaseUri).ToList();
             if (contentElements.Any())
             {
                 //Set new id attributes on content elements, fixing references from smil <text> elements
@@ -164,7 +209,7 @@ namespace DtbMerger2Library.Daisy202
                     foreach (var textSrcAttr in smilElements
                         .Select(e => e.Element("text")?.Attribute("src"))
                         .Where(attr => me.ContentDocuments.Values.Any(cd =>
-                            Utils.IsReferenceTo(Utils.GetUri(attr), new Uri(cd.BaseUri)))))
+                            Utils.AreSameFile(Utils.GetUri(attr), new Uri(cd.BaseUri)))))
                     {
                         var textSrcUri = Utils.GetUri(textSrcAttr);
                         if (textSrcUri.Fragment == $"#{idAttr.Value}")
@@ -181,7 +226,7 @@ namespace DtbMerger2Library.Daisy202
                     .Where(href => href != null))
                 {
                     var uri = Utils.GetUri(contentAHrefAttr);
-                    if (Utils.IsReferenceTo(uri, new Uri(me.Smil.BaseUri)))
+                    if (Utils.AreSameFile(uri, new Uri(me.Smil.BaseUri)))
                     {
                         contentAHrefAttr.Value = $"{GetSmilFileName(entryIndex)}{uri.Fragment}";
                     }
@@ -191,6 +236,9 @@ namespace DtbMerger2Library.Daisy202
             return contentElements;
         }
 
+        /// <summary>
+        /// Builds the merged DTB
+        /// </summary>
         public void BuildDtb()
         {
             if (!MergeEntries.Any())
@@ -203,7 +251,7 @@ namespace DtbMerger2Library.Daisy202
                 $"{Assembly.GetExecutingAssembly().GetName().Name} v{Assembly.GetExecutingAssembly().GetName().Version}";
 
             var entries = MergeEntries.SelectMany(entry => entry.DescententsAndSelf).ToList();
-            if (entries.Any(me => me.GetTextElements().Any()))
+            if (entries.Any(me => me.TextElements.Any()))
             {
                 ContentDocument = Utils.GenerateSkeletonXhtmlDocument();
             }
@@ -213,7 +261,7 @@ namespace DtbMerger2Library.Daisy202
             foreach (var me in entries)
             {
                 var smilFile = Utils.GenerateSkeletonSmilDocument();
-                var smilElements = me.GetSmilElements().Select(Utils.CloneWithBaseUri).ToList();
+                var smilElements = me.SmilElements.Select(Utils.CloneWithBaseUri).ToList();
                 NccDocument.Root?.Element(NccDocument?.Root.Name.Namespace + "body")
                     ?.Add(GetNccElements(me, smilElements));
 
@@ -229,7 +277,7 @@ namespace DtbMerger2Library.Daisy202
                     ContentDocument.Root?.Element(ContentDocument?.Root.Name.Namespace + "body")?.Add(contentElements);
                 }
 
-                audioFileSegments.Add(me.GetAudioSegments().ToList());
+                audioFileSegments.Add(me.AudioSegments.ToList());
                 var elapsedInThisSmil = TimeSpan.Zero;
                 foreach (var audio in smilElements.Descendants("audio"))
                 {
@@ -313,7 +361,7 @@ namespace DtbMerger2Library.Daisy202
                 Utils.CreateOrGetMeta(NccDocument, $"ncc:page{pt}")?.SetAttributeValue(
                     "content",
                     entries.SelectMany(me =>
-                            me.GetNccElements()
+                            me.NccElements
                                 .Where(e =>
                                     e.Name == Utils.XhtmlNs + "span"
                                     && e.Attribute("class")?.Value == $"page-{pt.ToLowerInvariant()}"))
@@ -380,6 +428,14 @@ namespace DtbMerger2Library.Daisy202
             }
         }
 
+        /// <summary>
+        /// Saved the built DTB
+        /// </summary>
+        /// <param name="baseDir">The directory in which to save the built DTB</param>
+        /// <param name="progressDelegate">
+        /// A progress delegate, recieving progress percentage and message. 
+        /// When the delegate returns <c>true</c>, it is a signal to cancel the save process</param>
+        /// <returns><c>true</c> if the DTB was succesfully saved, <c>false</c> if the save process was cancelled via the <paramref name="progressDelegate"/></returns>
         public bool SaveDtb(string baseDir, Func<int, string, bool> progressDelegate = null)
         {
             if (progressDelegate == null)
@@ -449,18 +505,18 @@ namespace DtbMerger2Library.Daisy202
                 progressDelegate = (p, m) => false;
             }
 
-            var count = AudioFileSegments.Keys.Count(key => AudioFileSegments[key].Any());
+            var count = AudioSegmentsByAudioFileDictionary.Keys.Count(key => AudioSegmentsByAudioFileDictionary[key].Any());
             var index = 0;
-            foreach (var audioFileName in AudioFileSegments.Keys.Where(key => AudioFileSegments[key].Any()))
+            foreach (var audioFileName in AudioSegmentsByAudioFileDictionary.Keys.Where(key => AudioSegmentsByAudioFileDictionary[key].Any()))
             {
                 if (progressDelegate((100 * index) / count, $"Saving audio file {audioFileName}"))
                 {
                     return false;
                 }
                 index++;
-                if (AudioFileSegments[audioFileName].Count == 1)
+                if (AudioSegmentsByAudioFileDictionary[audioFileName].Count == 1)
                 {
-                    var audSeg = AudioFileSegments[audioFileName].First();
+                    var audSeg = AudioSegmentsByAudioFileDictionary[audioFileName].First();
                     if (audSeg.AudioFileDuration < audSeg.ClipEnd)
                     {
                         throw new InvalidOperationException(
@@ -468,7 +524,7 @@ namespace DtbMerger2Library.Daisy202
                     }
                     if (audSeg.AudioFileDuration < audSeg.ClipEnd.Add(AllowedFileEndAudio))
                     {
-                        File.Copy(Uri.UnescapeDataString(AudioFileSegments[audioFileName][0].AudioFile.LocalPath), Path.Combine(baseDir, audioFileName));
+                        File.Copy(Uri.UnescapeDataString(AudioSegmentsByAudioFileDictionary[audioFileName][0].AudioFile.LocalPath), Path.Combine(baseDir, audioFileName));
                         continue;
                     }
                 }
@@ -480,7 +536,7 @@ namespace DtbMerger2Library.Daisy202
                     Stream audioStream;
                     WaveFormat waveFormat;
                     var firstAudioPath = Uri.UnescapeDataString(
-                        AudioFileSegments[audioFileName].First().AudioFile.LocalPath);
+                        AudioSegmentsByAudioFileDictionary[audioFileName].First().AudioFile.LocalPath);
                     switch (AudioFileExtension)
                     {
                         case ".mp3":
@@ -509,7 +565,7 @@ namespace DtbMerger2Library.Daisy202
 
                     try
                     {
-                        foreach (var segment in AudioFileSegments[audioFileName])
+                        foreach (var segment in AudioSegmentsByAudioFileDictionary[audioFileName])
                         {
                             using (var audioReader = 
                                 GetAudioPcmStream(Uri.UnescapeDataString(segment.AudioFile.LocalPath)))
@@ -570,8 +626,7 @@ namespace DtbMerger2Library.Daisy202
                 {
                     return false;
                 }
-                foreach (var imgUri in entry.GetTextElements()
-                    .SelectMany(e => e.DescendantsAndSelf(e.Name.Namespace + "img").Select(img => img.Attribute("src")))
+                foreach (var imgUri in entry.TextElements                    .SelectMany(e => e.DescendantsAndSelf(e.Name.Namespace + "img").Select(img => img.Attribute("src")))
                     .Select(Utils.GetUri)
                     .Distinct())
                 {

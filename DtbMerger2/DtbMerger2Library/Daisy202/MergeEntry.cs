@@ -11,8 +11,17 @@ using DtbMerger2Library.Tree;
 
 namespace DtbMerger2Library.Daisy202
 {
+    /// <summary>
+    /// Represents a merge entry that corresponds to a navigation entry (~heading) in a Daisy 2.02 ncc document
+    /// </summary>
     public class MergeEntry : TreeNode<MergeEntry>
     {
+        #region Static Methods
+        /// <summary>
+        /// Loads the top level <see cref="MergeEntry"/> from a ncc <see cref="XDocument"/>
+        /// </summary>
+        /// <param name="nccDoc">The ncc <see cref="XDocument"/></param>
+        /// <returns>The top level <see cref="MergeEntry"/>s representing each h1 navigation in the ncc <see cref="XDocument"/></returns>
         public static IEnumerable<MergeEntry> LoadMergeEntriesFromNcc(XDocument nccDoc)
         {
             return nccDoc.Root
@@ -21,7 +30,11 @@ namespace DtbMerger2Library.Daisy202
                 .Select(LoadMergeEntryTreeFromHeading);
         }
 
-        #region Static Methods
+        /// <summary>
+        /// Loads the top level <see cref="MergeEntry"/> from a ncc <see cref="XDocument"/>
+        /// </summary>
+        /// <param name="nccUri">The <see cref="Uri"/> ncc <see cref="XDocument"/></param>
+        /// <returns>The top level <see cref="MergeEntry"/>s representing each h1 navigation in the ncc <see cref="XDocument"/></returns>
         public static IEnumerable<MergeEntry> LoadMergeEntriesFromNcc(Uri nccUri)
         {
             return LoadMergeEntriesFromNcc(
@@ -30,6 +43,12 @@ namespace DtbMerger2Library.Daisy202
                     LoadOptions.SetBaseUri | LoadOptions.SetLineInfo));
         }
 
+        /// <summary>
+        /// Recursively loads a <see cref="MergeEntry"/> from a ncc heading <see cref="XElement"/>,
+        /// including the tree represented by the ncc sub-heading heirarchy
+        /// </summary>
+        /// <param name="heading">The ncc heading <see cref="XElement"/></param>
+        /// <returns>The loaded <see cref="MergeEntry"/></returns>
         public static MergeEntry LoadMergeEntryTreeFromHeading(XElement heading)
         {
             if (heading == null) throw new ArgumentNullException(nameof(heading));
@@ -56,11 +75,21 @@ namespace DtbMerger2Library.Daisy202
             return res;
         }
 
+        /// <summary>
+        /// Loads the <see cref="MergeEntry"/>s from a macro <see cref="XDocument"/>
+        /// </summary>
+        /// <param name="macroDoc">The macro <see cref="XDocument"/></param>
+        /// <returns>The (top-level) <see cref="MergeEntry"/>s loaded from the macro</returns>
         public static IEnumerable<MergeEntry> LoadMergeEntriesFromMacro(XDocument macroDoc)
         {
             return macroDoc.Root?.Elements().SelectMany(e => LoadMergeEntriesFromMacroElement(e)) ?? new MergeEntry[0];
         }
 
+        /// <summary>
+        /// Loads the <see cref="MergeEntry"/>s from a macro <see cref="XDocument"/>
+        /// </summary>
+        /// <param name="macroUri">The <see cref="Uri"/> of the macro <see cref="XDocument"/></param>
+        /// <returns>The (top-level) <see cref="MergeEntry"/>s loaded from the macro</returns>
         public static IEnumerable<MergeEntry> LoadMergeEntriesFromMacro(Uri macroUri)
         {
             return LoadMergeEntriesFromMacro(
@@ -70,6 +99,12 @@ namespace DtbMerger2Library.Daisy202
 
         }
 
+        /// <summary>
+        /// Loads <see cref="MergeEntry"/>s represented by a macro <see cref="XElement"/>
+        /// </summary>
+        /// <param name="elem">The macro <see cref="XElement"/></param>
+        /// <param name="deep">A <see cref="bool"/> indicating </param>
+        /// <returns></returns>
         public static IEnumerable<MergeEntry> LoadMergeEntriesFromMacroElement(XElement elem, bool deep = true)
         {
             var nccUri = Utils.GetUri(elem.Attribute("file"));
@@ -128,6 +163,9 @@ namespace DtbMerger2Library.Daisy202
         private XDocument ncc, smil;
         private Dictionary<string, XDocument> contentDocuments;
 
+        /// <summary>
+        /// Gets or sets the <see cref="Uri"/> of the source ncc navigation entry (~heading)
+        /// </summary>
         public Uri SourceNavEntry
         {
             get => sourceNavEntry;
@@ -143,6 +181,9 @@ namespace DtbMerger2Library.Daisy202
             }
         }
 
+        /// <summary>
+        /// Gets the ncc <see cref="XDocument"/> to which the <see cref="SourceNavEntry"/> belongs - with lazy loading
+        /// </summary>
         public XDocument Ncc
         {
             get
@@ -163,6 +204,9 @@ namespace DtbMerger2Library.Daisy202
             }
         }
 
+        /// <summary>
+        /// Gets the smil <see cref="XDocument"/> pointed to by <see cref="SourceNavEntry"/> - with lazy loading
+        /// </summary>
         public XDocument Smil
         {
             get
@@ -171,7 +215,7 @@ namespace DtbMerger2Library.Daisy202
                 {
                     try
                     {
-                        smil = GetNccElements()
+                        smil = NccElements
                             .SelectMany(e =>
                                 e.Descendants(e.Name.Namespace + "a").Select(a => 
                                     a.Attribute("href"))
@@ -194,6 +238,9 @@ namespace DtbMerger2Library.Daisy202
             }
         }
 
+        /// <summary>
+        /// Gets a dictionary of the textual content <see cref="XDocument"/>s pointed to by the 
+        /// </summary>
         public IReadOnlyDictionary<string, XDocument> ContentDocuments
         {
             get
@@ -201,10 +248,10 @@ namespace DtbMerger2Library.Daisy202
                 if (contentDocuments == null)
                 {
                     contentDocuments = new Dictionary<String, XDocument>();
-                    foreach (var path in GetSmilElements()
+                    foreach (var path in SmilElements
                         .Select(par => par.Element(par.Name.Namespace + "text")?.Attribute("src"))
                         .Select(Utils.GetUri)
-                        .Select(uri => uri?.LocalPath)
+                        .Select(uri => uri?.GetLeftPart(UriPartial.Query).ToLowerInvariant())
                         .Where(path => !String.IsNullOrEmpty(path))
                         .Distinct())
                     {
@@ -215,29 +262,34 @@ namespace DtbMerger2Library.Daisy202
             }
         }
 
-
-
-        public IEnumerable<XElement> GetNccElements()
+        /// <summary>
+        /// Gets the ncc <see cref="XElement"/>s represented by the <see cref="MergeEntry"/> (will belong to <see cref="Ncc"/>)
+        /// </summary>
+        public IEnumerable<XElement> NccElements
         {
-            if (String.IsNullOrEmpty(SourceNavEntry?.Fragment))
+            get
             {
-                throw new InvalidOperationException($"SourceNavEntry Uri {SourceNavEntry} has no fragment");
+                if (String.IsNullOrEmpty(SourceNavEntry?.Fragment))
+                {
+                    throw new InvalidOperationException($"SourceNavEntry Uri {SourceNavEntry} has no fragment");
+                }
+                var heading = Ncc
+                    .Descendants()
+                    .FirstOrDefault(e => $"#{e.Attribute("id")?.Value}" == SourceNavEntry.Fragment);
+                if (heading == null)
+                {
+                    throw new InvalidOperationException($"SourceNavEntry Uri {SourceNavEntry} fragment not found");
+                }
+                var nccElements = new List<XElement>() { heading };
+                var next = heading.ElementsAfterSelf().FirstOrDefault();
+                while (next != null && !Utils.IsHeading(next))
+                {
+                    nccElements.Add(next);
+                    next = next?.ElementsAfterSelf().FirstOrDefault();
+                }
+
+                return nccElements;
             }
-            var heading = Ncc
-                .Descendants()
-                .FirstOrDefault(e => $"#{e.Attribute("id")?.Value}" == SourceNavEntry.Fragment);
-            if (heading == null)
-            {
-                throw new InvalidOperationException($"SourceNavEntry Uri {SourceNavEntry} fragment not found");
-            }
-            var res = new List<XElement>() {heading};
-            var next = heading.ElementsAfterSelf().FirstOrDefault();
-            while (next != null && !Utils.IsHeading(next))
-            {
-                res.Add(next);
-                next = next?.ElementsAfterSelf().FirstOrDefault();
-            }
-            return res;
         }
 
         private XElement GetSmilPar(XElement elem)
@@ -259,33 +311,42 @@ namespace DtbMerger2Library.Daisy202
             return par;
         }
 
-        public IEnumerable<XElement> GetSmilElements()
+
+        /// <summary>
+        /// Gets the smil <see cref="XElement"/> represented by the <see cref="MergeEntry"/> (will belong to <see cref="Smil"/>)
+        /// </summary>
+        public IEnumerable<XElement> SmilElements
         {
-            if (Smil == null)
+            get
             {
-                return new XElement[0];
-            }
-            var nccElements = GetNccElements().ToList();
-            var firstPar = GetSmilPar(nccElements.First());
-            if (firstPar == null)
-            {
-                throw new InvalidOperationException("First ncc element does not point to smil par");
-            }
-
-            var nextHeadingPar = GetSmilPar(
-                nccElements.Last().ElementsAfterSelf().FirstOrDefault(Utils.IsHeading));
-            var res = new List<XElement>();
-            while (firstPar != null)
-            {
-                if (firstPar == nextHeadingPar)
+                if (Smil == null)
                 {
-                    break;
+                    return new XElement[0];
                 }
-                res.Add(firstPar);
-                firstPar = firstPar.ElementsAfterSelf().FirstOrDefault(e => e.Name.LocalName == "par");
-            }
 
-            return res;
+                var nccElements = NccElements.ToList();
+                var firstPar = GetSmilPar(nccElements.First());
+                if (firstPar == null)
+                {
+                    throw new InvalidOperationException("First ncc element does not point to smil par");
+                }
+
+                var nextHeadingPar = GetSmilPar(
+                    nccElements.Last().ElementsAfterSelf().FirstOrDefault(Utils.IsHeading));
+                var res = new List<XElement>();
+                while (firstPar != null)
+                {
+                    if (firstPar == nextHeadingPar)
+                    {
+                        break;
+                    }
+
+                    res.Add(firstPar);
+                    firstPar = firstPar.ElementsAfterSelf().FirstOrDefault(e => e.Name.LocalName == "par");
+                }
+
+                return res;
+            }
         }
 
         private static bool IsBodyBlockElement(XElement elem)
@@ -301,68 +362,88 @@ namespace DtbMerger2Library.Daisy202
             }
         }
 
-        public IEnumerable<XElement> GetTextElements()
+        /// <summary>
+        /// Gets the text <see cref="XElement"/> represented by the <see cref="MergeEntry"/> 
+        /// (will each belong to a textual content document in <see cref="ContentDocuments"/>)
+        /// </summary>
+        public IEnumerable<XElement> TextElements
         {
-            var textElements = GetSmilElements()
-                .Select(par => par.Element(par.Name.Namespace + "text")?.Attribute("src"))
-                .Select(Utils.GetUri)
-                .Select(uri =>
-                    Utils.GetReferencedElement(uri, ContentDocuments[uri.LocalPath]))
-                .Select(elem => elem.AncestorsAndSelf().FirstOrDefault(IsBodyBlockElement))
-                .Where(e => e != null)
-                .Distinct()
-                .ToList();
-            int i = 0;
-            while (i < textElements.Count-1)
+            get
             {
-                var e1 = textElements[i];
-                var e2 = textElements[i + 1];
-                var siblingsBetween = e1.ElementsAfterSelf().Intersect(e2.ElementsBeforeSelf()).ToList();
-                if (siblingsBetween.Any())
+                var textElements = SmilElements
+                    .Select(par => par.Element(par.Name.Namespace + "text")?.Attribute("src"))
+                    .Select(Utils.GetUri)
+                    .Select(uri =>
+                        Utils.GetReferencedElement(uri, ContentDocuments[uri.GetLeftPart(UriPartial.Query).ToLowerInvariant()]))
+                    .Select(elem => elem.AncestorsAndSelf().FirstOrDefault(IsBodyBlockElement))
+                    .Where(e => e != null)
+                    .Distinct()
+                    .ToList();
+                int i = 0;
+                while (i < textElements.Count - 1)
                 {
-                    textElements.InsertRange(i+1, siblingsBetween);
-                    i += siblingsBetween.Count;
-                }
-                i++;
-            }
-            return textElements;
-        }
-
-        public IEnumerable<AudioSegment> GetAudioSegments()
-        {
-            var audios = GetSmilElements()
-                .SelectMany(par => par.Descendants(par.Name.Namespace + "audio"))
-                .ToList();
-            int i = 0;
-            while (i < audios.Count - 1)
-            {
-                var a1 = audios[i];
-                var a2 = audios[i + 1];
-                if (a1.Attribute("src")?.Value == a2.Attribute("src")?.Value)
-                {
-                    if (a1.Attribute("clip-end")?.Value == a2.Attribute("clip-begin")?.Value)
+                    var e1 = textElements[i];
+                    var e2 = textElements[i + 1];
+                    var siblingsBetween = e1.ElementsAfterSelf().Intersect(e2.ElementsBeforeSelf()).ToList();
+                    if (siblingsBetween.Any())
                     {
-                        a1.SetAttributeValue("clip-end", a2.Attribute("clip-end")?.Value);
-                        audios.Remove(a2);
-                        continue;
+                        textElements.InsertRange(i + 1, siblingsBetween);
+                        i += siblingsBetween.Count;
                     }
+                    i++;
                 }
-                i++;
+                return textElements;
             }
-
-            return audios
-                .Where(audio => !String.IsNullOrEmpty(audio.Attribute("src")?.Value))
-                .Select(audio => new AudioSegment()
-                {
-                    AudioFile = new Uri(new Uri(audio.BaseUri), audio.Attribute("src")?.Value??""),
-                    ClipBegin = Utils.ParseSmilClip(audio.Attribute("clip-begin")?.Value),
-                    ClipEnd = Utils.ParseSmilClip(audio.Attribute("clip-end")?.Value)
-                });
         }
 
-        public string DefaultAudioFileExtension =>
-            Path.GetExtension(GetAudioSegments().FirstOrDefault()?.AudioFile.LocalPath);
+        /// <summary>
+        /// Gets the <see cref="AudioSegment"/>s of the merge entry
+        /// </summary>
+        public IEnumerable<AudioSegment> AudioSegments
+        {
+            get
+            {
+                var audios = SmilElements
+                    .SelectMany(par => par.Descendants(par.Name.Namespace + "audio"))
+                    .ToList();
+                int i = 0;
+                while (i < audios.Count - 1)
+                {
+                    var a1 = audios[i];
+                    var a2 = audios[i + 1];
+                    if (a1.Attribute("src")?.Value == a2.Attribute("src")?.Value)
+                    {
+                        if (a1.Attribute("clip-end")?.Value == a2.Attribute("clip-begin")?.Value)
+                        {
+                            a1.SetAttributeValue("clip-end", a2.Attribute("clip-end")?.Value);
+                            audios.Remove(a2);
+                            continue;
+                        }
+                    }
+                    i++;
+                }
 
+                return audios
+                    .Where(audio => !String.IsNullOrEmpty(audio.Attribute("src")?.Value))
+                    .Select(audio => new AudioSegment()
+                    {
+                        AudioFile = new Uri(new Uri(audio.BaseUri), audio.Attribute("src")?.Value ?? ""),
+                        ClipBegin = Utils.ParseSmilClip(audio.Attribute("clip-begin")?.Value),
+                        ClipEnd = Utils.ParseSmilClip(audio.Attribute("clip-end")?.Value)
+                    });
+            }
+        }
+
+        /// <summary>
+        /// Gets the default audio file extension of the <see cref="MergeEntry"/>,
+        /// defined as the extension of the audio file of the first <see cref="AudioSegment"/> of the <see cref="MergeEntry"/>
+        /// </summary>
+        public string DefaultAudioFileExtension =>
+            Path.GetExtension(AudioSegments.FirstOrDefault()?.AudioFile.LocalPath);
+
+        /// <summary>
+        /// Gets a macro <see cref="XElement"/> representing the <see cref="MergeEntry"/>
+        /// </summary>
         public XElement MacroElement
         {
             get
@@ -376,6 +457,7 @@ namespace DtbMerger2Library.Daisy202
         }
 
 
+        /// <inheritdoc />
         public override String ToString()
         {
             return SourceNavEntry.ToString();
