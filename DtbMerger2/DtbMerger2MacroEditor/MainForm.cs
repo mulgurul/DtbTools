@@ -1,21 +1,16 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
-using System.Data;
 using System.Diagnostics;
-using System.Drawing;
 using System.IO;
 using System.Linq;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.Xml.Linq;
 using DtbMerger2Library.Actions;
 using DtbMerger2Library.Daisy202;
 using Uri = System.Uri;
 
-namespace MacroEditor
+namespace DtbMerger2MacroEditor
 {
     public partial class MainForm : Form
     {
@@ -367,7 +362,7 @@ namespace MacroEditor
                 try
                 {
                     Macro = XDocument.Load(ofd.FileName, LoadOptions.SetBaseUri | LoadOptions.SetLineInfo);
-
+                    macroTreeView.ExpandAll();
                 }
                 catch (Exception e)
                 {
@@ -883,6 +878,21 @@ namespace MacroEditor
 
                     if (fbd.ShowDialog(this) == DialogResult.OK)
                     {
+                        if (Directory.Exists(fbd.SelectedPath))
+                        {
+                            if (Directory.GetFileSystemEntries(fbd.SelectedPath).Any())
+                            {
+                                if (MessageBox.Show(
+                                        this,
+                                        $"Output folder\n{fbd.SelectedPath}\nis not empty and if you continue, it's content will be purged.\nDo you wish to continue?",
+                                        "Generate Merged DTB",
+                                        MessageBoxButtons.YesNo,
+                                        MessageBoxIcon.Question) == DialogResult.No)
+                                {
+                                    return;
+                                }
+                            }
+                        }
                         process = "saving DTB";
                         ShowProgressControls();
                         saveDtbBackgroundWorker.RunWorkerAsync(new Tuple<DtbBuilder, string>(builder, fbd.SelectedPath));

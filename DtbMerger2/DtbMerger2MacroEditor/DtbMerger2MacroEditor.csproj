@@ -6,8 +6,8 @@
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <ProjectGuid>{00C885D2-6FDC-429E-B55E-C13CC566D4C7}</ProjectGuid>
     <OutputType>WinExe</OutputType>
-    <RootNamespace>MacroEditor</RootNamespace>
-    <AssemblyName>MacroEditor</AssemblyName>
+    <RootNamespace>DtbMerger2MacroEditor</RootNamespace>
+    <AssemblyName>DtbMerger2MacroEditor</AssemblyName>
     <TargetFrameworkVersion>v4.6.1</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>

@@ -1,17 +1,16 @@
-﻿using System.Resources;
-using System.Reflection;
+﻿using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 // General Information about an assembly is controlled through the following
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
-[assembly: AssemblyTitle("MacroEditor")]
+[assembly: AssemblyTitle("DtbMerger2")]
 [assembly: AssemblyDescription("")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("Nota")]
-[assembly: AssemblyProduct("MacroEditor")]
-[assembly: AssemblyCopyright("Copyright Nota 2018")]
+[assembly: AssemblyCompany("")]
+[assembly: AssemblyProduct("DtbMerger2")]
+[assembly: AssemblyCopyright("Copyright ©  2018")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 
@@ -21,7 +20,7 @@ using System.Runtime.InteropServices;
 [assembly: ComVisible(false)]
 
 // The following GUID is for the ID of the typelib if this project is exposed to COM
-[assembly: Guid("00c885d2-6fdc-429e-b55e-c13cc566d4c7")]
+[assembly: Guid("fe27f5b7-2222-4de8-8321-ae4f24716de2")]
 
 // Version information for an assembly consists of the following four values:
 //
@@ -32,8 +31,4 @@ using System.Runtime.InteropServices;
 //
 // You can specify all the values or you can default the Build and Revision Numbers
 // by using the '*' as shown below:
-[assembly: AssemblyVersion("1.0.2.*")]
-//[assembly: AssemblyVersion("1.0.0.0")]
-//[assembly: AssemblyFileVersion("1.0.0.0")]
-[assembly: NeutralResourcesLanguage("")]
-
+[assembly: AssemblyVersion("2.0.2.*")]

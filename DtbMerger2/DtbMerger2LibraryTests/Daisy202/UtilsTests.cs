@@ -9,8 +9,11 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 namespace DtbMerger2LibraryTests.Daisy202
 {
     [TestClass]
+    [DeploymentItem(@".\DTBs")]
     public class UtilsTests
     {
+        private readonly Uri outUri = new Uri(new Uri(Directory.GetCurrentDirectory()), "Out/");
+ 
         private static IEnumerable<XElement> GetElements(string localName)
         {
             return new[] {new XElement(localName), new XElement(Utils.XhtmlNs + localName)};
@@ -76,14 +79,39 @@ namespace DtbMerger2LibraryTests.Daisy202
                 new Tuple<Uri, Uri, bool>(new Uri("ncc.html#id", UriKind.Relative), new Uri("http://temp.org/ncc.html"), false),
                 new Tuple<Uri, Uri, bool>(new Uri("http://temp.org/ncc.html"), new Uri("http://temp.org/ncc.html"), true),
                 new Tuple<Uri, Uri, bool>(new Uri("http://temp.org/ncc.html#id"), new Uri("http://temp.org/ncc.html"), true),
-                new Tuple<Uri, Uri, bool>(new Uri("http://temp.org/ncc.html"), new Uri("http://temp.org/ncc.html#id"), true),
+                new Tuple<Uri, Uri, bool>(new Uri("file://localhost/share/ncc.html"), new Uri("file://localhost/share/ncc.html"), true),
+                new Tuple<Uri, Uri, bool>(new Uri("file://localhost/share/ncc.html"), new Uri("file://localhost/share/ncc.html#id"), true),
+                new Tuple<Uri, Uri, bool>(new Uri("file://localhost/share/ncc.html#id"), new Uri("file://localhost/share/ncc.html"), true),
+                new Tuple<Uri, Uri, bool>(new Uri("file://localhost/share/ncc.html"), new Uri("file://localhost/share/content.html"), false),
+                new Tuple<Uri, Uri, bool>(new Uri("file://localhost/share/ncc.html"), new Uri("file://removeserver/share/ncc.html"), false),
             };
             foreach (var test in testData)
             {
                 Assert.AreEqual(
                     test.Item3, 
-                    Utils.IsReferenceTo(test.Item1, test.Item2),
-                    $"Expedted IsReferenceTo({test.Item1}, {test.Item2}) to return {test.Item3}");
+                    Utils.AreSameFile(test.Item1, test.Item2),
+                    $"Expedted AreSameFile({test.Item1}, {test.Item2}) to return {test.Item3}");
+            }
+        }
+
+        [TestMethod]
+        public void GetNccHeadingUriFromContentHeadingUriTest()
+        {
+            foreach (var id in new[] {"nav1", "nav2", "nav2_1", "nav2_2", "nav3", "nav3_1", "nav3_2"})
+            {
+                var nccHeadingUri = new UriBuilder(new Uri(outUri, $"DTB1/ncc.html"))
+                {
+                    Fragment = id
+                }.Uri;
+                var contentHeadingUri = new UriBuilder(new Uri(outUri, $"DTB1/content.html"))
+                {
+                    Fragment = id
+                }.Uri;
+                Assert.AreEqual(
+                    nccHeadingUri.AbsoluteUri.ToLowerInvariant(),
+                    Utils.GetNccHeadingUriFromContentHeadingUri(
+                        contentHeadingUri).AbsoluteUri.ToLowerInvariant(),
+                    $"Extected call with {contentHeadingUri} to return {nccHeadingUri}.");
             }
         }
 

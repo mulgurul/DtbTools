@@ -18,5 +18,6 @@ namespace DtbMerger2LibraryTests.Daisy202
             var macroElements = MacroEntry.GetMacroElementsFromNcc(dtb1NccUri);
             Assert.AreEqual(3, macroElements.Count());
         }
+
     }
 }
