@@ -4,30 +4,31 @@ using System.Collections.ObjectModel;
 using System.Globalization;
 using System.IO;
 using System.Linq;
-using System.Speech.AudioFormat;
+using System.Xml;
 using System.Xml.Linq;
-using System.Speech.Synthesis;
+using Microsoft.Speech.AudioFormat;
+using Microsoft.Speech.Synthesis;
 using NAudio.Wave;
 
 namespace DtbSynthesizerLibrary
 {
-    public class SystemSpeechXmlSynthesizer : IXmlSynthesizer
+    public class MicrosoftSpeechXmlSynthesizer : IXmlSynthesizer
     {
-        static SystemSpeechXmlSynthesizer()
+        static MicrosoftSpeechXmlSynthesizer()
         {
             Synthesizer = new SpeechSynthesizer();
             SynthesizerList = new SpeechSynthesizer()
                 .GetInstalledVoices()
-                .Select(v => new SystemSpeechXmlSynthesizer(v.VoiceInfo))
+                .Select(v => new MicrosoftSpeechXmlSynthesizer(v.VoiceInfo))
                 .ToList();
         }
 
-        private static readonly List<SystemSpeechXmlSynthesizer> SynthesizerList;
+        private static readonly List<MicrosoftSpeechXmlSynthesizer> SynthesizerList;
 
-        public static IReadOnlyCollection<SystemSpeechXmlSynthesizer> Synthesizers
+        public static IReadOnlyCollection<MicrosoftSpeechXmlSynthesizer> Synthesizers 
             => SynthesizerList.AsReadOnly();
 
-        public static SystemSpeechXmlSynthesizer GetPreferedVoiceForCulture(CultureInfo ci)
+        public static MicrosoftSpeechXmlSynthesizer GetPreferedVoiceForCulture(CultureInfo ci)
         {
             if (!ci.IsNeutralCulture)
             {
@@ -40,7 +41,7 @@ namespace DtbSynthesizerLibrary
             return Synthesizers.FirstOrDefault();
         }
 
-        private SystemSpeechXmlSynthesizer(VoiceInfo voice)
+        private MicrosoftSpeechXmlSynthesizer(VoiceInfo voice)
         {
             Voice = voice;
         }
@@ -83,10 +84,10 @@ namespace DtbSynthesizerLibrary
                 audioStream,
                 new SpeechAudioFormatInfo(
                     writer.WaveFormat.SampleRate,
-                    (AudioBitsPerSample)writer.WaveFormat.BitsPerSample,
-                    (AudioChannel)writer.WaveFormat.Channels));
+                    (AudioBitsPerSample) writer.WaveFormat.BitsPerSample,
+                    (AudioChannel) writer.WaveFormat.Channels));
             var bookmarks = new Dictionary<string, XElement>();
-            var promptBuilder = new PromptBuilder() { Culture = Voice.Culture };
+            var promptBuilder = new PromptBuilder() {Culture = Voice.Culture};
             promptBuilder.StartVoice(Voice);
             AppendElementToPromptBuilder(element, promptBuilder, bookmarks);
             promptBuilder.EndVoice();
@@ -138,8 +139,8 @@ namespace DtbSynthesizerLibrary
             Name = Synthesizer.Voice.Name,
             Culture = Synthesizer.Voice.Culture,
             Gender = Synthesizer.Voice.Gender.ToString(),
-            AdditionalInfo = new ReadOnlyDictionary<string, string>(Synthesizer.Voice.AdditionalInfo),
-            Type = "System.Speech"
+            AdditionalInfo =  new ReadOnlyDictionary<string, string>(Synthesizer.Voice.AdditionalInfo),
+            Type = "Microsoft.Speech"
         };
     }
 }

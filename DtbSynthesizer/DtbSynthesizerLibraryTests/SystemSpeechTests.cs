@@ -9,6 +9,7 @@ using System.Text.RegularExpressions;
 namespace DtbSynthesizerLibraryTests
 {
     [TestClass]
+    //[Ignore]//Not really tests, just playing with the installed voices
     public class SystemSpeechTests
     {
         public TestContext TestContext { get; set; }

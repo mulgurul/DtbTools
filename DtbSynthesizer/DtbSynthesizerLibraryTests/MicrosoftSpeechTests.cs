@@ -3,8 +3,10 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
+using Microsoft.Speech.AudioFormat;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Microsoft.Speech.Synthesis;
+using NAudio.Wave;
 
 namespace DtbSynthesizerLibraryTests
 {
@@ -76,6 +78,28 @@ namespace DtbSynthesizerLibraryTests
             {
                 synth.Dispose();
             }
+        }
+
+        [TestMethod]
+        public void CreateEmptyWaveFileTest()
+        {
+            var path = GetAudioFilePath("Empty.wav");
+            //var synth = new SpeechSynthesizer();
+            //var safi = new SpeechAudioFormatInfo(22050, AudioBitsPerSample.Sixteen, AudioChannel.Mono);
+            //synth.SetOutputToWaveFile(path, safi);
+            //synth.Speak("");
+            //synth.SetOutputToNull();
+            var safi = new WaveFormat(22050, 16, 1);
+            var writer = new WaveFileWriter(path, safi);
+            writer.Close();
+
+            Assert.IsTrue(File.Exists(path), $"Empty wave file {path} was not created");
+            var reader = new WaveFileReader(path);
+            Assert.AreEqual(0, reader.SampleCount, "Expected empty wavefile to have no samples");
+            Assert.AreEqual(TimeSpan.Zero, reader.TotalTime, "Expected total time to be zero");
+            Assert.AreEqual(safi.SampleRate, reader.WaveFormat.SampleRate, $"Expected sample rate to be {safi.SampleRate}");
+            Assert.AreEqual(safi.BitsPerSample, reader.WaveFormat.BitsPerSample, $"Expected bits per samples to be {safi.BitsPerSample}");
+            Assert.AreEqual(safi.Channels, reader.WaveFormat.Channels, $"Expected number of channels to be {safi.Channels}");
         }
     }
 }

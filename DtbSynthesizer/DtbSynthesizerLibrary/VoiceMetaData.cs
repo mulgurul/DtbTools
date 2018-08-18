@@ -29,7 +29,7 @@ namespace DtbSynthesizerLibrary
         /// <summary>
         /// The gender of the voice
         /// </summary>
-        public VoiceGender Gender { get; set; }
+        public string Gender { get; set; }
 
         /// <summary>
         /// The culture of the voice
@@ -40,5 +40,7 @@ namespace DtbSynthesizerLibrary
         /// A <see cref="IDictionary{TKey,TValue}"/> containing additional information about the voice
         /// </summary>
         public IDictionary<string,string> AdditionalInfo { get; set; }
+
+        public string Description => $"{Name} ({Type} {Culture.DisplayName} voice)";
     }
 }
