@@ -67,12 +67,14 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="IXmlSynthesizer.cs" />
+    <Compile Include="ProgressEventArgs.cs" />
     <Compile Include="SystemSpeechXmlSynthesizer.cs" />
     <Compile Include="MicrosoftSpeechXmlSynthesizer.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="SyncAnnotation.cs" />
     <Compile Include="Utils.cs" />
     <Compile Include="VoiceMetaData.cs" />
+    <Compile Include="Xhtml\XhtmlSynthesizer.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

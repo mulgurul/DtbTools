@@ -24,20 +24,13 @@ namespace DtbSynthesizerLibrary
 
         private static readonly List<SystemSpeechXmlSynthesizer> SynthesizerList;
 
-        public static IReadOnlyCollection<SystemSpeechXmlSynthesizer> Synthesizers
+        public static IReadOnlyCollection<IXmlSynthesizer> Synthesizers
             => SynthesizerList.AsReadOnly();
 
-        public static SystemSpeechXmlSynthesizer GetPreferedVoiceForCulture(CultureInfo ci)
+        public static IXmlSynthesizer GetPreferedVoiceForCulture(CultureInfo ci)
         {
-            if (!ci.IsNeutralCulture)
-            {
-                return
-                    Synthesizers.FirstOrDefault(s => s.Voice.Culture.Equals(ci))
-                    ?? Synthesizers.FirstOrDefault(s =>
-                        s.Voice.Culture.TwoLetterISOLanguageName == ci.TwoLetterISOLanguageName)
-                    ?? Synthesizers.FirstOrDefault();
-            }
-            return Synthesizers.FirstOrDefault();
+            return Utils.GetPrefferedXmlSynthesizerForCulture(ci, Synthesizers);
+
         }
 
         private SystemSpeechXmlSynthesizer(VoiceInfo voice)
@@ -73,7 +66,7 @@ namespace DtbSynthesizerLibrary
 
 
 
-        public TimeSpan SynthesizeElement(XElement element, WaveFileWriter writer)
+        public TimeSpan SynthesizeElement(XElement element, WaveFileWriter writer, string src = "")
         {
             if (element == null) throw new ArgumentNullException(nameof(element));
             Offset = writer.TotalTime;
@@ -98,7 +91,7 @@ namespace DtbSynthesizerLibrary
                     var anno = elem.Annotation<SyncAnnotation>();
                     if (anno == null)
                     {
-                        anno = new SyncAnnotation();
+                        anno = new SyncAnnotation { Src = src };
                         elem.AddAnnotation(anno);
                     }
 
@@ -132,6 +125,8 @@ namespace DtbSynthesizerLibrary
             }
             return writer.TotalTime.Subtract(startOffset);
         }
+
+        public bool RecurseMixedContent { get; set; } = false;
 
         public VoiceMetaData VoiceInfo => new VoiceMetaData()
         {

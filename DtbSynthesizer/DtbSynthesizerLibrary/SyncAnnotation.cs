@@ -8,8 +8,10 @@ namespace DtbSynthesizerLibrary
 {
     public class SyncAnnotation
     {
-        public TimeSpan ClipBegin { get; set; } = TimeSpan.MinValue;
+        public string Src { get; set; } = "";
 
-        public TimeSpan ClipEnd { get; set; } = TimeSpan.MinValue;
+        public TimeSpan ClipBegin { get; set; } = TimeSpan.Zero;
+
+        public TimeSpan ClipEnd { get; set; } = TimeSpan.Zero;
     }
 }

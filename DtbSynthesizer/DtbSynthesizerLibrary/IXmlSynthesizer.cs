@@ -22,8 +22,11 @@ namespace DtbSynthesizerLibrary
         /// </summary>
         /// <param name="element">The <see cref="XElement"/></param>
         /// <param name="writer">The <see cref="WaveFileWriter"/> to write the synthetic speech to</param>
+        /// <param name="src">The value for the added <see cref="SyncAnnotation.Src"/>s</param>
         /// <returns>The duration of the synthesized speech</returns>
-        TimeSpan SynthesizeElement(XElement element, WaveFileWriter writer);
+        TimeSpan SynthesizeElement(XElement element, WaveFileWriter writer, string src = "");
+
+        bool RecurseMixedContent { get; set; }
 
         VoiceMetaData VoiceInfo { get; }
     }
