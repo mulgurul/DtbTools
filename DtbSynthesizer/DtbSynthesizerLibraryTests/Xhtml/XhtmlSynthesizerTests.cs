@@ -15,11 +15,7 @@ namespace DtbSynthesizerLibraryTests.Xhtml
     {
         public TestContext TestContext { get; set; }
 
-        [DataRow(@"Simple\Simple.html")]
-        [DataRow(@"Sectioned\Sectioned.html")]
-        [DataRow(@"Tables\Tables.html")]
-        [DataTestMethod]
-        public void SynthesizeTests(string xhtmlFile)
+        private XhtmlSynthesizer GetXhtmlSynthesizer(string xhtmlFile)
         {
             xhtmlFile = Path.Combine(TestContext.DeploymentDirectory, xhtmlFile);
             TestContext.AddResultFile(xhtmlFile);
@@ -32,24 +28,26 @@ namespace DtbSynthesizerLibraryTests.Xhtml
                 synthesizer.XhtmlDocument.Save(
                     new Uri(synthesizer.XhtmlDocument.BaseUri).LocalPath);
             }
+            return synthesizer;
+        }
+
+        [DataRow(@"Simple\Simple.html", DisplayName = "Simple")]
+        [DataRow(@"Sectioned\Sectioned.html", DisplayName = "Sectioned")]
+        [DataRow(@"Tables\Tables.html", DisplayName = "Tables")]
+        [DataTestMethod]
+        public void SynthesizeTest(string xhtmlFile)
+        {
+            var synthesizer = GetXhtmlSynthesizer(xhtmlFile);
             synthesizer.Synthesize();
             Assert.IsTrue(
-                synthesizer.Body.Descendants().All(elem => 
-                    elem.Annotation<SyncAnnotation>() != null 
-                    || synthesizer.BlockContainerNames.Contains(elem.Name))
-                );
+                synthesizer.Body.DescendantNodes().OfType<XText>()
+                    .All(text => text.Annotation<SyncAnnotation>() != null));
             Assert.AreEqual(
                 synthesizer
                     .Body
                     .Descendants()
                     .Count(elem => synthesizer.HeaderNames.Contains(elem.Name)),
-                synthesizer
-                    .Body
-                    .Descendants()
-                    .SelectMany(e => e.Annotations<SyncAnnotation>())
-                    .Select(a => a.Src)
-                    .Distinct()
-                    .Count(),
+                synthesizer.AudioFiles.Count(),
                 "Expected one audio file per heading");
             Console.WriteLine(
                 $"Xhtml file {Path.GetFileName(new Uri(synthesizer.XhtmlDocument.BaseUri).LocalPath)}");
@@ -71,6 +69,38 @@ namespace DtbSynthesizerLibraryTests.Xhtml
             {
                 TestContext.AddResultFile(audioFile);
             }
+        }
+
+        [DataRow(@"Simple\Simple.html", DisplayName = "Simple")]
+        [DataRow(@"Sectioned\Sectioned.html", DisplayName = "Sectioned")]
+        [DataRow(@"Tables\Tables.html", DisplayName = "Tables")]
+        [DataTestMethod]
+        public void GenerateDaisy202SmilFilesAndNccDocumentTest(string xhtmlFile)
+        {
+            var synthesizer = GetXhtmlSynthesizer(xhtmlFile);
+            synthesizer.Synthesize();
+            synthesizer.GenerateDaisy202SmilFiles();
+            Assert.AreEqual(synthesizer.AudioFiles.Count(), synthesizer.SmilFiles.Count, $"Expected one smil file per audio file");
+            synthesizer.GenerateNccDocument();
+            Assert.IsNotNull(synthesizer.NccDocument, "No ncc document was generated");
+            Assert.AreEqual(
+                synthesizer.SmilFiles.Count(),
+                synthesizer
+                    .NccDocument
+                    .Root
+                    ?.Element(XhtmlSynthesizer.XhtmlNs+"body")
+                    ?.Elements()
+                    .Count(e => 
+                        Enumerable.Range(1, 6).Select(i => XhtmlSynthesizer.XhtmlNs+ $"h{i}").Contains(e.Name)),
+                "Expected one ncc heading per smil file");
+            Assert.AreEqual(
+                "Daisy 2.02",
+                Utils.CreateOrGetMeta(synthesizer.NccDocument, "dc:format")?.Attribute("value")?.Value,
+                "Expected dc:format=Daisy 2.02 meta");
+            Assert.AreEqual(
+                (2+synthesizer.AudioFiles.Count()+synthesizer.SmilFiles.Count).ToString(),
+                Utils.CreateOrGetMeta(synthesizer.NccDocument, "ncc:files")?.Attribute("value")?.Value,
+                "Expected dc:format=Daisy 2.02 meta");
         }
     }
 }

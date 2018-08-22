@@ -32,30 +32,26 @@ namespace DtbSynthesizerLibraryTests
             var writer = new WaveFileWriter(waveFile, new WaveFormat(22050, 1));
             try
             {
-                var dur = 0.0;
+                var dur = TimeSpan.Zero;
                 foreach (var elem in body.Elements())
                 {
                     var ci = Utils.SelectCulture(elem);
                     var synth = MicrosoftSpeechXmlSynthesizer.GetPreferedVoiceForCulture(ci);
-                    dur += synth.SynthesizeElement(elem, writer).TotalMilliseconds;
+                    dur += synth.SynthesizeElement(elem, writer);
                 }
-                Assert.IsTrue(body.Descendants().All(e => e.Annotation<SyncAnnotation>()!=null));
-                var annotations = body.Elements().Select(e => e.Annotation<SyncAnnotation>()).ToList();
-                var sum = annotations
-                              .Select(a => a?.ClipEnd.Subtract(a.ClipBegin).TotalMilliseconds).Sum()??0;
+                foreach (var text in body.DescendantNodes().OfType<XText>())
+                {
+                    Assert.IsTrue(
+                        text.Annotations<SyncAnnotation>().Count() == 1 || String.IsNullOrWhiteSpace(text.Value),
+                        $"Text node {text} has no SyncAnnotation");
+                }
+                var annotations = body.DescendantNodes().SelectMany(n => n.Annotations<SyncAnnotation>());
+                var sum = TimeSpan.FromMilliseconds(
+                    annotations.Select(a => a?.ClipEnd.Subtract(a.ClipBegin).TotalMilliseconds).Sum() ?? 0);
                 Assert.AreEqual(
                     dur,
                     sum,
                     $"Expected sum of body element durations to be {dur}");
-                var lastEnd = TimeSpan.Zero;
-                foreach (var p in body.Elements("p"))
-                {
-                    var anno = p.Annotation<SyncAnnotation>();
-                    Assert.IsNotNull(anno);
-                    Assert.AreEqual(lastEnd, anno.ClipBegin);
-                    lastEnd = anno.ClipEnd;
-                }
-
             }
             finally
             {
