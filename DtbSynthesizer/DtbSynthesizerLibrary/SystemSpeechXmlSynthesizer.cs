@@ -16,7 +16,7 @@ namespace DtbSynthesizerLibrary
         static SystemSpeechXmlSynthesizer()
         {
             Synthesizer = new SpeechSynthesizer();
-            SynthesizerList = new SpeechSynthesizer()
+            SynthesizerList = Synthesizer
                 .GetInstalledVoices()
                 .Select(v => new SystemSpeechXmlSynthesizer(v.VoiceInfo))
                 .ToList();
@@ -131,9 +131,9 @@ namespace DtbSynthesizerLibrary
 
         public VoiceMetaData VoiceInfo => new VoiceMetaData()
         {
-            Name = Synthesizer.Voice.Name,
-            Culture = Synthesizer.Voice.Culture,
-            Gender = Synthesizer.Voice.Gender.ToString(),
+            Name = Voice.Name,
+            Culture = Voice.Culture,
+            Gender = Voice.Gender.ToString(),
             AdditionalInfo = new ReadOnlyDictionary<string, string>(Synthesizer.Voice.AdditionalInfo),
             Type = "System.Speech"
         };

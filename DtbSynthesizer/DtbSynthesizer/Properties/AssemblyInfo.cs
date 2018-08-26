@@ -5,11 +5,11 @@ using System.Runtime.InteropServices;
 // General Information about an assembly is controlled through the following
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
-[assembly: AssemblyTitle("DtbSynthesizerLibrary")]
+[assembly: AssemblyTitle("DtbSynthesizer")]
 [assembly: AssemblyDescription("")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("Nota")]
-[assembly: AssemblyProduct("DtbSynthesizerLibrary")]
+[assembly: AssemblyProduct("DtbSynthesizer")]
 [assembly: AssemblyCopyright("Copyright ©  2018")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
@@ -20,7 +20,7 @@ using System.Runtime.InteropServices;
 [assembly: ComVisible(false)]
 
 // The following GUID is for the ID of the typelib if this project is exposed to COM
-[assembly: Guid("60724528-a951-44b1-b948-c89991959d30")]
+[assembly: Guid("c22438d9-a182-40c4-aa67-74b3cba1379e")]
 
 // Version information for an assembly consists of the following four values:
 //

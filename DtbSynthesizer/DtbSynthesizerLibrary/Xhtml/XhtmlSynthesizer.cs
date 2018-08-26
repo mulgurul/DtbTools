@@ -201,7 +201,7 @@ namespace DtbSynthesizerLibrary.Xhtml
 
         private int waveFileNumber;
 
-        private string WaveFileName => $"AUD{waveFileNumber:D5}.wav";
+        private string WaveFileName => $"aud{waveFileNumber:D5}.wav";
 
         private string WaveFilePath => Path.Combine(
             Path.GetDirectoryName(XhtmlPath)??Directory.GetCurrentDirectory(),
@@ -284,6 +284,7 @@ namespace DtbSynthesizerLibrary.Xhtml
                     ?.Value;
                 var audio = new XElement(
                     "audio",
+
                     new XAttribute(
                         "src",
                         anno.Src),
@@ -293,18 +294,34 @@ namespace DtbSynthesizerLibrary.Xhtml
                     new XAttribute(
                         "clip-end",
                         $"npt={anno.ClipEnd.TotalSeconds.ToString("F3", CultureInfo.InvariantCulture)}s"));
+                XElement par;
                 if (textReference.Equals(lastTextReference, StringComparison.InvariantCulture))
                 {
-                    mainSeq.Elements("par").Last().Element("seq")?.Add(audio);
+                    par = mainSeq.Elements("par").Last();
+                    var seq = par.Element("seq");
+                    if (seq == null)
+                    {
+                        var a = par.Elements("audio").Single();
+                        a.Remove();
+                        seq = new XElement("seq", a);
+                        par.Add(seq);
+                    }
+                    seq.Add(audio);
                 }
                 else
                 {
-                    mainSeq.Add(new XElement(
+                    par = new XElement(
                         "par",
                         new XAttribute("id", $"par_{mainSeq.Elements("par").Count():D5}"),
-                        new XElement("text", new XAttribute("src", textReference))),
-                        new XElement("seq", audio));
+                        new XAttribute("endsync", "last"),
+                        new XElement(
+                            "text",
+                            new XAttribute("src", textReference),
+                            new XAttribute("id", $"text_{mainSeq.Elements("par").Count():D5}")),
+                        audio);
+                    mainSeq.Add(par);
                 }
+                audio.SetAttributeValue("id", $"audio_{par.ElementsBeforeSelf("par").Count():D5}_{par.Descendants("audio").Count():D5}");
             }
 
             var totalElapsedTime = TimeSpan.Zero;
@@ -318,12 +335,9 @@ namespace DtbSynthesizerLibrary.Xhtml
                         .Where(anno => audioFile.Equals(anno.Src, StringComparison.InvariantCultureIgnoreCase))
                         .Sum(anno => anno.ClipEnd.Subtract(anno.ClipBegin).TotalMilliseconds)
                     ??0.0);
-                Utils.CreateOrGetMeta(kvp.Value, "ncc:totalElapsedTime")
-                    .SetAttributeValue("value", Utils.GetHHMMSSFromTimeSpan(totalElapsedTime));
-                Utils.CreateOrGetMeta(kvp.Value, "ncc:timeInThisSmil")
-                    .SetAttributeValue("value", Utils.GetHHMMSSFromTimeSpan(timeInThisSmil));
-                Utils.CreateOrGetMeta(kvp.Value, "ncc:generator")
-                    .SetAttributeValue("value", Utils.Generator);
+                Utils.SetMeta(kvp.Value, "ncc:totalElapsedTime", Utils.GetHHMMSSFromTimeSpan(totalElapsedTime));
+                Utils.SetMeta(kvp.Value, "ncc:timeInThisSmil", Utils.GetHHMMSSFromTimeSpan(timeInThisSmil));
+                Utils.SetMeta(kvp.Value, "ncc:generator", Utils.Generator);
 
                 kvp.Value.Root?.Element("body")?.Element("seq")?.SetAttributeValue(
                     "dur", 
@@ -366,20 +380,50 @@ namespace DtbSynthesizerLibrary.Xhtml
                 heading.Add(a);
                 body.Add(heading);
             }
-            Utils.CreateOrGetMeta(ncc, "dc:format").SetAttributeValue("value", "Daisy 2.02");
-            Utils.CreateOrGetMeta(ncc, "ncc:files").SetAttributeValue("value", 2+SmilFiles.Count+AudioFiles.Count());
-            Utils.CreateOrGetMeta(ncc, "ncc:totalTime").SetAttributeValue(
-                "value",
+            Utils.SetMeta(ncc, "dc:format", "Daisy 2.02");
+            Utils.SetMeta(ncc, "ncc:files", (2+SmilFiles.Count+AudioFiles.Count()).ToString());
+            Utils.SetMeta(
+                ncc, 
+                "ncc:totalTime",
                 Utils.GetHHMMSSFromTimeSpan(
                     TimeSpan.FromSeconds(
                         Body.DescendantNodes().SelectMany(n =>
                             n.Annotations<SyncAnnotation>().Select(anno => (anno.ClipEnd - anno.ClipBegin).TotalSeconds)).Sum())));
-            Utils.CreateOrGetMeta(ncc, "ncc:tocItems").SetAttributeValue("value", body.Elements().Count());
+            Utils.SetMeta(ncc, "ncc:tocItems", body.Elements().Count().ToString());
 
-            Utils.CreateOrGetMeta(ncc, "ncc:multimediaType").SetAttributeValue("value", "audioFullText");
-            Utils.CreateOrGetMeta(ncc, "ncc:generator").SetAttributeValue("value", Utils.Generator);
-
-
+            Utils.SetMeta(ncc, "ncc:multimediaType", "audioFullText");
+            Utils.SetMeta(ncc, "ncc:generator", Utils.Generator);
+            Utils.SetMeta(ncc, "ncc:charset", "utf-8");
+            Utils.SetMeta(ncc, "ncc:pageFront", "0");
+            Utils.SetMeta(ncc, "ncc:pageNormal", "0");
+            Utils.SetMeta(ncc, "ncc:maxPageNormal", "0");
+            Utils.SetMeta(ncc, "ncc:pageSpecial", "0");
+            var bodyLang = Utils.GetLanguage(Body);
+            if (String.IsNullOrWhiteSpace(Utils.GetMetaContent(ncc, "dc:language")) &&
+                !String.IsNullOrWhiteSpace(bodyLang))
+            {
+                Utils.SetMeta(ncc, "dc:language", bodyLang);
+            }
+            var title = 
+                Utils.GetMetaContent(ncc, "dc:title") 
+                ?? Body.Descendants(XhtmlNs + "h1").FirstOrDefault()?.Value 
+                ?? "";
+            var titleElement = ncc
+                .Elements(XhtmlNs + "html").Single()
+                .Elements(XhtmlNs + "head").Single()
+                .Elements(XhtmlNs + "title").Single();
+            if (String.IsNullOrWhiteSpace(titleElement.Value))
+            {
+                titleElement.Value = title;
+            }
+            if (String.IsNullOrWhiteSpace(Utils.GetMetaContent(ncc, "dc:title")))
+            {
+                Utils.SetMeta(ncc, "dc:title", title);
+            }
+            if (String.IsNullOrWhiteSpace(Utils.GetMetaContent(ncc, "dc:date")))
+            {
+                Utils.SetMeta(ncc, "dc:date", DateTime.Today.ToString("yyyy-MM-dd")).SetAttributeValue("scheme", "yyyy-mm-dd");
+            }
             NccDocument = ncc;
         }
 

@@ -9,6 +9,7 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Xml;
 using System.Xml.Linq;
+using System.Xml.Xsl;
 
 namespace DtbSynthesizerLibrary
 {
@@ -57,7 +58,7 @@ namespace DtbSynthesizerLibrary
 
         public static IEnumerable<IXmlSynthesizer> GetAllSynthesizers()
         {
-            return SystemSpeechXmlSynthesizer
+            return SystemSpeechXmlSynthesizer 
                 .Synthesizers
                 .Concat(MicrosoftSpeechXmlSynthesizer.Synthesizers);
         }
@@ -71,16 +72,15 @@ namespace DtbSynthesizerLibrary
             CultureInfo ci,
             IReadOnlyCollection<IXmlSynthesizer> synthesizerList)
         {
-            if (!ci.IsNeutralCulture)
+            if (CultureInfo.InvariantCulture.Equals(ci))
             {
-                return
-                    synthesizerList.FirstOrDefault(s => s.VoiceInfo.Culture.Equals(ci))
-                    ?? synthesizerList.FirstOrDefault(s =>
-                        s.VoiceInfo.Culture.TwoLetterISOLanguageName == ci.TwoLetterISOLanguageName)
-                    ?? synthesizerList.FirstOrDefault();
+                return synthesizerList.FirstOrDefault();
             }
-            return synthesizerList.FirstOrDefault();
-
+            return 
+                synthesizerList.FirstOrDefault(s => s.VoiceInfo.Culture.Equals(ci))
+                ?? synthesizerList.FirstOrDefault(s =>
+                    s.VoiceInfo.Culture.TwoLetterISOLanguageName == ci.TwoLetterISOLanguageName)
+                ?? synthesizerList.FirstOrDefault();
         }
 
         private static readonly Regex GeneratedIdRegex = new Regex("^IX\\d{5,}$");
@@ -122,9 +122,11 @@ namespace DtbSynthesizerLibrary
         {
             return CloneWithBaseUri(
                 new XDocument(
-                    new XDeclaration("1.0", "UTF-8", "true"),
-                    new XDocumentType("html", "-//W3C//DTD XHTML 1.0 Transitional//EN",
-                        "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd", null),
+                    new XDocumentType(
+                        "html", 
+                        "-//W3C//DTD XHTML 1.0 Transitional//EN", 
+                        "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd", 
+                        null),
                     new XElement(
                         Utils.XhtmlNs + "html",
                         new XElement(
@@ -145,8 +147,10 @@ namespace DtbSynthesizerLibrary
         {
             return CloneWithBaseUri(
                 new XDocument(
-                    new XDeclaration("1.0", "UTF-8", "true"),
-                    new XDocumentType("smil", "-//W3C//DTD SMIL 1.0//EN", "http://www.w3.org/TR/REC-smil/SMIL10.dtd",
+                    new XDocumentType(
+                        "smil",
+                        "-//W3C//DTD SMIL 1.0//EN",
+                        "http://www.w3.org/TR/REC-SMIL/SMIL10.dtd",
                         null),
                     new XElement(
                         "smil",
@@ -180,12 +184,17 @@ namespace DtbSynthesizerLibrary
         {
             if (document == null) throw new ArgumentNullException(nameof(document));
             baseUri = baseUri ?? document.BaseUri;
-            return XDocument.Load(
+            var res = XDocument.Load(
                 (baseUri == null)
                     ? document.CreateReader()
                     : XmlReader.Create(new StringReader(document.ToString()),
-                        new XmlReaderSettings() {DtdProcessing = DtdProcessing.Ignore}, baseUri),
+                        new XmlReaderSettings() {DtdProcessing = DtdProcessing.Parse}, baseUri),
                 LoadOptions.SetBaseUri);
+            if (res.DocumentType != null && String.IsNullOrWhiteSpace(res.DocumentType.InternalSubset))
+            {
+                res.DocumentType.InternalSubset = null;
+            }
+            return res;
         }
 
         /// <summary>
@@ -193,10 +202,11 @@ namespace DtbSynthesizerLibrary
         /// </summary>
         /// <param name="doc">The <see cref="XDocument"/></param>
         /// <param name="name">The name of the meta <see cref="XElement"/> (that is the value of the name <see cref="XAttribute"/></param>
+        /// <param name="createIfMissing">Creates and adds the meta if missing</param>
         /// <returns>
         /// An existing or, if not already present, newly added meta <see cref="XElement"/> from the head section of <paramref name="doc"/>
         /// </returns>
-        public static XElement CreateOrGetMeta(XDocument doc, string name)
+        private static XElement GetMeta(XDocument doc, string name, bool createIfMissing = true)
         {
             var head = doc.Root?.Element(doc.Root.Name.Namespace + "head");
             if (head == null)
@@ -206,12 +216,24 @@ namespace DtbSynthesizerLibrary
 
             var meta = head.Elements(head.Name.Namespace + "meta")
                 .FirstOrDefault(m => m.Attribute("name")?.Value == name);
-            if (meta == null)
+            if (meta == null && createIfMissing)
             {
                 meta = new XElement(head.Name.Namespace + "meta", new XAttribute("name", name));
                 head.Add(meta);
             }
 
+            return meta;
+        }
+
+        public static string GetMetaContent(XDocument doc, string name)
+        {
+            return GetMeta(doc, name, false)?.Attribute("content")?.Value;
+        }
+
+        public static XElement SetMeta(XDocument doc, string name, string content)
+        {
+            var meta = GetMeta(doc, name);
+            meta?.SetAttributeValue("content", content);
             return meta;
         }
 
@@ -227,5 +249,17 @@ namespace DtbSynthesizerLibrary
 
         public static string Generator =>
             $"{Assembly.GetExecutingAssembly().GetName().Name} v{Assembly.GetExecutingAssembly().GetName().Version}";
+
+        public static XDocument TransformXmlXslt(XDocument sourceDocument, XDocument xsltDocument)
+        {
+            var xslt = new XslCompiledTransform();
+            xslt.Load(xsltDocument.CreateReader());
+            var res = new XDocument();
+            using (var wr = res.CreateWriter())
+            {
+                xslt.Transform(sourceDocument.CreateReader(), wr);
+            }
+            return res;
+        }
     }
 }

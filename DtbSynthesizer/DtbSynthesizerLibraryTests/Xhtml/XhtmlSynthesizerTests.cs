@@ -95,11 +95,11 @@ namespace DtbSynthesizerLibraryTests.Xhtml
                 "Expected one ncc heading per smil file");
             Assert.AreEqual(
                 "Daisy 2.02",
-                Utils.CreateOrGetMeta(synthesizer.NccDocument, "dc:format")?.Attribute("value")?.Value,
+                Utils.GetMetaContent(synthesizer.NccDocument, "dc:format"),
                 "Expected dc:format=Daisy 2.02 meta");
             Assert.AreEqual(
                 (2+synthesizer.AudioFiles.Count()+synthesizer.SmilFiles.Count).ToString(),
-                Utils.CreateOrGetMeta(synthesizer.NccDocument, "ncc:files")?.Attribute("value")?.Value,
+                Utils.GetMetaContent(synthesizer.NccDocument, "ncc:files"),
                 "Expected dc:format=Daisy 2.02 meta");
         }
     }
