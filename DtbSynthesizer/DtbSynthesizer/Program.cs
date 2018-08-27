@@ -151,14 +151,25 @@ namespace DtbSynthesizer
                 Console.WriteLine("output unexpectedly missing");
                 return -2;
             }
-            var dest = Path.GetFullPath(input);
-            if (!output.Equals(Path.GetDirectoryName(dest)))
+            input = Path.GetFullPath(input);
+            string xhtml;
+            var inputDoc = XDocument.Load(input, LoadOptions.SetBaseUri | LoadOptions.SetLineInfo);
+            if (inputDoc.Root?.Name.LocalName == "dtbook")
             {
-                dest = Path.Combine(output, Path.GetFileName(input));
-                File.Copy(input, dest, true);
+                xhtml = Path.Combine(output, "content.html");
+                Utils.TransformDtbookToXhtml(inputDoc).Save(xhtml);
             }
-            return SynthesizeDaisy202Dtb(
-                XDocument.Load(dest, LoadOptions.SetBaseUri | LoadOptions.SetLineInfo));
+            else if (output.Equals(Path.GetDirectoryName(input)))
+            {
+                xhtml = input;
+            }
+            else
+            {
+                xhtml = Path.Combine(output, Path.GetFileName(input));
+                File.Copy(input, xhtml, true);
+            }
+            inputDoc = XDocument.Load(xhtml, LoadOptions.SetBaseUri | LoadOptions.SetLineInfo);
+            return SynthesizeDaisy202Dtb(inputDoc);
         }
     }
 }

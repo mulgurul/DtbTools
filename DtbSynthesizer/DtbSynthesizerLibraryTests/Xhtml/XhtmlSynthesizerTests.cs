@@ -31,9 +31,9 @@ namespace DtbSynthesizerLibraryTests.Xhtml
             return synthesizer;
         }
 
-        [DataRow(@"Simple\Simple.html", DisplayName = "Simple")]
-        [DataRow(@"Sectioned\Sectioned.html", DisplayName = "Sectioned")]
-        [DataRow(@"Tables\Tables.html", DisplayName = "Tables")]
+        [DataRow(@"Simple\Simple.html")]
+        [DataRow(@"Sectioned\Sectioned.html")]
+        [DataRow(@"Tables\Tables.html")]
         [DataTestMethod]
         public void SynthesizeTest(string xhtmlFile)
         {
@@ -71,9 +71,9 @@ namespace DtbSynthesizerLibraryTests.Xhtml
             }
         }
 
-        [DataRow(@"Simple\Simple.html", DisplayName = "Simple")]
-        [DataRow(@"Sectioned\Sectioned.html", DisplayName = "Sectioned")]
-        [DataRow(@"Tables\Tables.html", DisplayName = "Tables")]
+        [DataRow(@"Simple\Simple.html")]
+        [DataRow(@"Sectioned\Sectioned.html")]
+        [DataRow(@"Tables\Tables.html")]
         [DataTestMethod]
         public void GenerateDaisy202SmilFilesAndNccDocumentTest(string xhtmlFile)
         {
