@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE dtbook
+  PUBLIC "-//NISO//DTD dtbook 2005-3//EN" "http://www.daisy.org/z3986/2005/dtbook-2005-3.dtd">
+<dtbook xmlns="http://www.daisy.org/z3986/2005/dtbook/" version="2005-3">
+  <head>
+    
+      <meta name="dc:Title" content="DTB 1"/>
+      <meta name="dc:Creator" content="Ole Holst Andersen"/>
+      <meta name="dc:Identifier" content="DTB1"/>
+  </head>
+  <book id="d1e15" xml:lang="en">
+      <frontmatter><doctitle id="d1e19">DTB 1</doctitle><docauthor id="d1e22">Ole Holst Andersen</docauthor></frontmatter>
+      <bodymatter>
+         <level class="chapter" depth="1">
+            <hd class="chapter">Chapter 1</hd>
+            <p id="d1e33">Once upon a time ect.</p>
+            <p id="d1e36">Lirum larum</p>
+            <p id="d1e39">And so<noteref id="d1e41" idref="#note1">1</noteref> forth</p>
+            <note id="note1" class="footnote">
+               <p id="d1e46">1. This is a footnote</p>
+            </note>
+            <level class="section" depth="2">
+               <hd>Section 1.1</hd>
+               <p id="d1e55">Lirum larum</p>
+               <p id="d1e58">Lurum urum larum</p>
+               <p id="d1e61">And so forth</p>
+            </level>
+            <level class="section" depth="2">
+               <hd>Section 1.2</hd>
+               <p id="d1e70">Lirum larum</p>
+               <p id="d1e73">Lurum urum larum</p>
+               <p id="d1e76">And so forth</p>
+            </level>
+        
+         </level>
+         <level class="chapter" depth="1">
+            <hd class="chapter">Chapter 2</hd>
+            <p id="d1e86">Once upon a time ect.</p>
+            <p id="d1e89">Lirum larum</p>
+            <p id="d1e92">And so forth</p>
+            <level class="section" depth="2">
+               <hd>Section 2.1</hd>
+               <p id="d1e100">Lirum larum</p>
+               <p id="d1e103">Lurum urum larum</p>
+               <p id="d1e106">And so forth</p>
+            </level>
+            <level class="section" depth="2">
+               <hd>Section 2.2</hd>
+               <p id="d1e116">Lirum larum</p>
+               <p id="d1e119">Lurum urum larum</p>
+               <p id="d1e122">And so forth</p>
+            </level>
+         </level>
+      </bodymatter>
+  </book>
+</dtbook>

@@ -22,17 +22,13 @@
 	xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns="http://www.w3.org/1999/xhtml"
 	exclude-result-prefixes="dtb s m svg xs">
 
-	<xsl:param name="baseDir"/>
-	<xsl:param name="note_back_to_text"/>
-	<xsl:param name="svg_mathml"/>
-	<xsl:param name="split_simple_table"/>
-
-	<xsl:output method="xml" encoding="utf-8" indent="yes"/>
-
-	<xsl:template match="/">
-		<xsl:call-template name="write_doctype"/>
-		<xsl:apply-templates/>
-	</xsl:template>
+	<xsl:output 
+		method="xhtml"
+		
+		encoding="utf-8" 
+		indent="yes" 
+		doctype-public="-//W3C//DTD XHTML 1.0 Transitional//EN" 
+		doctype-system="http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"/>
 
 	<!-- <!ENTITY catts "@id|@class|@title|@xml:lang"> -->
 	<xsl:template name="copyCatts">
@@ -47,23 +43,6 @@
 	<xsl:template name="copyAttsNoId">
 		<xsl:copy-of select="@class | @title | @xml:lang"/>
 	</xsl:template>
-
-	<xsl:template name="write_doctype">
-		<xsl:text>&#xa;</xsl:text>
-		<!--line break-->
-		<xsl:choose>
-			<xsl:when test="$svg_mathml = 'true'">
-				<xsl:text disable-output-escaping="yes">&lt;!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1 plus MathML 2.0 plus SVG 1.1//EN" "http://www.w3.org/2002/04/xhtml-math-svg/xhtml-math-svg.dtd"</xsl:text>
-			</xsl:when>
-			<xsl:otherwise>
-				<xsl:text disable-output-escaping="yes">&lt;!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"</xsl:text>
-			</xsl:otherwise>
-		</xsl:choose>
-		<xsl:text disable-output-escaping="yes">&gt;</xsl:text>
-		<xsl:text>&#xa;</xsl:text>
-		<!--line break-->
-	</xsl:template>
-
 
 	<!-- <!ENTITY inlineParent "ancestor::*[self::dtb:h1 or self::dtb:h2 or self::dtb:h3 or self::dtb:h4 or self::dtb:h5 or self::dtb:h6 or self::dtb:hd or self::dtb:span or self::dtb:p]"> -->
 	<xsl:template name="inlineParent">
@@ -88,11 +67,6 @@
 		<xsl:element name="html" namespace="http://www.w3.org/1999/xhtml">
 			<xsl:if test="@xml:lang">
 				<xsl:copy-of select="@xml:lang"/>
-				<xsl:if test="$svg_mathml = null">
-					<xsl:attribute name="lang">
-						<xsl:value-of select="@xml:lang"/>
-					</xsl:attribute>
-				</xsl:if>
 			</xsl:if>
 			<xsl:if test="@dir">
 				<xsl:copy-of select="@dir"/>
@@ -333,16 +307,16 @@
 
 
 	<xsl:template match="dtb:noteref">
-		<span class="noteref">
+		<a class="noteref">
 			<xsl:call-template name="copyCncatts"/>
-			<xsl:attribute name="bodyref">
+			<xsl:attribute name="href">
 				<xsl:if test="not(contains(@idref, '#'))">
 					<xsl:text>#</xsl:text>
 				</xsl:if>
 				<xsl:value-of select="@idref"/>
 			</xsl:attribute>
 			<xsl:apply-templates/>
-		</span>
+		</a>
 	</xsl:template>
 
 
@@ -391,6 +365,17 @@
 	<xsl:template match="dtb:annotation">
 		<div class="annotation">
 			<xsl:call-template name="copyCncatts"/>
+			<xsl:variable name="idref" select="concat('#', @id)"/>
+			<xsl:variable name="refs" select="//dtb:annoref[@id and @idref=$idref]"/>
+			<xsl:if test="$refs">
+				<p>
+					<xsl:for-each select="$refs">
+						<a href="{concat('#', @id)}">
+							<xsl:apply-templates/>
+						</a>
+					</xsl:for-each>
+				</p>				
+			</xsl:if>
 			<xsl:apply-templates/>
 		</div>
 	</xsl:template>
@@ -430,18 +415,18 @@
 			<xsl:apply-templates/>
 		</h1>
 	</xsl:template>
-	<xsl:template match="dtb:doctitle">
-		<div class="doctitle">
+	<xsl:template match="dtb:doctitle[position()&gt;1]">
+		<p class="doctitle">
 			<xsl:call-template name="copyCncatts"/>
 			<xsl:apply-templates/>
-		</div>
+		</p>
 	</xsl:template>
 
 	<xsl:template match="dtb:docauthor">
-		<div class="docauthor">
+		<p class="docauthor">
 			<xsl:call-template name="copyCncatts"/>
 			<xsl:apply-templates/>
-		</div>
+		</p>
 	</xsl:template>
 
 	<xsl:template match="dtb:epigraph">
@@ -454,13 +439,16 @@
 	<xsl:template match="dtb:note">
 		<div class="notebody">
 			<xsl:call-template name="copyCncatts"/>
-			<xsl:if test="$note_back_to_text = 'true'">
-				<xsl:variable name="noteref">
-					<xsl:call-template name="whereisnoteref">
-						<xsl:with-param name="idref" select="@id"/>
-					</xsl:call-template>
-				</xsl:variable>
-				<a href="{$noteref}">^</a>
+			<xsl:variable name="idref" select="concat('#', @id)"/>
+			<xsl:variable name="refs" select="//dtb:noteref[@id and @idref=$idref]"/>
+			<xsl:if test="$refs">
+				<p>
+					<xsl:for-each select="$refs">
+						<a href="{concat('#', @id)}">
+							<xsl:apply-templates/>
+						</a>
+					</xsl:for-each>
+				</p>				
 			</xsl:if>
 			<xsl:apply-templates/>
 		</div>
@@ -614,48 +602,10 @@
 
 
 	<xsl:template match="dtb:table">
-		<xsl:choose>
-			<xsl:when
-				test="
-					count(dtb:*[local-name() != 'tr' and local-name() != 'pagenum' and local-name() != 'caption']) = 0 and
-					element-available('xsl:for-each-group') and
-					$split_simple_table = 'true'">
-				<xsl:call-template name="simpleTable"/>
-			</xsl:when>
-			<xsl:otherwise>
-				<table>
-					<xsl:call-template name="copyCatts"/>
-					<xsl:apply-templates/>
-				</table>
-			</xsl:otherwise>
-		</xsl:choose>
-	</xsl:template>
-
-	<xsl:template name="simpleTable">
-		<xsl:variable name="tableAtts">
-			<dummy>
-				<xsl:call-template name="copyAttsNoId"/>
-			</dummy>
-		</xsl:variable>
-		<xsl:variable name="idAtt">
-			<dummy>
-				<xsl:copy-of select="@id"/>
-			</dummy>
-		</xsl:variable>
-		<xsl:variable name="elemName" as="xs:string" select="name()"/>
-		<xsl:for-each-group select="node()" group-starting-with="dtb:pagenum">
-			<xsl:apply-templates select="current-group()[self::dtb:pagenum]" mode="pagenumonly"/>
-			<xsl:if test="current-group()[not(self::dtb:pagenum)]">
-				<xsl:element name="{$elemName}">
-					<xsl:if test="position() = 1">
-						<xsl:copy-of select="$idAtt/*/@*"/>
-					</xsl:if>
-					<xsl:copy-of select="$tableAtts/*/@*"/>
-
-					<xsl:apply-templates select="current-group()[not(self::dtb:pagenum)]"/>
-				</xsl:element>
-			</xsl:if>
-		</xsl:for-each-group>
+		<table>
+			<xsl:call-template name="copyCatts"/>
+			<xsl:apply-templates/>
+		</table>
 	</xsl:template>
 
 	<xsl:template match="dtb:blockquote/dtb:table/dtb:pagenum" mode="pagenumonly">
@@ -1017,28 +967,11 @@
 
 	<!-- MathML -->
 	<xsl:template match="m:math">
-		<xsl:call-template name="process_math"/>
+		<xsl:copy-of select="."/>
 	</xsl:template>
 
 	<xsl:template match="m:math" mode="inlineOnly">
-		<xsl:call-template name="process_math"/>
-	</xsl:template>
-
-	<xsl:template name="process_math">
-		<xsl:choose>
-			<xsl:when test="$svg_mathml = 'true'">
-				<!-- Deep copy -->
-				<xsl:copy-of select="."/>
-			</xsl:when>
-			<xsl:when test="@altimg and @alttext">
-				<img src="{@altimg}" alt="{@alttext}">
-					<xsl:copy-of select="@id"/>
-				</img>
-			</xsl:when>
-			<xsl:otherwise>
-				<xsl:message>***** Warning: Skipping unsupported MathML content *****</xsl:message>
-			</xsl:otherwise>
-		</xsl:choose>
+		<xsl:copy-of select="."/>
 	</xsl:template>
 
 	<!-- SVG; deep copy -->

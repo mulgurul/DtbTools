@@ -27,6 +27,9 @@ namespace DtbSynthesizerLibraryTests
         }
 
         [DataRow(@"dtbook\dtbook110.xml")]
+        [DataRow(@"dtbook\dtbook2005-1.xml")]
+        [DataRow(@"dtbook\dtbook2005-2.xml")]
+        [DataRow(@"dtbook\dtbook2005-3.xml")]
         [DataTestMethod]
         public void TransformDtbookToXhtmlTest(string file)
         {

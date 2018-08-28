@@ -16,7 +16,8 @@
         <levelhd class="chapter" depth="1">Chapter 1</levelhd>
         <p>Once upon a time ect.</p>
         <p>Lirum larum</p>
-        <p>And so forth</p>
+        <p>And so<noteref idref="#note1">1</noteref> forth</p>
+        <note id="note1" class="footnote"><p>1. This is a footnote</p></note>
         <level class="section" depth="2">
           <levelhd>Section 1.1</levelhd>
           <p>Lirum larum</p>
@@ -29,6 +30,7 @@
           <p>Lurum urum larum</p>
           <p>And so forth</p>
         </level>
+        
       </level>
       <level class="chapter" depth="1">
         <levelhd class="chapter" depth="1">Chapter 2</levelhd>

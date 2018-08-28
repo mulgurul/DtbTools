@@ -103,6 +103,16 @@
     <Content Include="TestFiles\dtbook\dtbook110.xml">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
+    <Content Include="TestFiles\dtbook\dtbook2005-1.xml">
+      <SubType>Designer</SubType>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="TestFiles\dtbook\dtbook2005-2.xml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="TestFiles\dtbook\dtbook2005-3.xml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
     <Content Include="TestFiles\Sectioned\cover.jpg">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
