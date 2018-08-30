@@ -124,8 +124,6 @@ namespace DtbSynthesizerLibrary
             return writer.TotalTime.Subtract(startOffset);
         }
 
-        public bool RecurseMixedContent { get; set; } = false;
-
         public VoiceMetaData VoiceInfo => new VoiceMetaData()
         {
             Name = Voice.Name,

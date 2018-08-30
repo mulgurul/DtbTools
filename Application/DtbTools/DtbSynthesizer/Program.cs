@@ -24,6 +24,8 @@ namespace DtbSynthesizer
         private static string creator =
             FileVersionInfo.GetVersionInfo(Assembly.GetEntryAssembly().Location).CompanyName;
         private static string publisher = creator;
+        private static bool mp3 = false;
+        private static int bitrate = 48;
 
         private static readonly OptionSet Options = new OptionSet()
             .Add("Synthesize DTB")
@@ -32,7 +34,9 @@ namespace DtbSynthesizer
             .Add("o|output=", "Output directory", s => output = s)
             .Add("identifier=", "dc:identifier of the synthesized DTB", s => identifier = s)
             .Add("c|creator=", "Default creator of the synthesized DTB", s => creator = s)
-            .Add("p|publisher=", "Default creator of the synthesized DTB", s => publisher = s);
+            .Add("p|publisher=", "Default creator of the synthesized DTB", s => publisher = s)
+            .Add("m|mp3", "Switch on mp3 encoding", s => mp3 = s!=null)
+            .Add<int>("b|bitrate", "Mp3 bitrate", i => bitrate = i);
 
         private static string OptionDescriptions
         {
@@ -100,7 +104,12 @@ namespace DtbSynthesizer
                 Directory.CreateDirectory(output);
             }
             output = Path.GetFullPath(output);
-            var synthesizer = new XhtmlSynthesizer() { XhtmlDocument = xhtmlDocument };
+            var synthesizer = new XhtmlSynthesizer()
+            {
+                XhtmlDocument = xhtmlDocument,
+                EncodeMp3 = mp3,
+                Mp3BitRate = bitrate
+            };
             synthesizer.Progress += (sender, args) =>
             {
                 Console.Write($"{args.ProgressPercentage:D3}% {args.ProgressMessage}".PadRight(80).Substring(0, 80) + "\r");

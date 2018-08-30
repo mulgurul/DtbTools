@@ -11,6 +11,7 @@ using System.Xml;
 using System.Xml.Linq;
 using System.Xml.XPath;
 using NAudio.Codecs;
+using NAudio.Lame;
 using NAudio.Wave;
 
 namespace DtbSynthesizerLibrary.Xhtml
@@ -34,6 +35,29 @@ namespace DtbSynthesizerLibrary.Xhtml
         public event EventHandler<ProgressEventArgs> Progress;
 
         public XDocument XhtmlDocument { get; set; }
+
+        public string DcIdentifier
+        {
+            get => Utils.GetMetaContent(XhtmlDocument, "dc:identifier");
+
+            set
+            {
+                if (value == null)
+                {
+                    throw new InvalidOperationException($"Cannot set {nameof(DcIdentifier)} to null");
+                }
+
+                if (XhtmlDocument == null)
+                {
+                    throw new InvalidOperationException($"Cannot set {nameof(DcIdentifier)} when {nameof(XhtmlDocument)} is null");
+                }
+                Utils.SetMeta(XhtmlDocument, "dc:identifier", value);
+            }
+        }
+
+        public bool EncodeMp3 { get; set; } = true;
+
+        public int Mp3BitRate { get; set; } = 48;
 
         public XElement Body => XhtmlDocument?.Root?.Element(XhtmlNs + "body");
 
@@ -199,44 +223,91 @@ namespace DtbSynthesizerLibrary.Xhtml
             .Select(a => a.Src)
             .Distinct();
 
-        private int waveFileNumber;
+        private int audioFileNumber;
 
-        private string WaveFileName => $"aud{waveFileNumber:D5}.wav";
+        private string AudioFileName => $"aud{audioFileNumber:D5}.{(EncodeMp3 ? "mp3" : "wav")}";
 
-        private string WaveFilePath => Path.Combine(
+        private string AudioFilePath => Path.Combine(
             Path.GetDirectoryName(XhtmlPath)??Directory.GetCurrentDirectory(),
-            WaveFileName);
+            AudioFileName);
 
+        private async Task EncodeMp3AudioFile(Stream waveStream, string audioFilePath)
+        {
+            if (waveStream == null)
+            {
+                return;
+            }
+            waveStream.Position = 0;
+            using (var reader = new WaveFileReader(waveStream))
+            {
+                using (var mp3Writer = new LameMP3FileWriter(
+                    audioFilePath,
+                    AudioWaveFormat,
+                    Mp3BitRate))
+                {
+                    await reader.CopyToAsync(mp3Writer);
+                }
+            }
+            waveStream.Dispose();
+        }
 
         public bool Synthesize()
         {
             ValidateSynthesizer();
-            waveFileNumber = -1;
-            var dur = TimeSpan.Zero;
+            audioFileNumber = -1;
             WaveFileWriter writer = null;
+            MemoryStream writerStream = null;
+            var encodingTaskStack = new Stack<Task>();
             var elements = Body.Elements().SelectMany(ExpandBlockContainers).ToList();
             for (int i = 0; i < elements.Count; i++)
             {
                 if (FireProgress(
                     100 * i / elements.Count,
-                    $"Synthesizing element {i + 1} of {elements.Count} to {WaveFileName}"))
+                    $"Synthesizing element {i + 1} of {elements.Count} to {AudioFileName}"))
                 {
                     return false;
                 }
                 var elem = elements[i];
                 if (HeaderNames.Contains(elem.Name) || writer == null)
                 {
-                    writer?.Close();
-                    waveFileNumber++;
-                    writer = new WaveFileWriter(WaveFilePath, AudioWaveFormat);
+                    if (EncodeMp3)
+                    {
+                        writer?.Flush();
+                        encodingTaskStack.Push(EncodeMp3AudioFile(writerStream, AudioFilePath));
+                        audioFileNumber++;
+                        writerStream = new MemoryStream();
+                        writer = new WaveFileWriter(writerStream, AudioWaveFormat);
+                    }
+                    else
+                    {
+                        writer?.Close();
+                        audioFileNumber++;
+                        writer = new WaveFileWriter(AudioFilePath, AudioWaveFormat);
+                    }
                 }
                 var ci = Utils.SelectCulture(elem);
                 var synth = CultureInfo.InvariantCulture.Equals(ci)
                     ? DefaultSynthesizer
                     : SynthesizerSelector(ci);
-                dur += synth.SynthesizeElement(elem, writer, WaveFileName);
+                synth.SynthesizeElement(elem, writer, AudioFileName);
             }
-            writer?.Close();
+            if (EncodeMp3 && writer != null)
+            {
+                writer.Flush();
+                encodingTaskStack.Push(EncodeMp3AudioFile(writerStream, AudioFilePath));
+                var taskCount = encodingTaskStack.Count;
+                while (encodingTaskStack.Any())
+                {
+                    FireProgress(
+                        100 * (taskCount - encodingTaskStack.Count) / taskCount,
+                        $"Waiting for mp3 encoding to finish {encodingTaskStack.Count} left of {taskCount}");
+                    encodingTaskStack.Pop().Wait();
+                }
+            }
+            else
+            {
+                writer?.Close();
+            }
             return true;
         }
 
@@ -260,19 +331,21 @@ namespace DtbSynthesizerLibrary.Xhtml
             foreach (var anno in (Body ?? new XElement(XhtmlNs + "body"))
                 .DescendantNodes()
                 .SelectMany(n => n.Annotations<SyncAnnotation>())
-                .Where(anno => 
-                    (anno.Src?.EndsWith(".wav")??false) 
+                .Where(anno =>
+                    (anno.Src?.EndsWith(EncodeMp3 ? ".mp3" : ".wav") ?? false)
                     && !String.IsNullOrEmpty(anno.Element?.Attribute("id")?.Value)))
             {
                 var smilName = $"{anno.Src.Substring(0, anno.Src.Length - 4)}.smil".ToLowerInvariant();
                 if (!smilFiles.ContainsKey(smilName))
                 {
-                    smilFiles.Add(smilName, Utils.GenerateSkeletonDaisy202SmilDocument(new Uri(new Uri(XhtmlDocument.BaseUri), smilName).AbsoluteUri));
+                    smilFiles.Add(smilName,
+                        Utils.GenerateSkeletonDaisy202SmilDocument(new Uri(new Uri(XhtmlDocument.BaseUri), smilName)
+                            .AbsoluteUri));
                 }
                 var smilFile = smilFiles[smilName];
                 var mainSeq = smilFile.Root?.Elements("body").SelectMany(body => body.Elements("seq")).FirstOrDefault();
                 if (mainSeq == null)
-                { 
+                {
                     throw new ApplicationException($"Smil file {smilName} contains no main seq");
                 }
                 var textReference = $"{xhtmlFileName}#{anno.Element?.Attribute("id")?.Value}";
@@ -321,13 +394,14 @@ namespace DtbSynthesizerLibrary.Xhtml
                         audio);
                     mainSeq.Add(par);
                 }
-                audio.SetAttributeValue("id", $"audio_{par.ElementsBeforeSelf("par").Count():D5}_{par.Descendants("audio").Count():D5}");
+                audio.SetAttributeValue("id",
+                    $"audio_{par.ElementsBeforeSelf("par").Count():D5}_{par.Descendants("audio").Count():D5}");
             }
 
             var totalElapsedTime = TimeSpan.Zero;
             foreach (var kvp in smilFiles.OrderBy(o => o.Key))
             {
-                var audioFile = $"{kvp.Key.Substring(0, kvp.Key.Length-5)}.wav";
+                var audioFile = $"{kvp.Key.Substring(0, kvp.Key.Length - 5)}{(EncodeMp3 ? ".mp3" : ".wav")}";
                 var timeInThisSmil = TimeSpan.FromMilliseconds(
                     Body
                         ?.DescendantNodes()
@@ -338,7 +412,7 @@ namespace DtbSynthesizerLibrary.Xhtml
                 Utils.SetMeta(kvp.Value, "ncc:totalElapsedTime", Utils.GetHHMMSSFromTimeSpan(totalElapsedTime));
                 Utils.SetMeta(kvp.Value, "ncc:timeInThisSmil", Utils.GetHHMMSSFromTimeSpan(timeInThisSmil));
                 Utils.SetMeta(kvp.Value, "ncc:generator", Utils.Generator);
-
+                Utils.SetMeta(kvp.Value, "dc:identifier", DcIdentifier);
                 kvp.Value.Root?.Element("body")?.Element("seq")?.SetAttributeValue(
                     "dur", 
                     $"{timeInThisSmil.TotalSeconds.ToString("f3", CultureInfo.InvariantCulture)}s");
@@ -390,7 +464,15 @@ namespace DtbSynthesizerLibrary.Xhtml
                         Body.DescendantNodes().SelectMany(n =>
                             n.Annotations<SyncAnnotation>().Select(anno => (anno.ClipEnd - anno.ClipBegin).TotalSeconds)).Sum())));
             Utils.SetMeta(ncc, "ncc:tocItems", body.Elements().Count().ToString());
-
+            Utils.SetMeta(
+                ncc, 
+                "ncc:depth", 
+                Enumerable.Range(1, 6).Where(i => body.Elements(XhtmlNs + $"h{i}").Any()).Max().ToString());
+            var nar = (SynthesizerSelector(Utils.SelectCulture(body))??DefaultSynthesizer)?.VoiceInfo.Name;
+            if (!String.IsNullOrEmpty(nar))
+            {
+                Utils.SetMeta(ncc, "ncc:narrator", nar);
+            }
             Utils.SetMeta(ncc, "ncc:multimediaType", "audioFullText");
             Utils.SetMeta(ncc, "ncc:generator", Utils.Generator);
             Utils.SetMeta(ncc, "ncc:charset", "utf-8");

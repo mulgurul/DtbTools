@@ -26,8 +26,6 @@ namespace DtbSynthesizerLibrary
         /// <returns>The duration of the synthesized speech</returns>
         TimeSpan SynthesizeElement(XElement element, WaveFileWriter writer, string src = "");
 
-        bool RecurseMixedContent { get; set; }
-
         VoiceMetaData VoiceInfo { get; }
     }
 }

@@ -11,17 +11,20 @@ namespace DtbSynthesizerLibraryTests.Xhtml
 {
     [TestClass]
     [DeploymentItem(@".\TestFiles")]
+    [DeploymentItem(@".\libmp3lame.32.dll")]
+    [DeploymentItem(@".\libmp3lame.64.dll")]
     public class XhtmlSynthesizerTests
     {
         public TestContext TestContext { get; set; }
 
-        private XhtmlSynthesizer GetXhtmlSynthesizer(string xhtmlFile)
+        private XhtmlSynthesizer GetXhtmlSynthesizer(string xhtmlFile, bool encodeMp3 = false)
         {
             xhtmlFile = Path.Combine(TestContext.DeploymentDirectory, xhtmlFile);
             TestContext.AddResultFile(xhtmlFile);
             var synthesizer = new XhtmlSynthesizer()
             {
-                XhtmlDocument = XDocument.Load(xhtmlFile, LoadOptions.SetBaseUri | LoadOptions.SetLineInfo)
+                XhtmlDocument = XDocument.Load(xhtmlFile, LoadOptions.SetBaseUri | LoadOptions.SetLineInfo),
+                EncodeMp3 = encodeMp3
             };
             if (synthesizer.Body.Elements().Select(Utils.SetMissingIds).Sum() > 0)
             {
@@ -31,13 +34,16 @@ namespace DtbSynthesizerLibraryTests.Xhtml
             return synthesizer;
         }
 
-        [DataRow(@"Simple\Simple.html")]
-        [DataRow(@"Sectioned\Sectioned.html")]
-        [DataRow(@"Tables\Tables.html")]
+        [DataRow(@"Simple\Simple.html", false)]
+        [DataRow(@"Sectioned\Sectioned.html", false)]
+        [DataRow(@"Tables\Tables.html", false)]
+        [DataRow(@"Simple\Simple.html", true)]
+        [DataRow(@"Sectioned\Sectioned.html", true)]
+        [DataRow(@"Tables\Tables.html", true)]
         [DataTestMethod]
-        public void SynthesizeTest(string xhtmlFile)
+        public void SynthesizeTest(string xhtmlFile, bool encodeMp3)
         {
-            var synthesizer = GetXhtmlSynthesizer(xhtmlFile);
+            var synthesizer = GetXhtmlSynthesizer(xhtmlFile, encodeMp3);
             synthesizer.Synthesize();
             Assert.IsTrue(
                 synthesizer.Body.DescendantNodes().OfType<XText>()
@@ -71,13 +77,13 @@ namespace DtbSynthesizerLibraryTests.Xhtml
             }
         }
 
-        [DataRow(@"Simple\Simple.html")]
-        [DataRow(@"Sectioned\Sectioned.html")]
-        [DataRow(@"Tables\Tables.html")]
+        [DataRow(@"Simple\Simple.html", true)]
+        [DataRow(@"Sectioned\Sectioned.html", false)]
+        [DataRow(@"Tables\Tables.html", false)]
         [DataTestMethod]
-        public void GenerateDaisy202SmilFilesAndNccDocumentTest(string xhtmlFile)
+        public void GenerateDaisy202SmilFilesAndNccDocumentTest(string xhtmlFile, bool encodeMp3)
         {
-            var synthesizer = GetXhtmlSynthesizer(xhtmlFile);
+            var synthesizer = GetXhtmlSynthesizer(xhtmlFile, encodeMp3);
             synthesizer.Synthesize();
             synthesizer.GenerateDaisy202SmilFiles();
             Assert.AreEqual(synthesizer.AudioFiles.Count(), synthesizer.SmilFiles.Count, $"Expected one smil file per audio file");
@@ -101,6 +107,26 @@ namespace DtbSynthesizerLibraryTests.Xhtml
                 (2+synthesizer.AudioFiles.Count()+synthesizer.SmilFiles.Count).ToString(),
                 Utils.GetMetaContent(synthesizer.NccDocument, "ncc:files"),
                 "Expected dc:format=Daisy 2.02 meta");
+            var totalElapsedTime = TimeSpan.Zero;
+            foreach (var smil in synthesizer.SmilFiles)
+            {
+                var durAttr = smil.Value.Descendants("body").Single().Elements("seq").Single().Attribute("dur");
+                var dur = TimeSpan.FromSeconds(double.Parse(
+                    (durAttr?.Value ?? "").TrimEnd('s'),
+                    CultureInfo.InvariantCulture));
+                Assert.IsTrue(
+                    dur > TimeSpan.Zero,
+                    $"Unexpected duration {dur} in smil {smil.Key}");
+                Assert.AreEqual(
+                    Utils.GetHHMMSSFromTimeSpan(dur),
+                    Utils.GetMetaContent(smil.Value, "ncc:timeInThisSmil"),
+                    $"Unexpected ncc:timeInThisSmil meta in smil {smil.Key}");
+                Assert.AreEqual(
+                    Utils.GetHHMMSSFromTimeSpan(totalElapsedTime),
+                    Utils.GetMetaContent(smil.Value, "ncc:totalElapsedTime"),
+                    $"Unexpected ncc:totalElapsedTime meta in smil {smil.Key}");
+                totalElapsedTime += dur;
+            }
         }
     }
 }
