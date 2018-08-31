@@ -11,6 +11,7 @@ using System.Threading.Tasks;
 using System.Xml;
 using System.Xml.Linq;
 using System.Xml.Xsl;
+using DtbSynthesizerLibrary.Xml;
 using Saxon.Api;
 
 namespace DtbSynthesizerLibrary

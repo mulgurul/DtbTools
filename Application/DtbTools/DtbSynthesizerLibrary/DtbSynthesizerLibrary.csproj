@@ -72,12 +72,12 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="IXmlSynthesizer.cs" />
+    <Compile Include="Xml\IXmlSynthesizer.cs" />
     <Compile Include="ProgressEventArgs.cs" />
-    <Compile Include="SystemSpeechXmlSynthesizer.cs" />
-    <Compile Include="MicrosoftSpeechXmlSynthesizer.cs" />
+    <Compile Include="Xml\SystemSpeechXmlSynthesizer.cs" />
+    <Compile Include="Xml\MicrosoftSpeechXmlSynthesizer.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="SyncAnnotation.cs" />
+    <Compile Include="Xml\SyncAnnotation.cs" />
     <Compile Include="Utils.cs" />
     <Compile Include="VoiceMetaData.cs" />
     <Compile Include="Xhtml\XhtmlSynthesizer.cs" />

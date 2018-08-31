@@ -415,6 +415,7 @@
 			<xsl:apply-templates/>
 		</h1>
 	</xsl:template>
+
 	<xsl:template match="dtb:doctitle[position()&gt;1]">
 		<p class="doctitle">
 			<xsl:call-template name="copyCncatts"/>

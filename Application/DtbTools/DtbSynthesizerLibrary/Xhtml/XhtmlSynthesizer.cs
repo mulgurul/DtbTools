@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 using System.Xml;
 using System.Xml.Linq;
 using System.Xml.XPath;
+using DtbSynthesizerLibrary.Xml;
 using NAudio.Codecs;
 using NAudio.Lame;
 using NAudio.Wave;

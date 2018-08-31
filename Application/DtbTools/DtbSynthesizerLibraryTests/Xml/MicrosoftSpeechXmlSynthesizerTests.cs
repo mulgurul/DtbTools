@@ -1,13 +1,13 @@
 ﻿using System;
-using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Xml.Linq;
 using DtbSynthesizerLibrary;
+using DtbSynthesizerLibrary.Xml;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using NAudio.Wave;
 
-namespace DtbSynthesizerLibraryTests
+namespace DtbSynthesizerLibraryTests.Xml
 {
     [TestClass]
     public class MicrosoftSpeechXmlSynthesizerTests

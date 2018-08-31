@@ -4,36 +4,35 @@ using System.Collections.ObjectModel;
 using System.Globalization;
 using System.IO;
 using System.Linq;
-using System.Speech.AudioFormat;
 using System.Xml.Linq;
-using System.Speech.Synthesis;
+using Microsoft.Speech.AudioFormat;
+using Microsoft.Speech.Synthesis;
 using NAudio.Wave;
 
-namespace DtbSynthesizerLibrary
+namespace DtbSynthesizerLibrary.Xml
 {
-    public class SystemSpeechXmlSynthesizer : IXmlSynthesizer
+    public class MicrosoftSpeechXmlSynthesizer : IXmlSynthesizer
     {
-        static SystemSpeechXmlSynthesizer()
+        static MicrosoftSpeechXmlSynthesizer()
         {
             Synthesizer = new SpeechSynthesizer();
             SynthesizerList = Synthesizer
                 .GetInstalledVoices()
-                .Select(v => new SystemSpeechXmlSynthesizer(v.VoiceInfo))
+                .Select(v => new MicrosoftSpeechXmlSynthesizer(v.VoiceInfo))
                 .ToList();
         }
 
-        private static readonly List<SystemSpeechXmlSynthesizer> SynthesizerList;
+        private static readonly List<MicrosoftSpeechXmlSynthesizer> SynthesizerList;
 
-        public static IReadOnlyCollection<IXmlSynthesizer> Synthesizers
+        public static IReadOnlyCollection<IXmlSynthesizer> Synthesizers 
             => SynthesizerList.AsReadOnly();
 
         public static IXmlSynthesizer GetPreferedVoiceForCulture(CultureInfo ci)
         {
             return Utils.GetPrefferedXmlSynthesizerForCulture(ci, Synthesizers);
-
         }
 
-        private SystemSpeechXmlSynthesizer(VoiceInfo voice)
+        private MicrosoftSpeechXmlSynthesizer(VoiceInfo voice)
         {
             Voice = voice;
         }
@@ -61,9 +60,6 @@ namespace DtbSynthesizerLibrary
             }
         }
 
-
-
-
         public TimeSpan SynthesizeElement(XElement element, WaveFileWriter writer, string src = "")
         {
             if (element == null) throw new ArgumentNullException(nameof(element));
@@ -88,7 +84,7 @@ namespace DtbSynthesizerLibrary
                     var anno = text.Annotation<SyncAnnotation>();
                     if (anno == null)
                     {
-                        anno = new SyncAnnotation { Src = src, Text = text, Element = text.Parent};
+                        anno = new SyncAnnotation { Src = src, Text = text, Element = text.Parent };
                         text.AddAnnotation(anno);
                     }
                     switch (a.Bookmark.Substring(0, 1))
@@ -132,8 +128,8 @@ namespace DtbSynthesizerLibrary
             Name = Voice.Name,
             Culture = Voice.Culture,
             Gender = Voice.Gender.ToString(),
-            AdditionalInfo = new ReadOnlyDictionary<string, string>(Synthesizer.Voice.AdditionalInfo),
-            Type = "System.Speech"
+            AdditionalInfo =  new ReadOnlyDictionary<string, string>(Synthesizer.Voice.AdditionalInfo),
+            Type = "Microsoft.Speech"
         };
     }
 }

@@ -1,15 +1,8 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Globalization;
-using System.IO;
-using System.Linq;
-using Microsoft.Speech.AudioFormat;
-using System.Text;
-using System.Threading.Tasks;
 using System.Xml.Linq;
 using NAudio.Wave;
 
-namespace DtbSynthesizerLibrary
+namespace DtbSynthesizerLibrary.Xml
 {
     /// <summary>
     /// Interface for a speech synthesizer, that can generate synthetic speech for <see cref="XElement"/>s

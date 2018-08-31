@@ -4,7 +4,9 @@ using System.Data;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Net.Sockets;
 using System.Reflection;
+using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 using System.Xml;
@@ -166,7 +168,18 @@ namespace DtbSynthesizer
             if (inputDoc.Root?.Name.LocalName == "dtbook")
             {
                 xhtml = Path.Combine(output, "content.html");
-                Utils.TransformDtbookToXhtml(inputDoc).Save(xhtml);
+                var transformedDoc = Utils.TransformDtbookToXhtml(inputDoc);
+                var inputDocUri = new Uri(inputDoc.BaseUri);
+                var xhtmlUri = new Uri(xhtml);
+                foreach (var src in transformedDoc
+                    .Descendants(XhtmlSynthesizer.XhtmlNs + "img")
+                    .Select(img => img.Attribute("src")?.Value)
+                    .Where(s => !String.IsNullOrEmpty(s))
+                    .Distinct())
+                {
+                    File.Copy(new Uri(inputDocUri, src).LocalPath, new Uri(xhtmlUri, src).LocalPath);
+                }
+                transformedDoc.Save(xhtml);
             }
             else if (output.Equals(Path.GetDirectoryName(input)))
             {

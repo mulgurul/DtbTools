@@ -5,6 +5,7 @@ using System.Linq;
 using System.Xml.Linq;
 using DtbSynthesizerLibrary;
 using DtbSynthesizerLibrary.Xhtml;
+using DtbSynthesizerLibrary.Xml;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace DtbSynthesizerLibraryTests.Xhtml
