@@ -120,9 +120,23 @@ namespace DtbSynthesizerLibrary.Xml
                 annotations.First().ClipBegin = startOffset;
                 for (int i = 0; i < annotations.Count - 1; i++)
                 {
-                    annotations[i].ClipEnd = annotations[i + 1].ClipBegin;
+                     annotations[i + 1].ClipBegin = annotations[i].ClipEnd;
                 }
-                annotations.Last().ClipEnd = writer.TotalTime;
+                var lastClipEnd = annotations.Last().ClipEnd;
+                if (lastClipEnd != writer.TotalTime)
+                {
+                    //Time seems to "slide" in bookmark events, 
+                    //resulting in the last bookmark seeming located beyond the end of the audio file
+                    //The factor corrects this problem (possibly in a correct manner)
+                    var factor =
+                        (writer.TotalTime - startOffset).TotalSeconds
+                        / (lastClipEnd - startOffset).TotalSeconds;
+                    foreach (var anno in annotations)
+                    {
+                        anno.ClipBegin = Utils.AdjustClipTime(anno.ClipBegin, startOffset, factor);
+                        anno.ClipEnd = Utils.AdjustClipTime(anno.ClipEnd, startOffset, factor);
+                    }
+                }
             }
             return writer.TotalTime.Subtract(startOffset);
         }

@@ -345,5 +345,11 @@ namespace DtbSynthesizerLibrary
             }
             return res;
         }
+
+        public static TimeSpan AdjustClipTime(TimeSpan clipTime, TimeSpan startOffset, double factor)
+        {
+            return startOffset + TimeSpan.FromSeconds((clipTime - startOffset).TotalSeconds * factor);
+        }
+
     }
 }

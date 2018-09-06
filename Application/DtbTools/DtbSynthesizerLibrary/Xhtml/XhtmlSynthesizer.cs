@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -337,6 +338,7 @@ namespace DtbSynthesizerLibrary.Xhtml
                     && !String.IsNullOrEmpty(anno.Element?.Attribute("id")?.Value)))
             {
                 var smilName = $"{anno.Src.Substring(0, anno.Src.Length - 4)}.smil".ToLowerInvariant();
+                Debug.Print($"Anno: {anno.Src}[{anno.ClipBegin};{anno.ClipEnd}]: {anno.Text.Value}");
                 if (!smilFiles.ContainsKey(smilName))
                 {
                     smilFiles.Add(smilName,

@@ -78,6 +78,34 @@ namespace DtbSynthesizerLibraryTests.Xhtml
             }
         }
 
+        /// <summary>
+        /// Parses a Daisy 2.02 SMIL 1.0 file clip attribute value
+        /// </summary>
+        /// <param name="val">The value</param>
+        /// <returns>The <see cref="TimeSpan"/> equivalent of the value</returns>
+        public static TimeSpan ParseSmilClip(string val)
+        {
+            if (val == null) throw new ArgumentNullException(nameof(val));
+            if (String.IsNullOrWhiteSpace(val))
+            {
+                throw new ArgumentException($"Value is empty", nameof(val));
+            }
+            val = val.Trim();
+            if (val.StartsWith("npt=") && val.EndsWith("s"))
+            {
+                var secs = Double.Parse(
+                    val.Substring(4, val.Length - 5),
+                    NumberStyles.Float,
+                    CultureInfo.InvariantCulture);
+                return TimeSpan.FromSeconds(secs);
+            }
+            else
+            {
+                throw new ArgumentException($"Value {val} is not a valid Daisy 2.02 smil clip value", nameof(val));
+            }
+        }
+
+        [DataRow(@"Lists\Lists.html", true)]
         [DataRow(@"Simple\Simple.html", true)]
         [DataRow(@"Sectioned\Sectioned.html", false)]
         [DataRow(@"Tables\Tables.html", false)]
@@ -111,10 +139,31 @@ namespace DtbSynthesizerLibraryTests.Xhtml
             var totalElapsedTime = TimeSpan.Zero;
             foreach (var smil in synthesizer.SmilFiles)
             {
+                foreach (var audio in smil
+                    .Value
+                    .Descendants("body").Single()
+                    .Elements("seq").Single()
+                    .Descendants("audio"))
+                {
+                    Assert.IsTrue(
+                        ParseSmilClip(audio.Attribute("clip-begin")?.Value) < ParseSmilClip(audio.Attribute("clip-end")?.Value),
+                        $"clip-begin must be before clip-end (audio[@id='{audio.Attribute("id")?.Value??""}'])");
+                }
+                var calDur = TimeSpan.FromSeconds(
+                    smil
+                        .Value
+                        .Descendants("body").Single()
+                        .Elements("seq").Single()
+                        .Descendants("audio")
+                        .Select(audio =>
+                            ParseSmilClip(audio.Attribute("clip-end")?.Value) -
+                            ParseSmilClip(audio.Attribute("clip-begin")?.Value))
+                        .Sum(ts => ts.TotalSeconds));
                 var durAttr = smil.Value.Descendants("body").Single().Elements("seq").Single().Attribute("dur");
                 var dur = TimeSpan.FromSeconds(double.Parse(
                     (durAttr?.Value ?? "").TrimEnd('s'),
                     CultureInfo.InvariantCulture));
+                Assert.AreEqual(calDur, dur, "dur attribute on main seq is wrong");
                 Assert.IsTrue(
                     dur > TimeSpan.Zero,
                     $"Unexpected duration {dur} in smil {smil.Key}");
