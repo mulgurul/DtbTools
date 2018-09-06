@@ -59,7 +59,7 @@ namespace DtbSynthesizerLibrary.Xhtml
 
         public bool EncodeMp3 { get; set; } = true;
 
-        public int Mp3BitRate { get; set; } = 48;
+        public int Mp3BitRate { get; set; } = 32;
 
         public XElement Body => XhtmlDocument?.Root?.Element(XhtmlNs + "body");
 
