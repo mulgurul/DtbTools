@@ -1,0 +1,55 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<dtbook version="1.1.0">
+  <head>
+    <title>DTB 1</title>
+    <meta name="dc:title" content="DTB 1" />
+    <meta name="dc:creator" content="Ole Holst Andersen" />
+    <meta name="dc:identifier" content="DTB1" />
+  </head>
+  <book lang="en">
+    <frontmatter>
+      <doctitle>DTB 1</doctitle>
+      <docauthor>Ole Holst Andersen</docauthor>
+    </frontmatter>
+    <bodymatter>
+      <level class="chapter" depth="1">
+        <levelhd class="chapter" depth="1">Chapter 1</levelhd>
+        <p>Once upon a time ect.</p>
+        <p>Lirum larum</p>
+        <p>And so<noteref idref="#note1">1</noteref> forth</p>
+        <note id="note1" class="footnote"><p>1. This is a footnote</p></note>
+        <level class="section" depth="2">
+          <levelhd>Section 1.1</levelhd>
+          <p>Lirum larum</p>
+          <p>Lurum urum larum</p>
+          <p>And so forth</p>
+        </level>
+        <level class="section" depth="2">
+          <levelhd>Section 1.2</levelhd>
+          <p>Lirum larum</p>
+          <p>Lurum urum larum</p>
+          <p>And so forth</p>
+        </level>
+        
+      </level>
+      <level class="chapter" depth="1">
+        <levelhd class="chapter" depth="1">Chapter 2</levelhd>
+        <p>Once upon a time ect.</p>
+        <p>Lirum larum</p>
+        <p>And so forth</p>
+        <level class="section" depth="2">
+          <levelhd>Section 2.1</levelhd>
+          <p>Lirum larum</p>
+          <p>Lurum urum larum</p>
+          <p>And so forth</p>
+        </level>
+        <level class="section" depth="2">
+          <levelhd>Section 2.2</levelhd>
+          <p>Lirum larum</p>
+          <p>Lurum urum larum</p>
+          <p>And so forth</p>
+        </level>
+      </level>
+    </bodymatter>
+  </book>
+</dtbook>
