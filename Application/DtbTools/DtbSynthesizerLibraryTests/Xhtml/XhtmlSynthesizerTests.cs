@@ -7,6 +7,7 @@ using DtbSynthesizerLibrary;
 using DtbSynthesizerLibrary.Xhtml;
 using DtbSynthesizerLibrary.Xml;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using NAudio.Wave;
 
 namespace DtbSynthesizerLibraryTests.Xhtml
 {
@@ -74,6 +75,13 @@ namespace DtbSynthesizerLibraryTests.Xhtml
                 .Descendants().SelectMany(e => e.Annotations<SyncAnnotation>().Select(a =>
                     new Uri(new Uri(e.BaseUri), a.Src).LocalPath)).Distinct())
             {
+                using (var wr = new WaveFileReader(audioFile))
+                {
+                    Assert.AreEqual(synthesizer.AudioWaveFormat.SampleRate, wr.WaveFormat.SampleRate, $"Audio file {audioFile} has unexpected sample rate");
+                    Assert.AreEqual(synthesizer.AudioWaveFormat.BitsPerSample, wr.WaveFormat.BitsPerSample, $"Audio file {audioFile} has unexpected bits per sample");
+                    Assert.AreEqual(synthesizer.AudioWaveFormat.Channels, wr.WaveFormat.Channels, $"Audio file {audioFile} has unexpected number of channels");
+                }
+
                 TestContext.AddResultFile(audioFile);
             }
         }

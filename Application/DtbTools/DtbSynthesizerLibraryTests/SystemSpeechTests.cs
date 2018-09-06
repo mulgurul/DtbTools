@@ -2,9 +2,11 @@
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Speech.AudioFormat;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.Speech.Synthesis;
 using System.Text.RegularExpressions;
+using NAudio.Wave;
 
 namespace DtbSynthesizerLibraryTests
 {
@@ -37,7 +39,8 @@ namespace DtbSynthesizerLibraryTests
             var synth = new SpeechSynthesizer();
             try
             {
-                synth.SetOutputToWaveFile(GetAudioFilePath("SystemSpeechSpeakTest.wav"));
+                var af = GetAudioFilePath("SystemSpeechSpeakTest.wav");
+                synth.SetOutputToWaveFile(af, new SpeechAudioFormatInfo(22050, AudioBitsPerSample.Sixteen, AudioChannel.Mono));
                 var testData = new[]
                 {
                     new[] {"da", "Jeg hedder {0} og jeg snakker dansk"},
@@ -63,7 +66,11 @@ namespace DtbSynthesizerLibraryTests
                         synth.Speak(String.Format(pair[1], name));
                     }
                 }
-
+                synth.SetOutputToNull();
+                var wr = new WaveFileReader(af);
+                Assert.AreEqual(22050, wr.WaveFormat.SampleRate);
+                Assert.AreEqual(16, wr.WaveFormat.BitsPerSample);
+                Assert.AreEqual(1, wr.WaveFormat.Channels);
             }
             finally
             {

@@ -39,7 +39,8 @@ namespace DtbSynthesizerLibraryTests
             var synth = new SpeechSynthesizer();
             try
             {
-                synth.SetOutputToWaveFile(GetAudioFilePath("MicrosoftSpeechSpeakTest.wav"));
+                var af = GetAudioFilePath("MicrosoftSpeechSpeakTest.wav");
+                synth.SetOutputToWaveFile(af, new SpeechAudioFormatInfo(22050, AudioBitsPerSample.Sixteen, AudioChannel.Mono));
                 var testData = new[]
                 {
                     new[] {"da", "Jeg hedder {0} og jeg snakker dansk"},
@@ -72,6 +73,11 @@ namespace DtbSynthesizerLibraryTests
                         synth.Speak(String.Format(pair[1], name));
                     }
                 }
+                synth.SetOutputToNull();
+                var wr = new WaveFileReader(af);
+                Assert.AreEqual(22050, wr.WaveFormat.SampleRate);
+                Assert.AreEqual(16, wr.WaveFormat.BitsPerSample);
+                Assert.AreEqual(1, wr.WaveFormat.Channels);
 
             }
             finally

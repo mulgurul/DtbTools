@@ -96,7 +96,7 @@ namespace DtbSynthesizerLibrary.Xhtml
 
         public IXmlSynthesizer DefaultSynthesizer { get; set; }
 
-        public WaveFormat AudioWaveFormat { get; set; } = new WaveFormat(44100, 1);
+        public WaveFormat AudioWaveFormat { get; set; } = new WaveFormat(22050, 1);
 
         private void ValidateSynthesizer()
         {
