@@ -83,6 +83,7 @@
     <Compile Include="Xhtml\XhtmlSynthesizer.cs" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="DtbSynthesizerLibrary.nuspec" />
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>

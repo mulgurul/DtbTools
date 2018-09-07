@@ -5,12 +5,12 @@ using System.Runtime.InteropServices;
 // General Information about an assembly is controlled through the following
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
-[assembly: AssemblyTitle("DtbMerger2Library")]
-[assembly: AssemblyDescription("")]
+[assembly: AssemblyTitle("DTB Merger Library 2")]
+[assembly: AssemblyDescription("Library for merging Digital Talking Books")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("")]
+[assembly: AssemblyCompany("Nota")]
 [assembly: AssemblyProduct("DtbMerger2Library")]
-[assembly: AssemblyCopyright("Copyright ©  2018")]
+[assembly: AssemblyCopyright("Copyright © Nota 2018")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 
