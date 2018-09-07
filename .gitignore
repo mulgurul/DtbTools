@@ -328,3 +328,7 @@ ASALocalRun/
 
 # MFractors (Xamarin productivity tool) working folder 
 .mfractor/
+
+#Other specific files
+libmp3lame.64.dll
+libmp3lame.32.dll

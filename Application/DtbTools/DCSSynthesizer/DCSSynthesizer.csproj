@@ -40,11 +40,26 @@
     <Reference Include="DCSArchiveLibrary, Version=1.0.2.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\packages\DCSArchiveClientApi.1.0.6\lib\net47\DCSArchiveLibrary.dll</HintPath>
     </Reference>
+    <Reference Include="DtbSynthesizerLibrary, Version=1.0.0.17623, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\DtbSynthesizerLibrary.1.0.0.17623\lib\net461\DtbSynthesizerLibrary.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Speech, Version=11.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <HintPath>..\packages\Slions.Microsoft.Speech.11.1.0.0\lib\Microsoft.Speech.dll</HintPath>
+    </Reference>
     <Reference Include="Mono.Options, Version=5.0.0.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\packages\Mono.Options.5.3.0.1\lib\net4-client\Mono.Options.dll</HintPath>
     </Reference>
+    <Reference Include="NAudio, Version=1.8.4.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\NAudio.1.8.4\lib\net35\NAudio.dll</HintPath>
+    </Reference>
+    <Reference Include="NAudio.Lame, Version=1.0.5.22475, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\NAudio.Lame.1.0.7\lib\net20\NAudio.Lame.dll</HintPath>
+    </Reference>
     <Reference Include="Newtonsoft.Json, Version=11.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
       <HintPath>..\packages\Newtonsoft.Json.11.0.2\lib\net45\Newtonsoft.Json.dll</HintPath>
+    </Reference>
+    <Reference Include="saxon9he-api, Version=9.8.0.14, Culture=neutral, PublicKeyToken=e1fdd002d5083fe6, processorArchitecture=MSIL">
+      <HintPath>..\packages\Saxon-HE.9.8.0.14\lib\net40\saxon9he-api.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
@@ -69,10 +84,12 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\DtbSynthesizerLibrary\DtbSynthesizerLibrary.csproj">
-      <Project>{60724528-a951-44b1-b948-c89991959d30}</Project>
-      <Name>DtbSynthesizerLibrary</Name>
-    </ProjectReference>
+    <Content Include="libmp3lame.32.dll">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="libmp3lame.64.dll">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
