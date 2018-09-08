@@ -11,27 +11,13 @@ using DCSArchiveLibrary.Model;
 using DtbSynthesizerLibrary;
 using DtbSynthesizerLibrary.Xhtml;
 using Mono.Options;
+using NAudio.Wave;
 using Directory = System.IO.Directory;
 
 namespace DCSSynthesizer
 {
     class Program
     {
-        private static string sourceCode = null;
-        private static string destCode = null;
-        private static string sourceTitleNumber = null;
-        private static string destTitleNumber = null;
-        private static int year = DateTime.Now.Year;
-        private static int? number;
-        private static bool useWeekNumber = false;
-        private static int bitrate = 48;
-        private static string uncRoot = @"\\smb-files.ngt.dbb.dk\Temp\DCSSynthesizer";
-        private static string dcsServiceUri = "http://http-dcsarchive.ngt.dbb.dk";
-        private static string defaultCreator = "Nota";
-        private static DCSArchiveClientApi.ClientApi clientApi = null;
-
-        private static string destPath => Path.Combine(uncRoot, destTitleNumber);
-
 
         private static string GetTitleNumber(string c, int y, int n)
         {
@@ -52,15 +38,31 @@ namespace DCSSynthesizer
 
         private static int GetIsoWeekNumber(DateTime date)
         {
-            if (new[] {DayOfWeek.Monday, DayOfWeek.Tuesday, DayOfWeek.Wednesday}.Contains(date.DayOfWeek))
+            if (new[] { DayOfWeek.Monday, DayOfWeek.Tuesday, DayOfWeek.Wednesday }.Contains(date.DayOfWeek))
             {
                 date = date.AddDays(3);
             }
             return CultureInfo.InvariantCulture.Calendar.GetWeekOfYear(
-                date, 
+                date,
                 CalendarWeekRule.FirstFourDayWeek,
                 DayOfWeek.Monday);
         }
+
+        private static string sourceCode = null;
+        private static string destCode = null;
+        private static string sourceTitleNumber = null;
+        private static string destTitleNumber = null;
+        private static int year = DateTime.Now.Year;
+        private static int? number;
+        private static bool useDate = false;
+        private static int bitrate = 48;
+        private static string uncRoot = @"\\smb-files\Temp\DCSSynthesizer";
+        private static string dcsServiceUri = "http://http-dcsarchive";
+        private static string defaultCreator = "Nota";
+        private static bool forceOverwriteDCS = false;
+        private static DCSArchiveClientApi.ClientApi clientApi = null;
+
+        private static string DestPath => Path.Combine(uncRoot, destTitleNumber);
 
         private static readonly OptionSet Options = new OptionSet()
             .Add("Synthesize DTB from DCS")
@@ -73,7 +75,9 @@ namespace DCSSynthesizer
             .Add<int>("year=", "Year", i => year = i)
             .Add<int>("number=", "Number", i => number = i)
             .Add<int>("bitrate=", "BitRate (default is 48)", i => bitrate = i)
-            .Add("useweek", "Use week number for default number (alternatively mmdd is used)", s => useWeekNumber = s != null);
+            .Add("usedate", "Use date for default number (mmdd), otherwise the iso week number of the next following saturday is used",
+                s => useDate = s != null)
+            .Add("force", "Force overwriting destination DTB in DCS", s => forceOverwriteDCS = s != null);
         private static string OptionDescriptions
         {
             get
@@ -94,7 +98,12 @@ namespace DCSSynthesizer
                 }
                 if (!number.HasValue)
                 {
-                    number = useWeekNumber ? 100 * DateTime.Now.Month + DateTime.Now.Day : GetIsoWeekNumber(DateTime.Now);
+                    number = useDate 
+                        ? 100 * DateTime.Now.Month + DateTime.Now.Day 
+                        : GetIsoWeekNumber(Enumerable
+                            .Range(1, 7)
+                            .Select(i => DateTime.Today.AddDays(i))
+                            .Single(d => d.DayOfWeek == DayOfWeek.Saturday));
                 }
                 if (String.IsNullOrWhiteSpace(sourceTitleNumber))
                 {
@@ -162,15 +171,15 @@ namespace DCSSynthesizer
             {
                 try
                 {
-                    if (Directory.Exists(destPath))
+                    if (Directory.Exists(DestPath))
                     {
-                        Directory.Delete(destPath, true);
-                        Console.WriteLine($"Cleaned up destination folder {destPath}");
+                        Directory.Delete(DestPath, true);
+                        Console.WriteLine($"Cleaned up destination folder {DestPath}");
                     }
                 }
                 catch (Exception e)
                 {
-                    Console.WriteLine($"Could not cleanup destination folder {destPath} due to an unexpected {e.GetType()}: {e.Message}");
+                    Console.WriteLine($"Could not cleanup destination folder {DestPath} due to an unexpected {e.GetType()}: {e.Message}");
                 }
             }
         }
@@ -199,17 +208,17 @@ namespace DCSSynthesizer
                 Console.WriteLine($"Could not access source title at {dir.WebFullPath}");
                 return -1;
             }
-            CopyDirectory(dir.WebFullPath, destPath);
+            CopyDirectory(dir.WebFullPath, DestPath);
             Console.WriteLine("Downloaded source dtbook from DCS Archive");
             return 0;
         }
 
         private static async Task<int> UploadDestination()
         {
-            var ncc = XDocument.Load(Path.Combine(destPath, "ncc.html"));
+            var ncc = XDocument.Load(Path.Combine(DestPath, "ncc.html"));
             var titleUpdate = new DCSArchiveLibrary.Model.TitleUpdate
             {
-                SourcePath = destPath,
+                SourcePath = DestPath,
                 OriginCode = "DDS",
                 MaterialTypeCode = "DTB",
                 MaterialFormatCode = "D202",
@@ -235,7 +244,7 @@ namespace DCSSynthesizer
 
         private static int Synthesize()
         {
-            var sourceFileName = Path.Combine(destPath, $"{sourceTitleNumber}.xml");
+            var sourceFileName = Path.Combine(DestPath, $"{sourceTitleNumber}.xml");
             if (!File.Exists(sourceFileName))
             {
                 Console.WriteLine($"Could not find source file {sourceFileName}");
@@ -251,7 +260,7 @@ namespace DCSSynthesizer
                 Console.WriteLine($"Could not load source file {sourceFileName}: {e.Message}");
                 return -1;
             }
-            var xhtmlFileName = Path.Combine(destPath, $"{destTitleNumber}.html");
+            var xhtmlFileName = Path.Combine(DestPath, $"{destTitleNumber}.html");
             Utils.SetMeta(dtbook, "dc:identifier", $"dk-nota-{destTitleNumber}");
             Utils.TransformDtbookToXhtml(dtbook).Save(xhtmlFileName);
             if (File.Exists(sourceFileName))
@@ -260,7 +269,8 @@ namespace DCSSynthesizer
             }
             var synthesizer = new XhtmlSynthesizer()
             {
-                XhtmlDocument = XDocument.Load(xhtmlFileName, LoadOptions.SetBaseUri | LoadOptions.SetLineInfo)
+                XhtmlDocument = XDocument.Load(xhtmlFileName, LoadOptions.SetBaseUri | LoadOptions.SetLineInfo),
+                AudioWaveFormat = new WaveFormat(22050, 2)
             };
             synthesizer.Progress += (sender, args) =>
             {
@@ -270,10 +280,10 @@ namespace DCSSynthesizer
             Console.Write($"{new String(' ', 80)}\r");
             synthesizer.GenerateDaisy202SmilFiles();
             synthesizer.GenerateNccDocument();
-            synthesizer.NccDocument.Save(Path.Combine(destPath, "ncc.html"));
+            synthesizer.NccDocument.Save(Path.Combine(DestPath, "ncc.html"));
             foreach (var smilFile in synthesizer.SmilFiles)
             {
-                smilFile.Value.Save(Path.Combine(destPath, smilFile.Key));
+                smilFile.Value.Save(Path.Combine(DestPath, smilFile.Key));
             }
             Console.WriteLine("Synthesized DTB");
             return 0;
@@ -283,16 +293,22 @@ namespace DCSSynthesizer
         {
             try
             {
-                if (Directory.Exists(destPath))
+                if (Directory.Exists(DestPath))
                 {
-                    Directory.Delete(destPath, true);
+                    Directory.Delete(DestPath, true);
                 }
-                Directory.CreateDirectory(destPath);
+                Directory.CreateDirectory(DestPath);
             }
             catch (Exception e)
             {
-                Console.WriteLine($"Could not create destination directory {destPath} due to an unexpected {e.GetType()}: {e.Message}");
+                Console.WriteLine($"Could not create destination directory {DestPath} due to an unexpected {e.GetType()}: {e.Message}");
                 return -2;
+            }
+
+            if (!forceOverwriteDCS && (await clientApi.GetTitle(destTitleNumber)) != null)
+            {
+                Console.WriteLine($"Destination title {destTitleNumber} already exists in DCS. Use -force to overwrite");
+                return 0;
             }
 
             var res = await DownloadSource();
@@ -330,5 +346,6 @@ namespace DCSSynthesizer
                 CopyDirectory(dir, Path.Combine(dest, dir.Name));
             }
         }
+
     }
 }

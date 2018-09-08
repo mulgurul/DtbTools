@@ -11,7 +11,7 @@
     <TargetFrameworkVersion>v4.7.1</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
-    <Deterministic>true</Deterministic>
+    <Deterministic>false</Deterministic>
     <TargetFrameworkProfile />
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
@@ -81,6 +81,7 @@
     <None Include="App.config">
       <SubType>Designer</SubType>
     </None>
+    <None Include="Package.ps1" />
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
@@ -92,4 +93,7 @@
     </Content>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <PropertyGroup>
+    <PostBuildEvent>PowerShell $(ProjectDir)Package.ps1 -Conf $(ConfigurationName)</PostBuildEvent>
+  </PropertyGroup>
 </Project>
