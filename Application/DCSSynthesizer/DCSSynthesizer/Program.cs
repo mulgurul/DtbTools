@@ -60,6 +60,7 @@ namespace DCSSynthesizer
         private static string dcsServiceUri = "http://http-dcsarchive";
         private static string defaultCreator = "Nota";
         private static bool forceOverwriteDCS = false;
+        private static bool useDCSPro = false;
         private static DCSArchiveClientApi.ClientApi clientApi = null;
 
         private static string DestPath => Path.Combine(uncRoot, destTitleNumber);
@@ -77,7 +78,8 @@ namespace DCSSynthesizer
             .Add<int>("bitrate=", "BitRate (default is 48)", i => bitrate = i)
             .Add("usedate", "Use date for default number (mmdd), otherwise the iso week number of the next following saturday is used",
                 s => useDate = s != null)
-            .Add("force", "Force overwriting destination DTB in DCS", s => forceOverwriteDCS = s != null);
+            .Add("force", "Force overwriting destination DTB in DCS", s => forceOverwriteDCS = s != null)
+            .Add("usedcspro", "Use smb-dcspro in place of smb-dcsweb", s => useDCSPro = s != null);
         private static string OptionDescriptions
         {
             get
@@ -202,14 +204,14 @@ namespace DCSSynthesizer
                 Console.WriteLine($"Source title {sourceTitleNumber} has no DTB (Dtbook xml) item");
                 return -1;
             }
-            var dir = title.DirectoriesAsList.First();
-            if (!Directory.Exists(dir.WebFullPath))
+            var sourceDir = title.DirectoriesAsList.Select(d => useDCSPro ? d.FullPath : d.WebFullPath).First();
+            if (!Directory.Exists(sourceDir))
             {
-                Console.WriteLine($"Could not access source title at {dir.WebFullPath}");
+                Console.WriteLine($"Could not access source title at {sourceDir}");
                 return -1;
             }
-            CopyDirectory(dir.WebFullPath, DestPath);
-            Console.WriteLine("Downloaded source dtbook from DCS Archive");
+            CopyDirectory(sourceDir, DestPath);
+            Console.WriteLine($"Downloaded source dtbook from {sourceDir}");
             return 0;
         }
 
@@ -270,7 +272,7 @@ namespace DCSSynthesizer
             var synthesizer = new XhtmlSynthesizer()
             {
                 XhtmlDocument = XDocument.Load(xhtmlFileName, LoadOptions.SetBaseUri | LoadOptions.SetLineInfo),
-                AudioWaveFormat = new WaveFormat(22050, 2)
+                AudioWaveFormat = new WaveFormat(22050, 1)
             };
             synthesizer.Progress += (sender, args) =>
             {
