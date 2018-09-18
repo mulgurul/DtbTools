@@ -40,8 +40,8 @@
     <Reference Include="DCSArchiveLibrary, Version=1.0.2.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\packages\DCSArchiveClientApi.1.0.6\lib\net47\DCSArchiveLibrary.dll</HintPath>
     </Reference>
-    <Reference Include="DtbSynthesizerLibrary, Version=1.0.0.17623, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\DtbSynthesizerLibrary.1.0.0.17623\lib\net461\DtbSynthesizerLibrary.dll</HintPath>
+    <Reference Include="DtbSynthesizerLibrary, Version=1.0.1.17393, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\DtbSynthesizerLibrary.1.0.1.17393\lib\net461\DtbSynthesizerLibrary.dll</HintPath>
     </Reference>
     <Reference Include="Microsoft.Speech, Version=11.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
       <HintPath>..\packages\Slions.Microsoft.Speech.11.1.0.0\lib\Microsoft.Speech.dll</HintPath>
@@ -86,12 +86,8 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
-    <Content Include="libmp3lame.32.dll">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
-    <Content Include="libmp3lame.64.dll">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
+    <Content Include="libmp3lame.32.dll" />
+    <Content Include="libmp3lame.64.dll" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>

@@ -320,7 +320,7 @@ namespace DtbSynthesizerLibrary
                         {"2005-3", EmbeddedXsltExecutables["dtbook2xhtml.xsl"]}
                     }));
 
-        public static XDocument TransformDtbookToXhtml(XDocument dtbook)
+        public static XDocument TransformDtbookToXhtml(XDocument dtbook, bool deleteDualH1Title = true)
         {
             if (dtbook == null) throw new ArgumentNullException(nameof(dtbook));
             if (dtbook.Root?.Name.LocalName != "dtbook")
@@ -341,7 +341,22 @@ namespace DtbSynthesizerLibrary
             var res = XDocument.Parse(strWr.ToString());
             if (res.Root?.Name.LocalName == "dtbook")
             {
-                return TransformDtbookToXhtml(res);
+                return TransformDtbookToXhtml(res, deleteDualH1Title);
+            }
+            if (deleteDualH1Title)
+            {
+                var firstH1 = res.Root?.Element(XhtmlNs + "body")?.Element(XhtmlNs+"h1");
+                if (firstH1?.Attribute("class")?.Value.Split(' ').Contains("title")??false)
+                {
+                    var secondH1 = firstH1.ElementsAfterSelf().FirstOrDefault();
+                    if (secondH1?.Name == XhtmlNs + "h1"
+                        && (secondH1?.Attribute("class")?.Value.Split(' ').Contains("title")??false)
+                        && firstH1.Value == secondH1?.Value)
+                    {
+                        secondH1.Remove();
+                    }
+                }
+
             }
             return res;
         }
