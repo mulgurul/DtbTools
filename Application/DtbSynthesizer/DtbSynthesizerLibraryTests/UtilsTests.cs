@@ -41,5 +41,25 @@ namespace DtbSynthesizerLibraryTests
             Assert.AreEqual(Utils.XhtmlNs+"html", xhtmlDoc.Root.Name, "Transform result is not an xhtml document");
         }
 
+        [TestMethod]
+        public void GetHHMMSSFromTimeSpanTest()
+        {
+            var data = new[]
+            {
+                new Tuple<TimeSpan, string>(TimeSpan.FromMilliseconds(499), "00:00:00"),
+                new Tuple<TimeSpan, string>(TimeSpan.FromMilliseconds(500), "00:00:01"),
+                new Tuple<TimeSpan, string>(new TimeSpan(0, 0, 1), "00:00:01"),
+                new Tuple<TimeSpan, string>(new TimeSpan(0, 1, 1), "00:01:01"),
+                new Tuple<TimeSpan, string>(new TimeSpan(1, 1, 1), "01:01:01"),
+                new Tuple<TimeSpan, string>(new TimeSpan(1, 1, 1, 1), "25:01:01")
+            };
+            foreach (var d in data)
+            {
+                Assert.AreEqual(d.Item2, Utils.GetHHMMSSFromTimeSpan(d.Item1));
+            }
+        }
+
+
+
     }
 }

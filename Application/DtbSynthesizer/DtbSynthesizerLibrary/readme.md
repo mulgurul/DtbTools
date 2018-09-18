@@ -17,7 +17,7 @@ nuget pack -build -Properties Configuration=Release
 You deploy a nuget package by running
 
 ```
-nuget add .\DtbSynthesizerLibrary.X.Y.Z.W.nupkg -Source N:\Software\Nota\Nuget_Packages
+nuget add -Source N:\Software\Nota\Nuget_Packages .\DtbSynthesizerLibrary.X.Y.Z.W.nupkg
 ```
 
 Where `Y.X.Z.W` is the package version.

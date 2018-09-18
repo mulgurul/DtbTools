@@ -247,7 +247,8 @@ namespace DtbSynthesizerLibrary
         /// <returns>The hh:mm:ss value</returns>
         public static string GetHHMMSSFromTimeSpan(TimeSpan val)
         {
-            return TimeSpan.FromSeconds(Math.Round(val.TotalSeconds)).ToString(@"hh\:mm\:ss");
+            var rounded = TimeSpan.FromSeconds(Math.Round(val.TotalSeconds, MidpointRounding.AwayFromZero));
+            return $"{(int)Math.Floor(rounded.TotalHours):D2}:{rounded.Minutes:D2}:{rounded.Seconds:D2}";
         }
 
         public static string Generator =>
