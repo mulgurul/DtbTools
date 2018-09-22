@@ -10,7 +10,9 @@ using NAudio.Wave;
 namespace DtbSynthesizerLibraryTests.Xml
 {
     [TestClass]
-    public class MicrosoftSpeechXmlSynthesizerTests
+    [DeploymentItem("grpc_csharp_ext.x86.dll")]
+    [DeploymentItem("grpc_csharp_ext.x64.dll")]
+    public class GoogleCloudXmlSynthesizerTests
     {
         public TestContext TestContext { get; set; }
 
@@ -34,10 +36,17 @@ namespace DtbSynthesizerLibraryTests.Xml
         </table>
     </body>
 </html>
-", 
+",
             0)]
         [DataRow(
-            "<html lang='en-US'><body><p>This is a single paragraph. It contains an <em>emphasized</em> word</p><p lang='da-DK'>I midten en sætning på dansk</p><p>This is a third paragraph</p></body></html>",
+            @"
+<html lang='en-US'>
+    <body>
+        <p>This is a single paragraph. It contains an <em>emphasized</em> word</p>
+        <p lang='sv-SE'>I mitten en mening på svenska</p>
+        <p>This is a third paragraph</p>
+    </body>
+</html>",
             1)]
         [DataTestMethod]
         public void SynthesizeElementTest(string xml, int no)
@@ -45,7 +54,7 @@ namespace DtbSynthesizerLibraryTests.Xml
             var doc = XDocument.Parse(xml);
 
             var body = doc.Elements("html").Elements("body").First();
-            var waveFile = GetAudioFilePath($"SystemSpeech{no:D2}.wav");
+            var waveFile = GetAudioFilePath($"GoogleCloud{no:D2}.wav");
             var writer = new WaveFileWriter(waveFile, new WaveFormat(22050, 1));
             try
             {
@@ -53,7 +62,7 @@ namespace DtbSynthesizerLibraryTests.Xml
                 foreach (var elem in body.Elements())
                 {
                     var ci = Utils.SelectCulture(elem);
-                    var synth = SystemSpeechXmlSynthesizer.GetPreferedVoiceForCulture(ci);
+                    var synth = GoogleCloudXmlSynthesizer.GetPreferedVoiceForCulture(ci);
                     dur += synth.SynthesizeElement(elem, writer);
                 }
                 var prevClipEnd = TimeSpan.Zero;
@@ -81,6 +90,5 @@ namespace DtbSynthesizerLibraryTests.Xml
                 writer.Close();
             }
         }
-
     }
 }

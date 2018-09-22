@@ -367,5 +367,23 @@ namespace DtbSynthesizerLibrary
             return startOffset + TimeSpan.FromSeconds((clipTime - startOffset).TotalSeconds * factor);
         }
 
+        public static int GetWhiteSpaceNormalizedLength(XText text)
+        {
+            return GetWhiteSpaceNormalizedLength(text?.Value);
+        }
+
+        public static int GetWhiteSpaceNormalizedLength(string text)
+        {
+            return GetWhiteSpaceNormalizedText(text)?.Length ?? 0;
+        }
+
+        public static string GetWhiteSpaceNormalizedText(string text)
+        {
+            if (text == null)
+            {
+                return null;
+            }
+            return Regex.Replace(text.Normalize(NormalizationForm.FormKD), @"\w+", " ");
+        }
     }
 }
