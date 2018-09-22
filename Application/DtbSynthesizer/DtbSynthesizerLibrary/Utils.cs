@@ -67,6 +67,14 @@ namespace DtbSynthesizerLibrary
                 .Concat(GoogleCloudXmlSynthesizer.Synthesizers);
         }
 
+        public static IXmlSynthesizer GetSynthesizer(string type, string name)
+        {
+            return GetAllSynthesizers().FirstOrDefault(
+                s =>
+                    s.VoiceInfo.Type.Equals(type, StringComparison.InvariantCulture)
+                    && s.VoiceInfo.Name.Equals(name, StringComparison.InvariantCulture));
+        }
+
         public static IXmlSynthesizer GetPrefferedXmlSynthesizerForCulture(CultureInfo ci)
         {
             return GetPrefferedXmlSynthesizerForCulture(ci, GetAllSynthesizers().ToList());

@@ -15,7 +15,9 @@ namespace DtbSynthesizerLibrary.Xml
     /// An implementation of <see cref="IXmlSynthesizer"/> using Google Cloud TextToSpeech V1 
     /// </summary>
     /// <remarks>
-    /// Please remark, that a you need a json service account key file and you need env var GOOGLE_APPLICATION_CREDENTIALS to point to this json file
+    /// Please remark, that a you need a json service account key file 
+    /// and you need environment variable GOOGLE_APPLICATION_CREDENTIALS to point to this json file.
+    /// Refer to Google Cloud TextToSpeech V1 documentation for more information.
     /// </remarks>
     public class GoogleCloudXmlSynthesizer : IXmlSynthesizer
     {
@@ -47,10 +49,14 @@ namespace DtbSynthesizerLibrary.Xml
             }
         }
 
+        /// <summary>
+        /// Gets the prefered Google Cloud <see cref="IXmlSynthesizer"/> for a given culture
+        /// </summary>
+        /// <param name="ci">The culture</param>
+        /// <returns>The prefered Google Cloud  <see cref="IXmlSynthesizer"/> for the given culture</returns>
         public static IXmlSynthesizer GetPreferedVoiceForCulture(CultureInfo ci)
         {
             return Utils.GetPrefferedXmlSynthesizerForCulture(ci, Synthesizers);
-
         }
 
         private readonly Voice voice;
@@ -61,6 +67,7 @@ namespace DtbSynthesizerLibrary.Xml
         }
 
 
+        /// <inheritdoc />
         public TimeSpan SynthesizeElement(XElement element, WaveFileWriter writer, string src = "")
         {
             if (element.DescendantNodes().OfType<XText>().All(t => Utils.GetWhiteSpaceNormalizedLength(t) == 0))
@@ -130,6 +137,7 @@ namespace DtbSynthesizerLibrary.Xml
             return writer.TotalTime.Subtract(startOffset);
         }
 
+        /// <inheritdoc />
         public VoiceMetaData VoiceInfo => new VoiceMetaData()
         {
             Culture = voice.LanguageCodes.Select(lc => new CultureInfo(lc)).FirstOrDefault(),
