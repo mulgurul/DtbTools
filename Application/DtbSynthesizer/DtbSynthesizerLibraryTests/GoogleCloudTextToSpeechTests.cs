@@ -20,6 +20,16 @@ namespace DtbSynthesizerLibraryTests
             return path;
         }
 
+        [TestMethod]
+        public void ListVoicesTest()
+        {
+            var client = TextToSpeechClient.Create();
+            foreach (var voice in client.ListVoices("").Voices.OrderBy(v => v.LanguageCodes.FirstOrDefault()).ThenBy(v => v.Name))
+            {
+                Console.WriteLine($"Voice {voice.Name}, Languages {voice.LanguageCodes.Aggregate((s,v)=>$"{s};{v}")}), Gender {voice.SsmlGender}, Natural Sample Rate {voice.NaturalSampleRateHertz}");
+            }
+        }
+
 
         [TestMethod]
         public void SpeakTest()

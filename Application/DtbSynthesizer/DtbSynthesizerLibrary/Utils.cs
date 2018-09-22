@@ -61,9 +61,10 @@ namespace DtbSynthesizerLibrary
 
         public static IEnumerable<IXmlSynthesizer> GetAllSynthesizers()
         {
-            return SystemSpeechXmlSynthesizer 
+            return SystemSpeechXmlSynthesizer
                 .Synthesizers
-                .Concat(MicrosoftSpeechXmlSynthesizer.Synthesizers);
+                .Concat(MicrosoftSpeechXmlSynthesizer.Synthesizers)
+                .Concat(GoogleCloudXmlSynthesizer.Synthesizers);
         }
 
         public static IXmlSynthesizer GetPrefferedXmlSynthesizerForCulture(CultureInfo ci)

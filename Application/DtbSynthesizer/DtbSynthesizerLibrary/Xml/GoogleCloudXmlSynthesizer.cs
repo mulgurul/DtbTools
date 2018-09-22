@@ -11,21 +11,39 @@ using NAudio.Wave;
 
 namespace DtbSynthesizerLibrary.Xml
 {
+    /// <summary>
+    /// An implementation of <see cref="IXmlSynthesizer"/> using Google Cloud TextToSpeech V1 
+    /// </summary>
+    /// <remarks>
+    /// Please remark, that a you need a json service account key file and you need env var GOOGLE_APPLICATION_CREDENTIALS to point to this json file
+    /// </remarks>
     public class GoogleCloudXmlSynthesizer : IXmlSynthesizer
     {
         private static List<GoogleCloudXmlSynthesizer> synthesizerList;
 
         private static readonly TextToSpeechClient Client = TextToSpeechClient.Create();
 
+        /// <summary>
+        /// Get all <see cref="IXmlSynthesizer"/>s provided by Google Cloud, that is one for each Google Cloud voice
+        /// </summary>
         public static IReadOnlyCollection<IXmlSynthesizer> Synthesizers
         {
             get
             {
                 if (synthesizerList == null)
                 {
-                    synthesizerList = Client.ListVoices("").Voices.Select(v => new GoogleCloudXmlSynthesizer(v)).ToList();
+                    if (File.Exists(Environment.GetEnvironmentVariable("GOOGLE_APPLICATION_CREDENTIALS")))
+                    {
+                        synthesizerList = Client
+                            .ListVoices("")
+                            .Voices
+                            .Select(v => new GoogleCloudXmlSynthesizer(v))
+                            .OrderBy(v => v.voice.LanguageCodes.FirstOrDefault())
+                            .ThenBy(v => v.voice.Name)
+                            .ToList();
+                    }
                 }
-                return synthesizerList.AsReadOnly();
+                return (synthesizerList??new List<GoogleCloudXmlSynthesizer>()).AsReadOnly();
             }
         }
 
