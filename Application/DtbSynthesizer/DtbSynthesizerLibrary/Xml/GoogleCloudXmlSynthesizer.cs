@@ -17,7 +17,8 @@ namespace DtbSynthesizerLibrary.Xml
     /// <remarks>
     /// Please remark, that a you need a json service account key file 
     /// and you need environment variable GOOGLE_APPLICATION_CREDENTIALS to point to this json file.
-    /// Refer to Google Cloud TextToSpeech V1 documentation for more information.
+    /// Refer to Google Cloud TextToSpeech V1 documentation for more information, 
+    /// e.g. https://cloud.google.com/text-to-speech/docs/quickstart-protocol 
     /// </remarks>
     public class GoogleCloudXmlSynthesizer : IXmlSynthesizer
     {

@@ -80,7 +80,7 @@ namespace DtbSynthesizerLibraryTests
                     Voice = voice,
                     AudioConfig = config
                 });
-                using (Stream output = File.Create(GetAudioFilePath($"Google_{data[1]}.wav")))
+                using (Stream output = File.Create(GetAudioFilePath($"Google_{data[0]}.wav")))
                 {
                     response.AudioContent.WriteTo(output);
                 }
