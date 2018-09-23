@@ -92,7 +92,7 @@ namespace DtbSynthesizerLibrary.Xhtml
         public XDocument NccDocument;
 
         public Func<CultureInfo, IXmlSynthesizer> SynthesizerSelector { get; set; } 
-            = Utils.GetPrefferedXmlSynthesizerForCulture;
+            = ci => Utils.GetPrefferedXmlSynthesizerForCulture(ci);
 
         public IXmlSynthesizer DefaultSynthesizer { get; set; }
 

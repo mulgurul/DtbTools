@@ -75,24 +75,27 @@ namespace DtbSynthesizerLibrary
                     && s.VoiceInfo.Name.Equals(name, StringComparison.InvariantCulture));
         }
 
-        public static IXmlSynthesizer GetPrefferedXmlSynthesizerForCulture(CultureInfo ci)
+        public static IXmlSynthesizer GetPrefferedXmlSynthesizerForCulture(CultureInfo ci, IDictionary<CultureInfo,VoiceMetaData> preferedVoices = null)
         {
-            return GetPrefferedXmlSynthesizerForCulture(ci, GetAllSynthesizers().ToList());
+            return GetPrefferedXmlSynthesizerForCulture(ci, GetAllSynthesizers().ToList(), preferedVoices);
         }
 
         public static IXmlSynthesizer GetPrefferedXmlSynthesizerForCulture(
             CultureInfo ci,
-            IReadOnlyCollection<IXmlSynthesizer> synthesizerList)
+            IReadOnlyCollection<IXmlSynthesizer> synthesizerList, 
+            IDictionary<CultureInfo, VoiceMetaData> preferedVoices = null)
         {
             if (CultureInfo.InvariantCulture.Equals(ci))
             {
                 return synthesizerList.FirstOrDefault();
             }
             return 
-                synthesizerList.FirstOrDefault(s => s.VoiceInfo.Culture.Equals(ci))
+                synthesizerList.FirstOrDefault(s => s.VoiceInfo.Equals((preferedVoices?.ContainsKey(ci) ?? false) ? preferedVoices[ci] : null))//The prefered voice, if found
+                ?? (CultureInfo.InvariantCulture.Equals(ci) ? synthesizerList.FirstOrDefault() : null)//The first voice, if ci is the invariant culture
+                ?? synthesizerList.FirstOrDefault(s => s.VoiceInfo.Culture.Equals(ci))//The first voice found with matching culture 
                 ?? synthesizerList.FirstOrDefault(s =>
-                    s.VoiceInfo.Culture.TwoLetterISOLanguageName == ci.TwoLetterISOLanguageName)
-                ?? synthesizerList.FirstOrDefault();
+                    s.VoiceInfo.Culture.TwoLetterISOLanguageName == ci.TwoLetterISOLanguageName)//The first voice found with matching language
+                ?? synthesizerList.FirstOrDefault();//The first voice
         }
 
         private static readonly Regex GeneratedIdRegex = new Regex("^IX\\d{5,}$");

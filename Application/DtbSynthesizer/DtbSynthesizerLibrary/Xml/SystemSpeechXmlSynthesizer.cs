@@ -141,13 +141,11 @@ namespace DtbSynthesizerLibrary.Xml
             return writer.TotalTime.Subtract(startOffset);
         }
 
-        public VoiceMetaData VoiceInfo => new VoiceMetaData()
+        public VoiceMetaData VoiceInfo => new VoiceMetaData("System.Speech", Voice.Name)
         {
-            Name = Voice.Name,
             Culture = Voice.Culture,
             Gender = Voice.Gender.ToString(),
-            AdditionalInfo = new ReadOnlyDictionary<string, string>(Synthesizer.Voice.AdditionalInfo),
-            Type = "System.Speech"
+            AdditionalInfo = new ReadOnlyDictionary<string, string>(Synthesizer.Voice.AdditionalInfo)
         };
     }
 }

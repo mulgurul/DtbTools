@@ -1,30 +1,35 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Microsoft.Speech.Synthesis;
 
 namespace DtbSynthesizerLibrary
 {
     /// <summary>
     /// Metadata about a voice
     /// </summary>
-    public class VoiceMetaData
+    public class VoiceMetaData : IEquatable<VoiceMetaData>
     {
+        public VoiceMetaData(string type, string name)
+        {
+            Type = type ?? throw new ArgumentNullException(nameof(type));
+            Name = name ?? throw new ArgumentNullException(nameof(name));
+        }
+
         /// <summary>
         /// The name of the voice
         /// </summary>
-        public string Name { get; set; }
+        public string Name { get; }
 
         /// <summary>
-        /// The type of the voice.
-        /// Values "Microsoft.Speech" and "System.Speech" indicates voices based 
-        /// on <see cref="Microsoft.Speech.Synthesis.SpeechSynthesizer"/> 
-        /// and <see cref="System.Speech.Synthesis.SpeechSynthesizer"/> respectively
+        /// The type of the voice. The following values are supported:
+        /// <list type="bullet">
+        ///     <item><term>Microsoft.Speech</term> <description>For voices based on <see cref="Microsoft.Speech.Synthesis.SpeechSynthesizer"/></description></item>
+        ///     <item><term>System.Speech</term>    <description>For voices based on <see cref="System.Speech.Synthesis.SpeechSynthesizer"/></description></item>
+        ///     <item><term>Google.Cloud</term>     <description>For voices based on <see cref="Google.Cloud.TextToSpeech.V1.TextToSpeechClient"/></description></item>
+        ///     <item><term>Amazon.Polly</term>     <description>For voices based on <see cref="Amazon.Polly.AmazonPollyClient"/></description></item>
+        /// </list>
         /// </summary>
-        public string Type { get; set; }
+        public string Type { get; }
 
         /// <summary>
         /// The gender of the voice
@@ -41,6 +46,32 @@ namespace DtbSynthesizerLibrary
         /// </summary>
         public IDictionary<string,string> AdditionalInfo { get; set; }
 
+        /// <summary>
+        /// Gets a human readable description of the voice
+        /// </summary>
         public string Description => $"{Name} ({Type} {Culture.DisplayName} voice)";
+
+        public bool Equals(VoiceMetaData other)
+        {
+            if (ReferenceEquals(null, other)) return false;
+            if (ReferenceEquals(this, other)) return true;
+            return string.Equals(Name, other.Name, StringComparison.InvariantCultureIgnoreCase) && string.Equals(Type, other.Type, StringComparison.InvariantCultureIgnoreCase);
+        }
+
+        public override bool Equals(object obj)
+        {
+            if (ReferenceEquals(null, obj)) return false;
+            if (ReferenceEquals(this, obj)) return true;
+            if (obj.GetType() != this.GetType()) return false;
+            return Equals((VoiceMetaData) obj);
+        }
+
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                return ((Name != null ? StringComparer.InvariantCultureIgnoreCase.GetHashCode(Name) : 0) * 397) ^ (Type != null ? StringComparer.InvariantCultureIgnoreCase.GetHashCode(Type) : 0);
+            }
+        }
     }
 }

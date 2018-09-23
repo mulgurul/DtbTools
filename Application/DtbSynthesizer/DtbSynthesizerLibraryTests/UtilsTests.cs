@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Globalization;
 using System.IO;
 using System.Reflection;
 using System.Xml.Linq;
@@ -18,7 +19,6 @@ namespace DtbSynthesizerLibraryTests
         [DataRow("dtbook2005-2to3.xsl")]
         [DataRow("dtbook2xhtml.xsl")]
         [DataTestMethod]
-
         public void EmbeddedXsltExecutablesTest(string name)
         {
             Assert.IsTrue(Utils.EmbeddedXsltExecutables.ContainsKey(name));
@@ -59,7 +59,15 @@ namespace DtbSynthesizerLibraryTests
             }
         }
 
-
+        [DataRow("da", "da", true)]
+        [DataRow("da", "en", false)]
+        [DataRow("da", "da-DK", false)]
+        [DataRow("da-DK", "da", false)]
+        [DataTestMethod]
+        public void CultureInfoEquals(string ci1, string ci2, bool expectedResult)
+        {
+            Assert.AreEqual(expectedResult, new CultureInfo(ci1).Equals(new CultureInfo(ci2)));
+        }
 
     }
 }

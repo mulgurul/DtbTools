@@ -41,8 +41,8 @@ namespace DtbSynthesizerLibrary.Xml
                             .ListVoices("")
                             .Voices
                             .Select(v => new GoogleCloudXmlSynthesizer(v))
-                            .OrderBy(v => v.voice.LanguageCodes.FirstOrDefault())
-                            .ThenBy(v => v.voice.Name)
+                            .OrderBy(v => v.Voice.LanguageCodes.FirstOrDefault())
+                            .ThenBy(v => v.Voice.Name)
                             .ToList();
                     }
                 }
@@ -60,11 +60,11 @@ namespace DtbSynthesizerLibrary.Xml
             return Utils.GetPrefferedXmlSynthesizerForCulture(ci, Synthesizers);
         }
 
-        private readonly Voice voice;
+        protected Voice Voice { get; }
 
         private GoogleCloudXmlSynthesizer(Voice voice)
         {
-            this.voice = voice;
+            Voice = voice;
         }
 
 
@@ -80,9 +80,9 @@ namespace DtbSynthesizerLibrary.Xml
                 new SynthesisInput() {Text = element.Value},
                 new VoiceSelectionParams()
                 {
-                    Name = voice.Name,
-                    LanguageCode = voice.LanguageCodes.First(),
-                    SsmlGender = voice.SsmlGender
+                    Name = Voice.Name,
+                    LanguageCode = Voice.LanguageCodes.First(),
+                    SsmlGender = Voice.SsmlGender
                 },
                 new AudioConfig()
                 {
@@ -139,12 +139,10 @@ namespace DtbSynthesizerLibrary.Xml
         }
 
         /// <inheritdoc />
-        public VoiceMetaData VoiceInfo => new VoiceMetaData()
+        public VoiceMetaData VoiceInfo => new VoiceMetaData("Google.Cloud", Voice.Name)
         {
-            Culture = voice.LanguageCodes.Select(lc => new CultureInfo(lc)).FirstOrDefault(),
-            Name = voice.Name,
-            Gender = voice.SsmlGender.ToString(),
-            Type = "Google.Cloud"
+            Culture = Voice.LanguageCodes.Select(lc => new CultureInfo(lc)).FirstOrDefault(),
+            Gender = Voice.SsmlGender.ToString(),
         };
     }
 }

@@ -27,7 +27,7 @@ namespace DtbSynthesizerLibrary.Xml
         private static readonly AmazonPollyClient Client = new AmazonPollyClient();
 
         /// <summary>
-        /// Get all <see cref="IXmlSynthesizer"/>s provided by Amazon Polly, that is one for each Google Cloud voice
+        /// Get all <see cref="IXmlSynthesizer"/>s provided by Amazon Polly, that is one for each Google Cloud Voice
         /// </summary>
         public static IReadOnlyCollection<IXmlSynthesizer> Synthesizers
         {
@@ -41,7 +41,7 @@ namespace DtbSynthesizerLibrary.Xml
                             .DescribeVoices(new DescribeVoicesRequest())
                             .Voices
                             .Select(v => new AmazonPollyXmlSynthesizer(v))
-                            .OrderBy(v => v.voice.LanguageCode.Value)
+                            .OrderBy(v => v.Voice.LanguageCode.Value)
                             .ToList();
                     }
                 }
@@ -59,11 +59,11 @@ namespace DtbSynthesizerLibrary.Xml
             return Utils.GetPrefferedXmlSynthesizerForCulture(ci, Synthesizers);
         }
 
-        private readonly Voice voice;
+        protected Voice Voice { get; }
 
         private AmazonPollyXmlSynthesizer(Voice voice)
         {
-            this.voice = voice;
+            Voice = voice;
         }
 
 
@@ -86,8 +86,8 @@ namespace DtbSynthesizerLibrary.Xml
             var response = Client.SynthesizeSpeech(
                 new SynthesizeSpeechRequest()
                 {
-                    VoiceId = voice.Id,
-                    LanguageCode = voice.LanguageCode,
+                    VoiceId = Voice.Id,
+                    LanguageCode = Voice.LanguageCode,
                     Text = element.Value,
                     OutputFormat = OutputFormat.Pcm,
                     SampleRate = writer.WaveFormat.SampleRate.ToString()
@@ -120,12 +120,10 @@ namespace DtbSynthesizerLibrary.Xml
         }
 
         /// <inheritdoc />
-        public VoiceMetaData VoiceInfo => new VoiceMetaData()
+        public VoiceMetaData VoiceInfo => new VoiceMetaData("Amazon.Polly", Voice.Name)
         {
-            Culture = new CultureInfo(voice.LanguageCode.Value),
-            Name = voice.Name,
-            Gender = voice.Gender.ToString(),
-            Type = "Amazon.Polly"
+            Culture = new CultureInfo(Voice.LanguageCode.Value),
+            Gender = Voice.Gender.ToString()
         };
     }
 }
