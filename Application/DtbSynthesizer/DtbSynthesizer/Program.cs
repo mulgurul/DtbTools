@@ -1,13 +1,16 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.Data;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Net.Sockets;
 using System.Reflection;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Xml;
 using System.Xml.Linq;
@@ -28,6 +31,8 @@ namespace DtbSynthesizer
         private static string publisher = creator;
         private static bool mp3 = false;
         private static int bitrate = 48;
+        private static CultureInfo defaultLanguage = null;
+        private static IDictionary<CultureInfo, VoiceMetaData> preferedVoices = new Dictionary<CultureInfo, VoiceMetaData>();
 
         private static readonly OptionSet Options = new OptionSet()
             .Add("Synthesize DTB")
@@ -37,8 +42,20 @@ namespace DtbSynthesizer
             .Add("identifier=", "dc:identifier of the synthesized DTB", s => identifier = s)
             .Add("c|creator=", "Default creator of the synthesized DTB", s => creator = s)
             .Add("p|publisher=", "Default creator of the synthesized DTB", s => publisher = s)
-            .Add("m|mp3", "Switch on mp3 encoding", s => mp3 = s!=null)
-            .Add<int>("b|bitrate", "Mp3 bitrate", i => bitrate = i);
+            .Add("m|mp3", "Switch on mp3 encoding", s => mp3 = s != null)
+            .Add<int>("b|bitrate=", "Mp3 bitrate", i => bitrate = i)
+            .Add("pv|preferedvoice=", "Prefered voice", s =>
+            {
+                var matches = Regex.Match(s, "^(?<lang>[^=]+)=(?<type>[^:]+)::(?<id>.+)$");
+                if (!matches.Success)
+                {
+                    throw new OptionException(
+                        $"Invalid prefered voice specification {s}, syntax is <lang>=<type>::<voiceId>", "preferedVoices");
+                }
+                preferedVoices[new CultureInfo(matches.Groups["lang"].Value)] =
+                    new VoiceMetaData(matches.Groups["type"].Value, matches.Groups["id"].Value);
+            })
+            .Add("lang=", "Default language", s => defaultLanguage = new CultureInfo(s));
 
         private static string OptionDescriptions
         {
@@ -54,47 +71,70 @@ namespace DtbSynthesizer
         {
             try
             {
-                var unhandledArgs = Options.Parse(args);
-                if (unhandledArgs.Any())
+                var preferedVoicesFile = ConfigurationManager.AppSettings["PreferedVoices"];
+                if (!String.IsNullOrWhiteSpace(preferedVoicesFile))
                 {
-                    throw new OptionException($"Unhandled arguments {unhandledArgs.Aggregate((s,v) => $"{s} {v}")}", "");
+                    preferedVoicesFile = Path.Combine(
+                        Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)??Environment.CurrentDirectory,
+                        preferedVoicesFile);
+                    if (File.Exists(preferedVoicesFile))
+                    {
+                        foreach (var kvp in Utils.ParsePreferedVoices(XDocument.Load(preferedVoicesFile).Root))
+                        {
+                            preferedVoices.Add(kvp);
+                        }
+                    }
                 }
-                if (input == null)
+                try
                 {
-                    throw new OptionException("Missing input", "input");
+                    var unhandledArgs = Options.Parse(args);
+                    if (unhandledArgs.Any())
+                    {
+                        throw new OptionException($"Unhandled arguments {unhandledArgs.Aggregate((s,v) => $"{s} {v}")}", "");
+                    }
+                    if (input == null)
+                    {
+                        throw new OptionException("Missing input", "input");
+                    }
+                    if (format == null)
+                    {
+                        throw new OptionException("Missing format", "format");
+                    }
+                    output = output ?? Path.GetDirectoryName(Path.Combine(Directory.GetCurrentDirectory(), input));
+                    if (output == null)
+                    {
+                        throw new OptionException("Could not determine output directory", "output");
+                    }
                 }
-                if (format == null)
+                catch (OptionException e)
                 {
-                    throw new OptionException("Missing format", "format");
+                    Console.WriteLine($"{e.Message}\n{OptionDescriptions}");
+                    return -1;
                 }
-                output = output ?? Path.GetDirectoryName(Path.Combine(Directory.GetCurrentDirectory(), input));
-                if (output == null)
+                Console.WriteLine($"Input: {input}\nFormat: {format}\nOutput: {output}");
+                if (!File.Exists(input))
                 {
-                    throw new OptionException("Could not determine output directory", "output");
-                }
-            }
-            catch (OptionException e)
-            {
-                Console.WriteLine($"{e.Message}\n{OptionDescriptions}");
-                return -1;
-            }
-            Console.WriteLine($"Input: {input}\nFormat: {format}\nOutput: {output}");
-            if (!File.Exists(input))
-            {
-                Console.WriteLine($"Could not find input file {input}");
-                return -2;
-            }
-            if (!String.IsNullOrEmpty(output) && !Directory.Exists(output))
-            {
-                Directory.CreateDirectory(output);
-            }
-            switch (format.ToLowerInvariant())
-            {
-                case "daisy202":
-                    return SynthesizeDaisy202Dtb();
-                default:
-                    Console.WriteLine($"Unknown format {format}\n{OptionDescriptions}");
+                    Console.WriteLine($"Could not find input file {input}");
                     return -2;
+                }
+                if (!String.IsNullOrEmpty(output) && !Directory.Exists(output))
+                {
+                    Directory.CreateDirectory(output);
+                }
+                switch (format.ToLowerInvariant())
+                {
+                    case "daisy202":
+                        return SynthesizeDaisy202Dtb();
+                    default:
+                        Console.WriteLine($"Unknown format {format}\n{OptionDescriptions}");
+                        return -2;
+                }
+
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine($"An unexpected {e.GetType()} occured: {e.Message}");
+                return -10;
             }
         }
 
@@ -110,8 +150,14 @@ namespace DtbSynthesizer
             {
                 XhtmlDocument = xhtmlDocument,
                 EncodeMp3 = mp3,
-                Mp3BitRate = bitrate
+                Mp3BitRate = bitrate,
+                SynthesizerSelector = ci => Utils.GetPrefferedXmlSynthesizerForCulture(ci, preferedVoices)
             };
+            if (defaultLanguage!= null)
+            {
+                synthesizer.DefaultSynthesizer =
+                    Utils.GetPrefferedXmlSynthesizerForCulture(defaultLanguage, preferedVoices);
+            }
             synthesizer.Progress += (sender, args) =>
             {
                 Console.Write($"{args.ProgressPercentage:D3}% {args.ProgressMessage}".PadRight(80).Substring(0, 80) + "\r");
@@ -177,7 +223,7 @@ namespace DtbSynthesizer
                     .Where(s => !String.IsNullOrEmpty(s))
                     .Distinct())
                 {
-                    File.Copy(new Uri(inputDocUri, src).LocalPath, new Uri(xhtmlUri, src).LocalPath);
+                    File.Copy(new Uri(inputDocUri, src).LocalPath, new Uri(xhtmlUri, src).LocalPath, true);
                 }
                 transformedDoc.Save(xhtml);
             }

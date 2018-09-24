@@ -141,6 +141,7 @@ namespace DtbSynthesizerLibrary.Xml
         /// <inheritdoc />
         public VoiceMetaData VoiceInfo => new VoiceMetaData("Google.Cloud", Voice.Name)
         {
+            Name = Voice.Name,
             Culture = Voice.LanguageCodes.Select(lc => new CultureInfo(lc)).FirstOrDefault(),
             Gender = Voice.SsmlGender.ToString(),
         };

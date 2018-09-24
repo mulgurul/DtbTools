@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Globalization;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using System.Xml.Linq;
 using DtbSynthesizerLibrary;
@@ -9,6 +10,8 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 namespace DtbSynthesizerLibraryTests
 {
     [TestClass]
+    [DeploymentItem("grpc_csharp_ext.x86.dll")]
+    [DeploymentItem("grpc_csharp_ext.x64.dll")]
     [DeploymentItem(@".\TestFiles")]
     public class UtilsTests
     {
@@ -67,6 +70,13 @@ namespace DtbSynthesizerLibraryTests
         public void CultureInfoEquals(string ci1, string ci2, bool expectedResult)
         {
             Assert.AreEqual(expectedResult, new CultureInfo(ci1).Equals(new CultureInfo(ci2)));
+        }
+
+        [TestMethod]
+        public void AllXmlSynhtesizersTest()
+        {
+            Console.WriteLine(
+                Utils.GetAllSynthesizers().Select(s => s.VoiceInfo.Description).Aggregate((s, v) => $"{s}\n{v}"));
         }
 
     }

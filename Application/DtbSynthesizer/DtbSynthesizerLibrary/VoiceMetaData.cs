@@ -9,16 +9,21 @@ namespace DtbSynthesizerLibrary
     /// </summary>
     public class VoiceMetaData : IEquatable<VoiceMetaData>
     {
-        public VoiceMetaData(string type, string name)
+        public VoiceMetaData(string type, string id)
         {
             Type = type ?? throw new ArgumentNullException(nameof(type));
-            Name = name ?? throw new ArgumentNullException(nameof(name));
+            Id = id ?? throw new ArgumentNullException(nameof(id));
         }
 
         /// <summary>
         /// The name of the voice
         /// </summary>
-        public string Name { get; }
+        public string Name { get; set; }
+
+        /// <summary>
+        /// The unique identifier for the voice
+        /// </summary>
+        public string Id { get; }
 
         /// <summary>
         /// The type of the voice. The following values are supported:
@@ -49,13 +54,13 @@ namespace DtbSynthesizerLibrary
         /// <summary>
         /// Gets a human readable description of the voice
         /// </summary>
-        public string Description => $"{Name} ({Type} {Culture.DisplayName} voice)";
+        public string Description => $"{Name} ({Type} {Culture.DisplayName} voice with id {Id})";
 
         public bool Equals(VoiceMetaData other)
         {
             if (ReferenceEquals(null, other)) return false;
             if (ReferenceEquals(this, other)) return true;
-            return string.Equals(Name, other.Name, StringComparison.InvariantCultureIgnoreCase) && string.Equals(Type, other.Type, StringComparison.InvariantCultureIgnoreCase);
+            return string.Equals(Id, other.Id, StringComparison.InvariantCultureIgnoreCase) && string.Equals(Type, other.Type, StringComparison.InvariantCultureIgnoreCase);
         }
 
         public override bool Equals(object obj)
@@ -70,7 +75,7 @@ namespace DtbSynthesizerLibrary
         {
             unchecked
             {
-                return ((Name != null ? StringComparer.InvariantCultureIgnoreCase.GetHashCode(Name) : 0) * 397) ^ (Type != null ? StringComparer.InvariantCultureIgnoreCase.GetHashCode(Type) : 0);
+                return ((Id != null ? StringComparer.InvariantCultureIgnoreCase.GetHashCode(Id) : 0) * 397) ^ (Type != null ? StringComparer.InvariantCultureIgnoreCase.GetHashCode(Type) : 0);
             }
         }
     }

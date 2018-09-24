@@ -137,8 +137,9 @@ namespace DtbSynthesizerLibrary.Xml
             return writer.TotalTime.Subtract(startOffset);
         }
 
-        public VoiceMetaData VoiceInfo => new VoiceMetaData("Microsoft.Speech", Voice.Name)
+        public VoiceMetaData VoiceInfo => new VoiceMetaData("Microsoft.Speech", Voice.Id)
         {
+            Name = Voice.Name,
             Culture = Voice.Culture,
             Gender = Voice.Gender.ToString(),
             AdditionalInfo =  new ReadOnlyDictionary<string, string>(Synthesizer.Voice.AdditionalInfo)

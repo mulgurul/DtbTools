@@ -120,8 +120,9 @@ namespace DtbSynthesizerLibrary.Xml
         }
 
         /// <inheritdoc />
-        public VoiceMetaData VoiceInfo => new VoiceMetaData("Amazon.Polly", Voice.Name)
+        public VoiceMetaData VoiceInfo => new VoiceMetaData("Amazon.Polly", Voice.Id)
         {
+            Name = Voice.Name,
             Culture = new CultureInfo(Voice.LanguageCode.Value),
             Gender = Voice.Gender.ToString()
         };

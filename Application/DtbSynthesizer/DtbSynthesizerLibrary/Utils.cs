@@ -64,7 +64,8 @@ namespace DtbSynthesizerLibrary
             return SystemSpeechXmlSynthesizer
                 .Synthesizers
                 .Concat(MicrosoftSpeechXmlSynthesizer.Synthesizers)
-                .Concat(GoogleCloudXmlSynthesizer.Synthesizers);
+                .Concat(GoogleCloudXmlSynthesizer.Synthesizers)
+                .Concat(AmazonPollyXmlSynthesizer.Synthesizers);
         }
 
         public static IXmlSynthesizer GetSynthesizer(string type, string name)
@@ -96,6 +97,20 @@ namespace DtbSynthesizerLibrary
                 ?? synthesizerList.FirstOrDefault(s =>
                     s.VoiceInfo.Culture.TwoLetterISOLanguageName == ci.TwoLetterISOLanguageName)//The first voice found with matching language
                 ?? synthesizerList.FirstOrDefault();//The first voice
+        }
+
+        public static IDictionary<CultureInfo, VoiceMetaData> ParsePreferedVoices(XElement preferedVoicesElem)
+        {
+            return preferedVoicesElem
+                .Elements("Voice")
+                .Select(e => new VoiceMetaData(
+                    e.Attribute("type")?.Value ?? "",
+                    e.Attribute("voiceId")?.Value ?? "")
+                {
+                    Culture = new CultureInfo(e.Attribute("lang")?.Value ?? "")
+                })
+                .Where(vmd => GetAllSynthesizers().Any(s => s.VoiceInfo.Equals(vmd)))
+                .ToDictionary(vmd => vmd.Culture);
         }
 
         private static readonly Regex GeneratedIdRegex = new Regex("^IX\\d{5,}$");

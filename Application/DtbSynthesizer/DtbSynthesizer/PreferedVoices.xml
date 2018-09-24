@@ -1,0 +1,9 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<PreferedVoices>
+  <Voice lang="da" type="System.Speech" voiceId="SWCarsten"/>
+  <Voice lang="da-DK" type="System.Speech" voiceId="SWCarsten"/>
+  <Voice lang="en" type="Google.Cloud" voiceId="en-US-Wavenet-A"/>
+  <Voice lang="en-US" type="System.Speech" voiceId="en-US-Wavenet-A"/>
+  <Voice lang="de" type="System.Speech" voiceId="de-DE-Wavenet-A"/>
+  <Voice lang="de-DE" type="System.Speech" voiceId="de-DE-Wavenet-A"/>
+</PreferedVoices>
