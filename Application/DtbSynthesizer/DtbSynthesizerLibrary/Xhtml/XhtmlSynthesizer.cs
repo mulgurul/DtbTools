@@ -98,6 +98,15 @@ namespace DtbSynthesizerLibrary.Xhtml
 
         public WaveFormat AudioWaveFormat { get; set; } = new WaveFormat(22050, 1);
 
+        public void SetOptimalAudioWaveFormat()
+        {
+            var firstSynth = SynthesizerSelector(Utils.SelectCulture(Body)) ?? DefaultSynthesizer;
+            if (firstSynth != null)
+            {
+                AudioWaveFormat = new WaveFormat(firstSynth.PreferedSampleRate, 1);
+            }
+        }
+
         private void ValidateSynthesizer()
         {
             if (XhtmlDocument == null)

@@ -55,13 +55,11 @@ namespace DtbSynthesizerLibrary.Xml
                     var nameSuffix = bookmarks.Count.ToString("000000");
                     bookmarks.Add(nameSuffix, text);
                     promptBuilder.AppendBookmark($"B{nameSuffix}");
-                    promptBuilder.AppendText(text.Value);
+                    promptBuilder.AppendText(Utils.GetWhiteSpaceNormalizedText(text.Value));
                     promptBuilder.AppendBookmark($"E{nameSuffix}");
                 }
             }
         }
-
-
 
 
         public TimeSpan SynthesizeElement(XElement element, WaveFileWriter writer, string src = "")
@@ -76,10 +74,11 @@ namespace DtbSynthesizerLibrary.Xml
                     (AudioBitsPerSample)writer.WaveFormat.BitsPerSample,
                     (AudioChannel)writer.WaveFormat.Channels));
             var bookmarks = new Dictionary<string, XText>();
-            var promptBuilder = new PromptBuilder() { Culture = Voice.Culture };
-            promptBuilder.StartVoice(Voice);
-            AppendElementToPromptBuilder(element, promptBuilder, bookmarks);
-            promptBuilder.EndVoice();
+            //var promptBuilder = new PromptBuilder() { Culture = Voice.Culture };
+            //promptBuilder.StartVoice(Voice);
+            //AppendElementToPromptBuilder(element, promptBuilder, bookmarks);
+            //promptBuilder.EndVoice();
+            var ssmlDocument = Utils.BuildSsmlDocument(element, bookmarks);
             var bookmarkDelegate = new EventHandler<BookmarkReachedEventArgs>((s, a) =>
             {
                 if (bookmarks.ContainsKey(a.Bookmark.Substring(1)))
@@ -105,7 +104,7 @@ namespace DtbSynthesizerLibrary.Xml
             Synthesizer.BookmarkReached += bookmarkDelegate;
             try
             {
-                Synthesizer.Speak(promptBuilder);
+                Synthesizer.SpeakSsml(Utils.SerializeDocument(ssmlDocument));
             }
             finally
             {
@@ -125,16 +124,23 @@ namespace DtbSynthesizerLibrary.Xml
                 var lastClipEnd = annotations.Last().ClipEnd;
                 if (lastClipEnd != writer.TotalTime)
                 {
-                    //Time seems to "slide" in bookmark events, 
-                    //resulting in the last bookmark seeming located beyond the end of the audio file
-                    //The factor corrects this problem (possibly in a correct manner)
-                    var factor =
-                        (writer.TotalTime - startOffset).TotalSeconds
-                        / (lastClipEnd - startOffset).TotalSeconds;
-                    foreach (var anno in annotations)
+                    if (lastClipEnd == startOffset)
                     {
-                        anno.ClipBegin = Utils.AdjustClipTime(anno.ClipBegin, startOffset, factor);
-                        anno.ClipEnd = Utils.AdjustClipTime(anno.ClipEnd, startOffset, factor);
+                        annotations.Last().ClipEnd = writer.TotalTime;
+                    }
+                    else
+                    {
+                        //Time seems to "slide" in bookmark events, 
+                        //resulting in the last bookmark seeming located beyond the end of the audio file
+                        //The factor corrects this problem (possibly in a correct manner)
+                        var factor =
+                            (writer.TotalTime - startOffset).TotalSeconds
+                            / (lastClipEnd - startOffset).TotalSeconds;
+                        foreach (var anno in annotations)
+                        {
+                            anno.ClipBegin = Utils.AdjustClipTime(anno.ClipBegin, startOffset, factor);
+                            anno.ClipEnd = Utils.AdjustClipTime(anno.ClipEnd, startOffset, factor);
+                        }
                     }
                 }
             }
@@ -149,6 +155,9 @@ namespace DtbSynthesizerLibrary.Xml
             AdditionalInfo = new ReadOnlyDictionary<string, string>(Synthesizer.Voice.AdditionalInfo)
         };
 
-        
+        public int PreferedSampleRate => 
+            Voice.SupportedAudioFormats.Any(f => f.SamplesPerSecond==22050) 
+                ? 22050 
+                : (Voice.SupportedAudioFormats.FirstOrDefault()?.SamplesPerSecond ?? 22050);
     }
 }

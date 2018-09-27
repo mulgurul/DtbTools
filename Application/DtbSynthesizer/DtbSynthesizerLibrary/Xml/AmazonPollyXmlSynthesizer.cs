@@ -27,7 +27,7 @@ namespace DtbSynthesizerLibrary.Xml
         private static readonly AmazonPollyClient Client = new AmazonPollyClient();
 
         /// <summary>
-        /// Get all <see cref="IXmlSynthesizer"/>s provided by Amazon Polly, that is one for each Google Cloud Voice
+        /// Get all <see cref="IXmlSynthesizer"/>s provided by Amazon Polly, that is one for each Amazon Polly Voice
         /// </summary>
         public static IReadOnlyCollection<IXmlSynthesizer> Synthesizers
         {
@@ -35,25 +35,22 @@ namespace DtbSynthesizerLibrary.Xml
             {
                 if (synthesizerList == null)
                 {
-                    if (File.Exists(Environment.GetEnvironmentVariable("GOOGLE_APPLICATION_CREDENTIALS")))
-                    {
-                        synthesizerList = Client
-                            .DescribeVoices(new DescribeVoicesRequest())
-                            .Voices
-                            .Select(v => new AmazonPollyXmlSynthesizer(v))
-                            .OrderBy(v => v.Voice.LanguageCode.Value)
-                            .ToList();
-                    }
+                    synthesizerList = Client
+                        .DescribeVoices(new DescribeVoicesRequest())
+                        .Voices
+                        .Select(v => new AmazonPollyXmlSynthesizer(v))
+                        .OrderBy(v => v.Voice.LanguageCode.Value)
+                        .ToList();
                 }
                 return (synthesizerList??new List<AmazonPollyXmlSynthesizer>()).AsReadOnly();
             }
         }
 
         /// <summary>
-        /// Gets the prefered Google Cloud <see cref="IXmlSynthesizer"/> for a given culture
+        /// Gets the prefered Amazon Polly <see cref="IXmlSynthesizer"/> for a given culture
         /// </summary>
         /// <param name="ci">The culture</param>
-        /// <returns>The prefered Google Cloud  <see cref="IXmlSynthesizer"/> for the given culture</returns>
+        /// <returns>The prefered Amazon Polly  <see cref="IXmlSynthesizer"/> for the given culture</returns>
         public static IXmlSynthesizer GetPreferedVoiceForCulture(CultureInfo ci)
         {
             return Utils.GetPrefferedXmlSynthesizerForCulture(ci, Synthesizers);
@@ -88,7 +85,7 @@ namespace DtbSynthesizerLibrary.Xml
                 {
                     VoiceId = Voice.Id,
                     LanguageCode = Voice.LanguageCode,
-                    Text = element.Value,
+                    Text = Utils.GetWhiteSpaceNormalizedText(element.Value),
                     OutputFormat = OutputFormat.Pcm,
                     SampleRate = writer.WaveFormat.SampleRate.ToString()
                 });
@@ -126,5 +123,7 @@ namespace DtbSynthesizerLibrary.Xml
             Culture = new CultureInfo(Voice.LanguageCode.Value),
             Gender = Voice.Gender.ToString()
         };
+
+        public int PreferedSampleRate => 16000;
     }
 }

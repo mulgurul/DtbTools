@@ -76,7 +76,7 @@ namespace DtbSynthesizerLibrary
                     && s.VoiceInfo.Name.Equals(name, StringComparison.InvariantCulture));
         }
 
-        public static IXmlSynthesizer GetPrefferedXmlSynthesizerForCulture(CultureInfo ci, IDictionary<CultureInfo,VoiceMetaData> preferedVoices = null)
+        public static IXmlSynthesizer GetPrefferedXmlSynthesizerForCulture(CultureInfo ci, IDictionary<CultureInfo, VoiceMetaData> preferedVoices = null)
         {
             return GetPrefferedXmlSynthesizerForCulture(ci, GetAllSynthesizers().ToList(), preferedVoices);
         }
@@ -86,10 +86,6 @@ namespace DtbSynthesizerLibrary
             IReadOnlyCollection<IXmlSynthesizer> synthesizerList, 
             IDictionary<CultureInfo, VoiceMetaData> preferedVoices = null)
         {
-            if (CultureInfo.InvariantCulture.Equals(ci))
-            {
-                return synthesizerList.FirstOrDefault();
-            }
             return 
                 synthesizerList.FirstOrDefault(s => s.VoiceInfo.Equals((preferedVoices?.ContainsKey(ci) ?? false) ? preferedVoices[ci] : null))//The prefered voice, if found
                 ?? (CultureInfo.InvariantCulture.Equals(ci) ? synthesizerList.FirstOrDefault() : null)//The first voice, if ci is the invariant culture
@@ -410,7 +406,58 @@ namespace DtbSynthesizerLibrary
             {
                 return null;
             }
-            return Regex.Replace(text.Normalize(NormalizationForm.FormKD), @"\w+", " ");
+            return Regex.Replace(text.Normalize(NormalizationForm.FormKD), @"\s+", " ");
+        }
+
+        public static XDocument BuildSsmlDocument(XElement element, IDictionary<string, XText> bookmarks)
+        {
+            var ssmlDocument = new XDocument(
+                new XDeclaration("1.0", "ISO-8859-1", "true"),
+                new XElement(
+                    "speak", 
+                    new XAttribute("version", "1.0"),
+                    new XAttribute(XNamespace.Xml+"lang", SelectCulture(element)?.ToString()??"")));
+            AppendToSsmlDocument(element, ssmlDocument, bookmarks);
+            return ssmlDocument;
+        }
+
+        private static void AppendToSsmlDocument(
+            XElement element, XDocument ssmlDocument, IDictionary<string, XText> bookmarks)
+        {
+            foreach (var node in element.Nodes())
+            {
+                if (node is XElement elem)
+                {
+                    AppendToSsmlDocument(elem, ssmlDocument, bookmarks);
+                }
+                else if (node is XText text)
+                {
+                    var nameSuffix = bookmarks.Count.ToString("000000");
+                    bookmarks.Add(nameSuffix, text);
+                    ssmlDocument.Root?.Add(new XElement("mark", new XAttribute("name", $"B{nameSuffix}")));
+                    ssmlDocument.Root?.Add(new XText(Utils.GetWhiteSpaceNormalizedText(text.Value)));
+                    ssmlDocument.Root?.Add(new XElement("mark", new XAttribute("name", $"E{nameSuffix}")));
+                }
+            }
+        }
+
+        public class StringWriterWithEncoding : StringWriter
+        {
+            public StringWriterWithEncoding(Encoding encoding)
+            {
+                Encoding = encoding;
+            }
+            public override Encoding Encoding { get; }
+        }
+
+        public static string SerializeDocument(XDocument document)
+        {
+            var sb = new StringWriterWithEncoding(Encoding.GetEncoding(document.Declaration.Encoding));
+            using (var writer = XmlWriter.Create(sb, new XmlWriterSettings(){Encoding = Encoding.UTF8}))
+            {
+                document.WriteTo(writer);
+            }
+            return sb.ToString();
         }
     }
 }

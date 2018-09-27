@@ -151,13 +151,18 @@ namespace DtbSynthesizer
                 XhtmlDocument = xhtmlDocument,
                 EncodeMp3 = mp3,
                 Mp3BitRate = bitrate,
-                SynthesizerSelector = ci => Utils.GetPrefferedXmlSynthesizerForCulture(ci, preferedVoices)
             };
             if (defaultLanguage!= null)
             {
                 synthesizer.DefaultSynthesizer =
                     Utils.GetPrefferedXmlSynthesizerForCulture(defaultLanguage, preferedVoices);
+                if (synthesizer.DefaultSynthesizer != null)
+                {
+                    preferedVoices[CultureInfo.InvariantCulture] = synthesizer.DefaultSynthesizer.VoiceInfo;
+                }
             }
+            synthesizer.SynthesizerSelector = ci => Utils.GetPrefferedXmlSynthesizerForCulture(ci, preferedVoices);
+            synthesizer.SetOptimalAudioWaveFormat();
             synthesizer.Progress += (sender, args) =>
             {
                 Console.Write($"{args.ProgressPercentage:D3}% {args.ProgressMessage}".PadRight(80).Substring(0, 80) + "\r");

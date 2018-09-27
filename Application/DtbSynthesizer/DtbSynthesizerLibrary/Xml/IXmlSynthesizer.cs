@@ -19,6 +19,14 @@ namespace DtbSynthesizerLibrary.Xml
         /// <returns>The duration of the synthesized speech</returns>
         TimeSpan SynthesizeElement(XElement element, WaveFileWriter writer, string src = "");
 
+        /// <summary>
+        /// Information about the voice used by the <see cref="IXmlSynthesizer"/>
+        /// </summary>
         VoiceMetaData VoiceInfo { get; }
+
+        /// <summary>
+        /// The prefered (PCM) sample rate of the <see cref="IXmlSynthesizer"/> (or rather the voice used)
+        /// </summary>
+        int PreferedSampleRate { get; }
     }
 }

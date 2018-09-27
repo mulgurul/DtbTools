@@ -43,7 +43,7 @@ namespace DtbSynthesizerLibraryTests
                 synth.SetOutputToWaveFile(af, new SpeechAudioFormatInfo(22050, AudioBitsPerSample.Sixteen, AudioChannel.Mono));
                 var testData = new[]
                 {
-                    new[] {"da", "Jeg hedder {0} og jeg snakker dansk"},
+                    new[] {"da", "Jeg hedder {0} og jeg snakker dansk. Oppe på loftet læser man ikke."},
                     new[] {"da-DK", "Jeg hedder {0} og jeg snakker dansk"},
                     new[] {"en", "My name is {0} and I speak english"},
                     new[] {"en-US", "My name is {0} and I speak american english"},

@@ -77,7 +77,7 @@ namespace DtbSynthesizerLibrary.Xml
             }
             var startOffset = writer.TotalTime;
             var resp = Client.SynthesizeSpeech(
-                new SynthesisInput() {Text = element.Value},
+                new SynthesisInput() {Text = Utils.GetWhiteSpaceNormalizedText(element.Value)},
                 new VoiceSelectionParams()
                 {
                     Name = Voice.Name,
@@ -145,5 +145,7 @@ namespace DtbSynthesizerLibrary.Xml
             Culture = Voice.LanguageCodes.Select(lc => new CultureInfo(lc)).FirstOrDefault(),
             Gender = Voice.SsmlGender.ToString(),
         };
+
+        public int PreferedSampleRate => Voice.NaturalSampleRateHertz;
     }
 }
