@@ -162,7 +162,7 @@ namespace DtbMerger2Library.Daisy202
                 //Find and fix smil <text> elements src attributes, that link to ncc elements
                 foreach (var textSrcAttr in smilElements
                     .Select(e => e.Element("text")?.Attribute("src"))
-                    .Where(attr => Utils.AreSameFile(Utils.GetUri(attr), new Uri(me.Ncc.BaseUri))))
+                    .Where(attr => Utils.IsSameFile(Utils.GetUri(attr), new Uri(me.Ncc.BaseUri))))
                 {
                     var textSrcUri = Utils.GetUri(textSrcAttr);
                     if (textSrcUri.Fragment == $"#{idAttr.Value}")
@@ -179,7 +179,7 @@ namespace DtbMerger2Library.Daisy202
                 .Where(href => href != null))
             {
                 var uri = Utils.GetUri(nccAHrefAttr);
-                if (Utils.AreSameFile(uri, new Uri(me.Smil.BaseUri)))
+                if (Utils.IsSameFile(uri, new Uri(me.Smil.BaseUri)))
                 {
                     nccAHrefAttr.Value = $"{GetSmilFileName(entryIndex)}{uri.Fragment}";
                 }
@@ -210,7 +210,7 @@ namespace DtbMerger2Library.Daisy202
                     foreach (var textSrcAttr in smilElements
                         .Select(e => e.Element("text")?.Attribute("src"))
                         .Where(attr => me.ContentDocuments.Values.Any(cd =>
-                            Utils.AreSameFile(Utils.GetUri(attr), new Uri(cd.BaseUri)))))
+                            Utils.IsSameFile(Utils.GetUri(attr), new Uri(cd.BaseUri)))))
                     {
                         var textSrcUri = Utils.GetUri(textSrcAttr);
                         if (textSrcUri.Fragment == $"#{idAttr.Value}")
@@ -227,7 +227,7 @@ namespace DtbMerger2Library.Daisy202
                     .Where(href => href != null))
                 {
                     var uri = Utils.GetUri(contentAHrefAttr);
-                    if (Utils.AreSameFile(uri, new Uri(me.Smil.BaseUri)))
+                    if (Utils.IsSameFile(uri, new Uri(me.Smil.BaseUri)))
                     {
                         contentAHrefAttr.Value = $"{GetSmilFileName(entryIndex)}{uri.Fragment}";
                     }

@@ -176,7 +176,7 @@ namespace DtbMerger2Library.Daisy202
         /// <param name="uri1">The first <see cref="Uri"/></param>
         /// <param name="uri2">The second <see cref="Uri"/></param>
         /// <returns>A <see cref="bool"/> indicating if the two <see cref="Uri"/>s references the same file</returns>
-        public static bool AreSameFile(Uri uri1, Uri uri2)
+        public static bool IsSameFile(Uri uri1, Uri uri2)
         {
             if (uri1 == null || uri2 == null)
             {

@@ -89,7 +89,7 @@ namespace DtbMerger2LibraryTests.Daisy202
             {
                 Assert.AreEqual(
                     test.Item3, 
-                    Utils.AreSameFile(test.Item1, test.Item2),
+                    Utils.IsSameFile(test.Item1, test.Item2),
                     $"Expedted AreSameFile({test.Item1}, {test.Item2}) to return {test.Item3}");
             }
         }
