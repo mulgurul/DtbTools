@@ -338,7 +338,7 @@ namespace DtbMerger2Library.Daisy202
         {
             if (uri == null) throw new ArgumentNullException(nameof(uri));
             LoadXDocument(uri);//Ensure that the document is in cache
-            var key = Uri.UnescapeDataString(uri.AbsoluteUri).ToLowerInvariant();
+            var key = $"{Uri.UnescapeDataString(uri.GetLeftPart(UriPartial.Query)).ToLowerInvariant()}{uri.Fragment}";
             return CachedElementsByUri.ContainsKey(key) ? CachedElementsByUri[key] : null;
         }
 
