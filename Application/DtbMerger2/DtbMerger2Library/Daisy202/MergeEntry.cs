@@ -17,6 +17,36 @@ namespace DtbMerger2Library.Daisy202
     public class MergeEntry : TreeNode<MergeEntry>
     {
         #region Static Methods
+        private static readonly Dictionary<string, XDocument> CachedXDocuments = new Dictionary<string, XDocument>();
+
+        /// <summary>
+        /// Clears the cached <see cref="XDocument"/>s used by <see cref="LoadXDocument"/>
+        /// </summary>
+        public static void ClearXDocumentCache()
+        {
+            CachedXDocuments.Clear();
+        }
+
+        /// <summary>
+        /// Loads an <see cref="XDocument"/> from a given <see cref="Uri"/>.
+        /// The method uses cache and is intended for loading source documents that do not change.
+        /// Use the <see cref="ClearXDocumentCache"/> method to clear the cache when nessesary, typically when starting major operations
+        /// </summary>
+        /// <param name="uri">The uri of the <see cref="XDocument"/> to load</param>
+        /// <param name="force">A <see cref="bool"/> indicating if the file should be forced loaded inspite being found in cache</param>
+        /// <returns>The loaded <see cref="XDocument"/></returns>
+        public static XDocument LoadXDocument(Uri uri, bool force = false)
+        {
+            if (uri == null) throw new ArgumentNullException(nameof(uri));
+            var path = uri.GetLeftPart(UriPartial.Query).ToLowerInvariant();
+            if (!CachedXDocuments.ContainsKey(path))
+            {
+                CachedXDocuments[path] = XDocument.Load(path, LoadOptions.SetBaseUri | LoadOptions.SetLineInfo);
+            }
+            return CachedXDocuments[path];
+
+        }
+
         /// <summary>
         /// Loads the top level <see cref="MergeEntry"/> from a ncc <see cref="XDocument"/>
         /// </summary>
@@ -37,10 +67,7 @@ namespace DtbMerger2Library.Daisy202
         /// <returns>The top level <see cref="MergeEntry"/>s representing each h1 navigation in the ncc <see cref="XDocument"/></returns>
         public static IEnumerable<MergeEntry> LoadMergeEntriesFromNcc(Uri nccUri)
         {
-            return LoadMergeEntriesFromNcc(
-                XDocument.Load(
-                    Uri.UnescapeDataString(nccUri.AbsoluteUri),
-                    LoadOptions.SetBaseUri | LoadOptions.SetLineInfo));
+            return LoadMergeEntriesFromNcc(LoadXDocument(nccUri));
         }
 
         /// <summary>
@@ -92,10 +119,7 @@ namespace DtbMerger2Library.Daisy202
         /// <returns>The (top-level) <see cref="MergeEntry"/>s loaded from the macro</returns>
         public static IEnumerable<MergeEntry> LoadMergeEntriesFromMacro(Uri macroUri)
         {
-            return LoadMergeEntriesFromMacro(
-                XDocument.Load(
-                    Uri.UnescapeDataString(macroUri.AbsoluteUri),
-                    LoadOptions.SetBaseUri | LoadOptions.SetLineInfo));
+            return LoadMergeEntriesFromMacro(LoadXDocument(macroUri));
 
         }
 
@@ -198,7 +222,7 @@ namespace DtbMerger2Library.Daisy202
                     {
                         throw new InvalidOperationException("SourceNavEntry Uri must be absolute");
                     }
-                    ncc = XDocument.Load(Uri.UnescapeDataString(SourceNavEntry.AbsoluteUri), LoadOptions.SetBaseUri|LoadOptions.SetLineInfo);
+                    ncc = LoadXDocument(SourceNavEntry);
                 }
                 return ncc;
             }
@@ -221,12 +245,9 @@ namespace DtbMerger2Library.Daisy202
                                     a.Attribute("href"))
                                         .Where(a => !String.IsNullOrWhiteSpace(a?.Value))
                                         .Select(Utils.GetUri))
-                            .Select(uri => Uri.UnescapeDataString(uri.AbsoluteUri).ToLowerInvariant())
+                            .Select(uri =>  uri.GetLeftPart(UriPartial.Query).ToLowerInvariant())
                             .Distinct()
-                            .Select(path => 
-                                XDocument.Load(
-                                    path, 
-                                    LoadOptions.SetBaseUri | LoadOptions.SetLineInfo))
+                            .Select(path => LoadXDocument(new Uri(path)))
                             .SingleOrDefault();
                     }
                     catch (InvalidOperationException e)
@@ -255,7 +276,7 @@ namespace DtbMerger2Library.Daisy202
                         .Where(path => !String.IsNullOrEmpty(path))
                         .Distinct())
                     {
-                        contentDocuments.Add(path, XDocument.Load(path, LoadOptions.SetBaseUri | LoadOptions.SetLineInfo));
+                        contentDocuments.Add(path, LoadXDocument(new Uri(path)));
                     }
                 }
                 return new ReadOnlyDictionary<String, XDocument>(contentDocuments);

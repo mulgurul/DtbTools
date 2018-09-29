@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -258,6 +259,7 @@ namespace DtbMerger2Library.Daisy202
 
             var identifier = Utils.CreateOrGetMeta(entries.First().Ncc, "dc:identifier")?.Attribute("content")?.Value ??
                              Guid.NewGuid().ToString();
+
             foreach (var me in entries)
             {
                 var smilFile = Utils.GenerateSkeletonSmilDocument();
@@ -323,7 +325,6 @@ namespace DtbMerger2Library.Daisy202
                 {
                     imgSrc.Value = GetImageFileName(Utils.GetUri(imgSrc), entryIndex);
                 }
-
                 entryIndex++;
             }
 
@@ -355,7 +356,7 @@ namespace DtbMerger2Library.Daisy202
                 entries.Select(me => me.Depth).Max());
             Utils.CreateOrGetMeta(NccDocument, "ncc:tocItems")?.SetAttributeValue(
                 "content",
-                entries.Count);
+                entries.SelectMany(me => me.NccElements).Count());
             foreach (var pt in new[] {"Front", "Normal", "Special"})
             {
                 Utils.CreateOrGetMeta(NccDocument, $"ncc:page{pt}")?.SetAttributeValue(
