@@ -20,9 +20,7 @@ namespace DtbMerger2Library.Daisy202
         /// <returns>The macro <see cref="XElement"/>s representing the DTB</returns>
         public static IEnumerable<XElement> GetMacroElementsFromNcc(Uri nccUri)
         {
-            return GetMacroElementsFromNcc(XDocument.Load(
-                Uri.UnescapeDataString(nccUri.AbsolutePath),
-                LoadOptions.SetBaseUri | LoadOptions.SetLineInfo));
+            return GetMacroElementsFromNcc(Utils.LoadXDocument(nccUri));
         }
 
         /// <summary>

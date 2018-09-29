@@ -242,6 +242,7 @@ namespace DtbMerger2Library.Daisy202
         /// </summary>
         public void BuildDtb()
         {
+            Utils.ClearXDocumentCache();
             if (!MergeEntries.Any())
             {
                 throw new InvalidOperationException("No merge entries added to builder");

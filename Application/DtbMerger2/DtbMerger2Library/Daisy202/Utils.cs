@@ -134,62 +134,6 @@ namespace DtbMerger2Library.Daisy202
         }
 
         /// <summary>
-        /// Gets the element referenced by an <see cref="Uri"/>
-        /// </summary>
-        /// <param name="uri">The <see cref="Uri"/></param>
-        /// <param name="destDoc">
-        /// The destination <see cref="XDocument"/>. 
-        /// If <c>null</c>, the destination <see cref="XDocument"/> is loaded from <paramref name="uri"/>.
-        /// </param>
-        /// <returns>
-        /// The referenced <see cref="XElement"/>.
-        /// <c>null</c> if <paramref name="uri"/> does not point to <paramref name="destDoc"/>,
-        /// if <paramref name="uri"/> has no <see cref="Uri.Fragment"/>
-        /// or if no <see cref="XElement"/> in <paramref name="destDoc"/> exists that matched the <see cref="Uri.Fragment"/> of <paramref name="uri"/>
-        /// </returns>
-        public static XElement GetReferencedElement(Uri uri, XDocument destDoc = null)
-        {
-            if (uri == null) throw new ArgumentNullException(nameof(uri));
-            if (destDoc == null)
-            {
-                destDoc = XDocument.Load(uri.AbsoluteUri, LoadOptions.SetBaseUri);
-            }
-            var destDocUri = new Uri(destDoc.BaseUri);
-            if (!String.Equals(destDocUri.GetLeftPart(UriPartial.Query), uri.GetLeftPart(UriPartial.Query), StringComparison.InvariantCultureIgnoreCase))
-            {
-                return null;
-            }
-            if (String.IsNullOrEmpty(uri.Fragment))
-            {
-                return null;
-            }
-            return destDoc.XPathSelectElement($"//*[@id='{uri.Fragment.TrimStart('#')}']");
-        }
-
-        /// <summary>
-        /// Gets the element referenced by an <see cref="Uri"/> as represented by an <see cref="XAttribute"/>
-        /// </summary>
-        /// <param name="uriAttr">The <see cref="XAttribute"/> representing the <see cref="Uri"/></param>
-        /// <param name="destDoc">
-        /// The destination <see cref="XDocument"/>. 
-        /// If <c>null</c>, the destination <see cref="XDocument"/> is loaded from the <see cref="Uri"/>.
-        /// </param>
-        /// <returns>
-        /// The referenced <see cref="XElement"/>.
-        /// <c>null</c> if <paramref name="uriAttr"/> is not an <see cref="Uri"/> (as returned by <see cref="GetUri"/>)
-        /// if <paramref name="uriAttr"/> does not point to <paramref name="destDoc"/>,
-        /// if <paramref name="uriAttr"/> has no <see cref="Uri.Fragment"/>
-        /// or if no <see cref="XElement"/> in <paramref name="destDoc"/> exists that matched the <see cref="Uri.Fragment"/> of <paramref name="uriAttr"/>
-        /// </returns>
-        public static XElement GetReferencedElement(XAttribute uriAttr, XDocument destDoc = null)
-        {
-            var uri = GetUri(uriAttr);
-            if (uri == null) return null;
-            return GetReferencedElement(uri, destDoc);
-
-        }
-
-        /// <summary>
         /// Parses a Daisy 2.02 SMIL 1.0 file clip attribute value
         /// </summary>
         /// <param name="val">The value</param>
@@ -219,20 +163,11 @@ namespace DtbMerger2Library.Daisy202
         /// <summary>
         /// Clones an <see cref="XElement"/> with <see cref="XObject.BaseUri"/>
         /// </summary>
-        /// <param name="source">The uri1 <see cref="XDocument"/></param>
+        /// <param name="source">The uri <see cref="XDocument"/></param>
         /// <returns>The clone</returns>
-        public static XElement CloneWithBaseUri(XElement source) 
+        public static XElement CloneWithBaseUri(XElement source)
         {
-            using (var reader = XmlReader.Create(new StringReader(source.ToString()), new XmlReaderSettings(),
-                source.BaseUri))
-            {
-                if (reader.Read())
-                {
-                    return XElement.Load(reader, LoadOptions.SetBaseUri);
-                }
-
-                return null;
-            }
+            return XElement.Load(source.CreateReader(ReaderOptions.OmitDuplicateNamespaces), LoadOptions.SetBaseUri);
         }
 
         /// <summary>
@@ -332,7 +267,7 @@ namespace DtbMerger2Library.Daisy202
         /// <returns>The ncc heading <see cref="Uri"/> or <c>null</c> if a such could not be found</returns>
         public static Uri GetNccHeadingUriFromContentHeadingUri(Uri contentHeadingUri)
         {
-            var smilUri = GetReferencedElement(contentHeadingUri)
+            var smilUri = GetElementFromCachedXDocuments(contentHeadingUri)
                 ?.Descendants(XhtmlNs + "a")
                 .Select(a => a.Attribute("href"))
                 .Select(GetUri)
@@ -341,7 +276,7 @@ namespace DtbMerger2Library.Daisy202
             {
                 return null;
             }
-            var smilPar = GetReferencedElement(smilUri);
+            var smilPar = GetElementFromCachedXDocuments(smilUri);
             if (smilPar == null)
             {
                 return null;
@@ -359,7 +294,7 @@ namespace DtbMerger2Library.Daisy202
             var ncc = new[] {"ncc.htm", "ncc.html"}
                 .Select(fn => new Uri(new Uri(smilPar.BaseUri??""), fn))
                 .Where(uri => File.Exists(uri.LocalPath))
-                .Select(nccUri => XDocument.Load(nccUri.AbsoluteUri, LoadOptions.SetBaseUri))
+                .Select(LoadXDocument)
                 .FirstOrDefault();
 
             return ncc
@@ -372,11 +307,73 @@ namespace DtbMerger2Library.Daisy202
                         .Descendants(XhtmlNs + "a")
                         .SelectMany(a => a.Attributes("href"))
                         .Select(GetUri)
-                        .Select(uri => GetReferencedElement(uri, smilPar.Document))
+                        .Select(GetElementFromCachedXDocuments)
                         .Any(elem => elem == smilPar || smilPar.Elements("text").Any(text => text == elem))
                     && h.Attribute("id") != null)
                 .Select(h => new Uri(new Uri(h.BaseUri), $"#{h.Attribute("id")?.Value??""}"))
                 .FirstOrDefault();
         }
+
+        private static readonly Dictionary<string, XDocument> CachedXDocuments = new Dictionary<string, XDocument>();
+        private static readonly Dictionary<string, XElement> CachedElementsByUri = new Dictionary<string, XElement>();
+
+        /// <summary>
+        /// Clears the cached <see cref="XDocument"/>s used by <see cref="LoadXDocument"/>
+        /// </summary>
+        public static void ClearXDocumentCache()
+        {
+            CachedXDocuments.Clear();
+            CachedElementsByUri.Clear();
+        }
+
+        /// <summary>
+        /// Gets an <see cref="XElement"/> by uri (searching by id fragment/attribute match)
+        /// </summary>
+        /// <param name="uri">The uri</param>
+        /// <returns>The <see cref="XElement"/> referenced by the uri - <c>null</c> if not found</returns>
+        /// <remarks>
+        /// As a side effect, the document pointed to by the given uri will be loaded into cache
+        /// </remarks>
+        public static XElement GetElementFromCachedXDocuments(Uri uri)
+        {
+            if (uri == null) throw new ArgumentNullException(nameof(uri));
+            LoadXDocument(uri);//Ensure that the document is in cache
+            var key = Uri.UnescapeDataString(uri.AbsoluteUri).ToLowerInvariant();
+            return CachedElementsByUri.ContainsKey(key) ? CachedElementsByUri[key] : null;
+        }
+
+        /// <summary>
+        /// Loads an <see cref="XDocument"/> from a given <see cref="Uri"/>.
+        /// The method uses cache and is intended for loading source documents that do not change.
+        /// Use the <see cref="ClearXDocumentCache"/> method to clear the cache when nessesary, typically when starting major operations
+        /// </summary>
+        /// <param name="uri">The uri of the <see cref="XDocument"/> to load</param>
+        /// <returns>The loaded <see cref="XDocument"/></returns>
+        /// <remarks>
+        /// As a side effect, the document pointed to by the given uri will be loaded into cache
+        /// </remarks>
+        public static XDocument LoadXDocument(Uri uri)
+        {
+            if (uri == null) throw new ArgumentNullException(nameof(uri));
+            var path = Uri.UnescapeDataString(uri.GetLeftPart(UriPartial.Query)).ToLowerInvariant();
+            if (!CachedXDocuments.ContainsKey(path))
+            {
+                var doc = XDocument.Load(path, LoadOptions.SetBaseUri | LoadOptions.SetLineInfo);
+                CachedXDocuments[path] = doc;
+                foreach (var e in doc.Descendants().Where(d => d.Attribute("id") != null))
+                {
+                    try
+                    {
+                        CachedElementsByUri.Add($"{path}#{e.Attribute("id")?.Value}", e);
+                    }
+                    catch (ArgumentException exception)
+                    {
+                        throw new ApplicationException($"Multiple elements found in {path} with same id {e.Attribute("id")?.Value}", exception);
+                    }
+                }
+            }
+            return CachedXDocuments[path];
+        }
+
     }
 }

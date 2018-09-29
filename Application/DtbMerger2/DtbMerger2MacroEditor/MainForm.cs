@@ -864,7 +864,13 @@ namespace DtbMerger2MacroEditor
                     process = "loading merge entries from Macro";
                     var builder = new DtbBuilder(MergeEntry.LoadMergeEntriesFromMacro(Macro));
                     process = "building DTB";
+#if DEBUG
+                    var start = DateTime.Now;
                     builder.BuildDtb();
+                    Debug.Print($"Build DTB in {DateTime.Now.Subtract(start).TotalSeconds} seconds");
+#else
+                    builder.BuildDtb();
+#endif
                     var fbd = new FolderBrowserDialog
                     {
                         Description = "Select output folder for DTB",
