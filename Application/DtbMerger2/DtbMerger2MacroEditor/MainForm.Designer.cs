@@ -422,8 +422,8 @@
             // 
             this.saveDtbBackgroundWorker.WorkerReportsProgress = true;
             this.saveDtbBackgroundWorker.WorkerSupportsCancellation = true;
-            this.saveDtbBackgroundWorker.DoWork += new System.ComponentModel.DoWorkEventHandler(this.SaveDtbBackgroundWorkerDoWorkHandler);
-            this.saveDtbBackgroundWorker.ProgressChanged += new System.ComponentModel.ProgressChangedEventHandler(this.SaveDtbBackgroundWorkerProgressChangedHandler);
+            this.saveDtbBackgroundWorker.DoWork += new System.ComponentModel.DoWorkEventHandler(this.GenerateDtbBackgroundWorkerDoWorkHandler);
+            this.saveDtbBackgroundWorker.ProgressChanged += new System.ComponentModel.ProgressChangedEventHandler(this.GenerateDtbBackgroundWorkerProgressChangedHandler);
             this.saveDtbBackgroundWorker.RunWorkerCompleted += new System.ComponentModel.RunWorkerCompletedEventHandler(this.SaveDtbBackgroundWorkerRunWorkerCompletedHandler);
             // 
             // MainForm

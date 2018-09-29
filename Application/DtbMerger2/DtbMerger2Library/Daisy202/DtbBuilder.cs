@@ -141,6 +141,7 @@ namespace DtbMerger2Library.Daisy202
             contentIdIndex = 0;
             totalElapsedTime = TimeSpan.Zero;
             RefreshPrefix();
+            Utils.ClearXDocumentCache();
         }
 
         private int entryIndex = 0;
@@ -240,9 +241,16 @@ namespace DtbMerger2Library.Daisy202
         /// <summary>
         /// Builds the merged DTB
         /// </summary>
-        public void BuildDtb()
+        /// <param name="progressDelegate">
+        /// A progress delegate, recieving progress percentage and message. 
+        /// When the delegate returns <c>true</c>, it is a signal to cancel the save process</param>
+        /// <returns><c>true</c> if the DTB was succesfully saved, <c>false</c> if the save process was cancelled via the <paramref name="progressDelegate"/></returns>
+        public bool BuildDtb(Func<int, string, bool> progressDelegate = null)
         {
-            Utils.ClearXDocumentCache();
+            if (progressDelegate == null)
+            {
+                progressDelegate = (p, m) => false;
+            }
             if (!MergeEntries.Any())
             {
                 throw new InvalidOperationException("No merge entries added to builder");
@@ -260,9 +268,14 @@ namespace DtbMerger2Library.Daisy202
 
             var identifier = Utils.CreateOrGetMeta(entries.First().Ncc, "dc:identifier")?.Attribute("content")?.Value ??
                              Guid.NewGuid().ToString();
-
-            foreach (var me in entries)
+            for (int i = 0; i < entries.Count; i++)
             {
+                if (progressDelegate(100 * i / entries.Count, $"Building merge entry {i+1} of {entries.Count}"))
+                {
+                    ResetBuilder();
+                    return false;
+                }
+                var me = entries[i];
                 var smilFile = Utils.GenerateSkeletonSmilDocument();
                 var smilElements = me.SmilElements.Select(Utils.CloneWithBaseUri).ToList();
                 NccDocument.Root?.Element(NccDocument?.Root.Name.Namespace + "body")
@@ -396,6 +409,7 @@ namespace DtbMerger2Library.Daisy202
                 }
                 TrimWhitespace(elem);
             }
+            return true;
         }
 
         private void TrimWhitespace(XElement elem)

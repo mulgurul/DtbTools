@@ -863,14 +863,6 @@ namespace DtbMerger2MacroEditor
                 {
                     process = "loading merge entries from Macro";
                     var builder = new DtbBuilder(MergeEntry.LoadMergeEntriesFromMacro(Macro));
-                    process = "building DTB";
-#if DEBUG
-                    var start = DateTime.Now;
-                    builder.BuildDtb();
-                    Debug.Print($"Build DTB in {DateTime.Now.Subtract(start).TotalSeconds} seconds");
-#else
-                    builder.BuildDtb();
-#endif
                     var fbd = new FolderBrowserDialog
                     {
                         Description = "Select output folder for DTB",
@@ -899,7 +891,7 @@ namespace DtbMerger2MacroEditor
                                 }
                             }
                         }
-                        process = "saving DTB";
+                        process = "Generating DTB";
                         ShowProgressControls();
                         saveDtbBackgroundWorker.RunWorkerAsync(new Tuple<DtbBuilder, string>(builder, fbd.SelectedPath));
                     }
@@ -936,23 +928,33 @@ namespace DtbMerger2MacroEditor
 
         }
 
-        private void SaveDtbBackgroundWorkerDoWorkHandler(object sender, DoWorkEventArgs e)
+        private void GenerateDtbBackgroundWorkerDoWorkHandler(object sender, DoWorkEventArgs e)
         {
             var bw = (BackgroundWorker) sender;
             var builder = ((Tuple<DtbBuilder, string>) e.Argument).Item1;
             var path = ((Tuple<DtbBuilder, string>)e.Argument).Item2;
-            if (!builder.SaveDtb(path, (pct, msg) =>
+
+            bool ProgressDelegate(int pct, string msg)
             {
                 Debug.Print($"{pct} - {msg}");
                 bw.ReportProgress(pct, msg);
                 return bw.CancellationPending;
-            }))
+            }
+
+            if (builder.BuildDtb(ProgressDelegate))
+            {
+                if (!builder.SaveDtb(path, ProgressDelegate))
+                {
+                    e.Cancel = true;
+                }
+            }
+            else
             {
                 e.Cancel = true;
             }
         }
 
-        private void SaveDtbBackgroundWorkerProgressChangedHandler(object sender, ProgressChangedEventArgs e)
+        private void GenerateDtbBackgroundWorkerProgressChangedHandler(object sender, ProgressChangedEventArgs e)
         {
             buildProgressBar.Value = e.ProgressPercentage;
             buildMessageLabel.Text = (string) e.UserState;
@@ -961,9 +963,10 @@ namespace DtbMerger2MacroEditor
 
         private void CancelButtonClickHandler(object sender, EventArgs e)
         {
-            if (saveDtbBackgroundWorker.IsBusy)
+            var bw = (BackgroundWorker) sender;
+            if (bw.IsBusy)
             {
-                saveDtbBackgroundWorker.CancelAsync();
+                bw.CancelAsync();
                 cancelButton.Enabled = false;
             }
         }
