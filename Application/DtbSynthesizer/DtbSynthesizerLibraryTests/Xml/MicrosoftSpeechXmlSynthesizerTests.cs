@@ -21,7 +21,8 @@ namespace DtbSynthesizerLibraryTests.Xml
             return path;
         }
 
-        [DataRow(@"
+        [DataRow(
+            @"
 <html lang='en-US'>
     <body>
         <table>
@@ -33,15 +34,25 @@ namespace DtbSynthesizerLibraryTests.Xml
         </table>
     </body>
 </html>
-")]
-        [DataRow("<html lang='en-US'><body><p>This is a single paragraph. It contains an <em>emphasized</em> word</p><p lang='da-DK'>I midten en sætning på dansk</p><p>This is a third paragraph</p></body></html>")]
+", 
+            0)]
+        [DataRow(
+            @"
+<html lang='en-US'>
+    <body>
+        <p>This is a single paragraph. It contains an <em>emphasized</em> word</p>
+        <p lang='da-DK'>I midten en sætning på dansk</p>
+        <p>This is a third paragraph</p>
+    </body>
+</html>",
+            1)]
         [DataTestMethod]
-        public void SynthesizeElementTest(string xml)
+        public void SynthesizeElementTest(string xml, int no)
         {
             var doc = XDocument.Parse(xml);
 
             var body = doc.Elements("html").Elements("body").First();
-            var waveFile = GetAudioFilePath("SystemSpeech.wav");
+            var waveFile = GetAudioFilePath($"SystemSpeech{no:D2}.wav");
             var writer = new WaveFileWriter(waveFile, new WaveFormat(22050, 1));
             try
             {
