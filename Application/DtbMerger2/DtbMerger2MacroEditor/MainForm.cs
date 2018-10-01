@@ -256,7 +256,7 @@ namespace DtbMerger2MacroEditor
                 }
                 UpdateMacroTreeNodeStates(macroTreeView.Nodes[0]);
             }
-            Text = $"{Application.ProductName} [{MacroFileName}]{(HasMacroChanged?"*":"")}";
+            Text = $"{Application.ProductName} {Application.ProductVersion} [{MacroFileName}]{(HasMacroChanged?"*":"")}";
             UpdateEntryManipulationControls();
         }
 
