@@ -74,11 +74,10 @@ namespace DtbSynthesizerLibrary.Xml
                     (AudioBitsPerSample)writer.WaveFormat.BitsPerSample,
                     (AudioChannel)writer.WaveFormat.Channels));
             var bookmarks = new Dictionary<string, XText>();
-            //var promptBuilder = new PromptBuilder() { Culture = Voice.Culture };
-            //promptBuilder.StartVoice(Voice);
-            //AppendElementToPromptBuilder(element, promptBuilder, bookmarks);
-            //promptBuilder.EndVoice();
-            var ssmlDocument = Utils.BuildSsmlDocument(element, bookmarks);
+            var promptBuilder = new PromptBuilder() { Culture = Voice.Culture };
+            promptBuilder.StartVoice(Voice);
+            AppendElementToPromptBuilder(element, promptBuilder, bookmarks);
+            promptBuilder.EndVoice();
             var bookmarkDelegate = new EventHandler<BookmarkReachedEventArgs>((s, a) =>
             {
                 if (bookmarks.ContainsKey(a.Bookmark.Substring(1)))
@@ -104,7 +103,7 @@ namespace DtbSynthesizerLibrary.Xml
             Synthesizer.BookmarkReached += bookmarkDelegate;
             try
             {
-                Synthesizer.SpeakSsml(Utils.SerializeDocument(ssmlDocument));
+                Synthesizer.Speak(promptBuilder);
             }
             finally
             {

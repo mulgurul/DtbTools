@@ -406,7 +406,7 @@ namespace DtbSynthesizerLibrary
             {
                 return null;
             }
-            return Regex.Replace(text.Normalize(NormalizationForm.FormKD), @"\s+", " ");
+            return Regex.Replace(text, @"\s+", " ");
         }
 
         public static XDocument BuildSsmlDocument(XElement element, IDictionary<string, XText> bookmarks)
