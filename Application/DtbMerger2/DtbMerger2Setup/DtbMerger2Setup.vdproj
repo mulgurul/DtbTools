@@ -100,12 +100,6 @@
         "Entry"
         {
         "MsmKey" = "8:_UNDEFINED"
-        "OwnerKey" = "8:_462485110D0B4607A0883D46C65307D2"
-        "MsmSig" = "8:_UNDEFINED"
-        }
-        "Entry"
-        {
-        "MsmKey" = "8:_UNDEFINED"
         "OwnerKey" = "8:_60C17DBEEC68CE30EAE14A55D9F178CB"
         "MsmSig" = "8:_UNDEFINED"
         }
@@ -119,6 +113,12 @@
         {
         "MsmKey" = "8:_UNDEFINED"
         "OwnerKey" = "8:_DE112DB3A07A5590E918A9ABE3F6C91C"
+        "MsmSig" = "8:_UNDEFINED"
+        }
+        "Entry"
+        {
+        "MsmKey" = "8:_UNDEFINED"
+        "OwnerKey" = "8:_462485110D0B4607A0883D46C65307D2"
         "MsmSig" = "8:_UNDEFINED"
         }
         "Entry"
@@ -226,7 +226,7 @@
             {
             "AssemblyRegister" = "3:1"
             "AssemblyIsInGAC" = "11:FALSE"
-            "AssemblyAsmDisplayName" = "8:DtbMerger2Library, Version=2.0.3.15068, Culture=neutral, processorArchitecture=MSIL"
+            "AssemblyAsmDisplayName" = "8:DtbMerger2Library, Version=2.0.5.28268, Culture=neutral, processorArchitecture=MSIL"
                 "ScatterAssemblies"
                 {
                     "_60C17DBEEC68CE30EAE14A55D9F178CB"
@@ -402,15 +402,15 @@
         {
         "Name" = "8:Microsoft Visual Studio"
         "ProductName" = "8:DtbMerger2"
-        "ProductCode" = "8:{063FD867-1329-4B23-87F3-0CEBFD46E28F}"
-        "PackageCode" = "8:{1384F946-2CBF-415E-9FB6-7FC929CBF753}"
+        "ProductCode" = "8:{123A7B83-DFFE-4535-A48A-005701066147}"
+        "PackageCode" = "8:{28A51A23-D6F7-48D0-835E-C21AF83AE314}"
         "UpgradeCode" = "8:{35AAFEF2-F9C9-4A63-9D02-7700203AC172}"
         "AspNetVersion" = "8:4.0.30319.0"
         "RestartWWWService" = "11:FALSE"
         "RemovePreviousVersions" = "11:TRUE"
         "DetectNewerInstalledVersion" = "11:TRUE"
-        "InstallAllUsers" = "11:FALSE"
-        "ProductVersion" = "8:2.0.4"
+        "InstallAllUsers" = "11:TRUE"
+        "ProductVersion" = "8:2.0.5"
         "Manufacturer" = "8:Nota"
         "ARPHELPTELEPHONE" = "8:"
         "ARPHELPLINK" = "8:"

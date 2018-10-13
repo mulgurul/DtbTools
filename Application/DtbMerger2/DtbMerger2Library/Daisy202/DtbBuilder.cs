@@ -562,7 +562,7 @@ namespace DtbMerger2Library.Daisy202
                                 audioStream = new LameMP3FileWriter(
                                     underlyingStream, 
                                     waveFormat, 
-                                    mp3Fr.Mp3WaveFormat.AverageBytesPerSecond/8);
+                                    8*mp3Fr.Mp3WaveFormat.AverageBytesPerSecond/1000);
                                 if (mp3Fr.Id3v2Tag != null)
                                 {
                                     underlyingStream.Write(mp3Fr.Id3v2Tag.RawData, 0, mp3Fr.Id3v2Tag.RawData.Length);
