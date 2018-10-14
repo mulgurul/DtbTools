@@ -66,24 +66,26 @@ namespace DtbSynthesizerLibrary
                 .Concat(MicrosoftSpeechXmlSynthesizer.Synthesizers);
         }
 
-        public static IXmlSynthesizer GetPrefferedXmlSynthesizerForCulture(CultureInfo ci)
+        public static IXmlSynthesizer GetPrefferedXmlSynthesizerForCulture(CultureInfo ci, IXmlSynthesizer defaultSynthesizer = null)
         {
-            return GetPrefferedXmlSynthesizerForCulture(ci, GetAllSynthesizers().ToList());
+            return GetPrefferedXmlSynthesizerForCulture(ci, GetAllSynthesizers().ToList(), defaultSynthesizer);
         }
 
         public static IXmlSynthesizer GetPrefferedXmlSynthesizerForCulture(
             CultureInfo ci,
-            IReadOnlyCollection<IXmlSynthesizer> synthesizerList)
+            IReadOnlyCollection<IXmlSynthesizer> synthesizerList,
+            IXmlSynthesizer defaultSynthesizer = null)
         {
+            defaultSynthesizer = defaultSynthesizer ?? synthesizerList.FirstOrDefault();
             if (CultureInfo.InvariantCulture.Equals(ci))
             {
-                return synthesizerList.FirstOrDefault();
+                return defaultSynthesizer;
             }
             return 
                 synthesizerList.FirstOrDefault(s => s.VoiceInfo.Culture.Equals(ci))
                 ?? synthesizerList.FirstOrDefault(s =>
                     s.VoiceInfo.Culture.TwoLetterISOLanguageName == ci.TwoLetterISOLanguageName)
-                ?? synthesizerList.FirstOrDefault();
+                ?? defaultSynthesizer;
         }
 
         private static readonly Regex GeneratedIdRegex = new Regex("^IX\\d{5,}$");

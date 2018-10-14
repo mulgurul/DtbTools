@@ -63,18 +63,8 @@ namespace DtbSynthesizerLibraryTests.Xml
                     var synth = SystemSpeechXmlSynthesizer.GetPreferedVoiceForCulture(ci);
                     dur += synth.SynthesizeElement(elem, writer);
                 }
-                var prevClipEnd = TimeSpan.Zero;
-                foreach (var text in body.DescendantNodes().OfType<XText>())
-                {
-                    var anno = text.Annotation<SyncAnnotation>();
-                    Assert.IsNotNull(
-                        anno,
-                        $"Text node {text} has no SyncAnnotation");
-                    Assert.AreEqual(prevClipEnd, anno.ClipBegin);
-                    prevClipEnd = anno.ClipEnd;
-                    Assert.IsTrue(anno.ClipBegin < anno.ClipEnd, $"Text node {text} SyncAnnotation ClipEnd is not before ClipBEgin");
-                }
-                Assert.AreEqual(dur, prevClipEnd, "Last ClipEnd is not equal to dur");
+
+                Assert.AreEqual(dur, body.Descendants().Select(e => e.Annotation<SyncAnnotation>()).Last(s => s != null).ClipEnd, "Last ClipEnd is not equal to dur");
                 var annotations = body.DescendantNodes().SelectMany(n => n.Annotations<SyncAnnotation>());
                 var sum = TimeSpan.FromMilliseconds(
                     annotations.Select(a => a?.ClipEnd.Subtract(a.ClipBegin).TotalMilliseconds).Sum() ?? 0);

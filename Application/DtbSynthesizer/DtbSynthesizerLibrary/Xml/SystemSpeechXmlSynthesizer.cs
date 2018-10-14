@@ -75,69 +75,18 @@ namespace DtbSynthesizerLibrary.Xml
                     writer.WaveFormat.SampleRate,
                     (AudioBitsPerSample)writer.WaveFormat.BitsPerSample,
                     (AudioChannel)writer.WaveFormat.Channels));
-            var bookmarks = new Dictionary<string, XText>();
-            var promptBuilder = new PromptBuilder() { Culture = Voice.Culture };
-            promptBuilder.StartVoice(Voice);
-            AppendElementToPromptBuilder(element, promptBuilder, bookmarks);
-            promptBuilder.EndVoice();
-            var bookmarkDelegate = new EventHandler<BookmarkReachedEventArgs>((s, a) =>
-            {
-                if (bookmarks.ContainsKey(a.Bookmark.Substring(1)))
-                {
-                    var text = bookmarks[a.Bookmark.Substring(1)];
-                    var anno = text.Annotation<SyncAnnotation>();
-                    if (anno == null)
-                    {
-                        anno = new SyncAnnotation { Src = src, Text = text, Element = text.Parent};
-                        text.AddAnnotation(anno);
-                    }
-                    switch (a.Bookmark.Substring(0, 1))
-                    {
-                        case "B":
-                            anno.ClipBegin = startOffset + a.AudioPosition;
-                            break;
-                        case "E":
-                            anno.ClipEnd = startOffset + a.AudioPosition;
-                            break;
-                    }
-                }
-            });
-            Synthesizer.BookmarkReached += bookmarkDelegate;
-            try
-            {
-                Synthesizer.Speak(promptBuilder);
-            }
-            finally
-            {
-                Synthesizer.BookmarkReached -= bookmarkDelegate;
-            }
+            Synthesizer.SelectVoice(Voice.Name);
+            Synthesizer.Speak(element.Value);
             Synthesizer.SetOutputToNull();
             audioStream.WriteTo(writer);
             writer.Flush();
-            var annotations = element.DescendantNodes().SelectMany(n => n.Annotations<SyncAnnotation>()).ToList();
-            if (annotations.Any())
+            element.AddAnnotation(new SyncAnnotation()
             {
-                annotations.First().ClipBegin = startOffset;
-                for (int i = 0; i < annotations.Count - 1; i++)
-                {
-                     annotations[i + 1].ClipBegin = annotations[i].ClipEnd;
-                }
-                var lastClipEnd = annotations.Last().ClipEnd;
-                if (lastClipEnd != writer.TotalTime)
-                {
-                    //Time seems to "slide" in bookmark events, 
-                    //resulting in the last bookmark seeming located beyond the end of the audio file
-                    //The factor corrects this problem (possibly in a correct manner)
-                    var factor =
-                        (writer.TotalTime - startOffset).TotalSeconds
-                        / (lastClipEnd - startOffset).TotalSeconds;
-                    foreach (var anno in annotations)
-                    {
-                        anno.ClipBegin = Utils.AdjustClipTime(anno.ClipBegin, startOffset, factor);
-                        anno.ClipEnd = Utils.AdjustClipTime(anno.ClipEnd, startOffset, factor);
-                    }
-                }
-            }
+                ClipBegin = startOffset,
+                ClipEnd = writer.TotalTime,
+                Element = element,
+                Src = src
+            });
             return writer.TotalTime.Subtract(startOffset);
         }
 

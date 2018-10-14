@@ -47,9 +47,7 @@ namespace DtbSynthesizerLibraryTests.Xhtml
         {
             var synthesizer = GetXhtmlSynthesizer(xhtmlFile, encodeMp3);
             synthesizer.Synthesize();
-            Assert.IsTrue(
-                synthesizer.Body.DescendantNodes().OfType<XText>()
-                    .All(text => text.Annotation<SyncAnnotation>() != null));
+
             Assert.AreEqual(
                 synthesizer
                     .Body
@@ -75,13 +73,25 @@ namespace DtbSynthesizerLibraryTests.Xhtml
                 .Descendants().SelectMany(e => e.Annotations<SyncAnnotation>().Select(a =>
                     new Uri(new Uri(e.BaseUri), a.Src).LocalPath)).Distinct())
             {
-                using (var wr = new WaveFileReader(audioFile))
+                if (encodeMp3)
                 {
-                    Assert.AreEqual(synthesizer.AudioWaveFormat.SampleRate, wr.WaveFormat.SampleRate, $"Audio file {audioFile} has unexpected sample rate");
-                    Assert.AreEqual(synthesizer.AudioWaveFormat.BitsPerSample, wr.WaveFormat.BitsPerSample, $"Audio file {audioFile} has unexpected bits per sample");
-                    Assert.AreEqual(synthesizer.AudioWaveFormat.Channels, wr.WaveFormat.Channels, $"Audio file {audioFile} has unexpected number of channels");
+                    using (var wr = new Mp3FileReader(audioFile))
+                    {
+                        Assert.AreEqual(synthesizer.AudioWaveFormat.SampleRate, wr.WaveFormat.SampleRate, $"Audio file {audioFile} has unexpected sample rate");
+                        Assert.AreEqual(synthesizer.AudioWaveFormat.BitsPerSample, wr.WaveFormat.BitsPerSample, $"Audio file {audioFile} has unexpected bits per sample");
+                        Assert.AreEqual(synthesizer.AudioWaveFormat.Channels, wr.WaveFormat.Channels, $"Audio file {audioFile} has unexpected number of channels");
+                    }
                 }
+                else
+                {
+                    using (var wr = new WaveFileReader(audioFile))
+                    {
+                        Assert.AreEqual(synthesizer.AudioWaveFormat.SampleRate, wr.WaveFormat.SampleRate, $"Audio file {audioFile} has unexpected sample rate");
+                        Assert.AreEqual(synthesizer.AudioWaveFormat.BitsPerSample, wr.WaveFormat.BitsPerSample, $"Audio file {audioFile} has unexpected bits per sample");
+                        Assert.AreEqual(synthesizer.AudioWaveFormat.Channels, wr.WaveFormat.Channels, $"Audio file {audioFile} has unexpected number of channels");
+                    }
 
+                }
                 TestContext.AddResultFile(audioFile);
             }
         }

@@ -72,6 +72,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="ChangableDictionary.cs" />
     <Compile Include="Xml\IXmlSynthesizer.cs" />
     <Compile Include="ProgressEventArgs.cs" />
     <Compile Include="Xml\SystemSpeechXmlSynthesizer.cs" />

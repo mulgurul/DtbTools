@@ -5,14 +5,11 @@ using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Linq;
-using System.Reflection;
-using System.Text;
 using System.Threading.Tasks;
 using System.Xml;
 using System.Xml.Linq;
 using System.Xml.XPath;
 using DtbSynthesizerLibrary.Xml;
-using NAudio.Codecs;
 using NAudio.Lame;
 using NAudio.Wave;
 
@@ -20,6 +17,7 @@ namespace DtbSynthesizerLibrary.Xhtml
 {
     public class XhtmlSynthesizer
     {
+
         public static XNamespace XhtmlNs => Utils.XhtmlNs;
 
         protected bool FireProgress(int percentage, string message)
@@ -92,7 +90,7 @@ namespace DtbSynthesizerLibrary.Xhtml
         public XDocument NccDocument;
 
         public Func<CultureInfo, IXmlSynthesizer> SynthesizerSelector { get; set; } 
-            = Utils.GetPrefferedXmlSynthesizerForCulture;
+            = (ci) => Utils.GetPrefferedXmlSynthesizerForCulture(ci);
 
         public IXmlSynthesizer DefaultSynthesizer { get; set; }
 
@@ -191,12 +189,14 @@ namespace DtbSynthesizerLibrary.Xhtml
         public Func<XElement, bool> ExceptInlineElementFromRemovalDelegate { get; set; } = element => 
             element?.Name == XhtmlNs + "span" && (element?.Attribute("class")?.Value.Split().Contains("sentence")??false);
 
+        public bool IsInline(XElement element)
+        {
+            return element != null && InlineElementNames.Contains(element.Name);
+        }
+
         public bool IsInlineToRemove(XElement element)
         {
-            return
-                element != null
-                && InlineElementNames.Contains(element.Name)
-                && !ExceptInlineElementFromRemovalDelegate(element);
+            return IsInline(element) && !ExceptInlineElementFromRemovalDelegate(element);
         }
 
         public IReadOnlyList<XName> HeaderNames { get; }
@@ -218,9 +218,79 @@ namespace DtbSynthesizerLibrary.Xhtml
             return new[] {elem};
         }
 
+        private bool IsXhtmlElement(XElement elem, params string[] names)
+        {
+            return
+                elem != null
+                && elem.Name.Namespace == XhtmlNs
+                && (names.Contains(elem.Name.LocalName) || (names?.Length??0)==0);
+
+        }
+
+        private IEnumerable<XElement> ExpandTablesAndLists(XElement elem)
+        {
+            if (elem == null) throw new ArgumentNullException(nameof(elem));
+            if (IsXhtmlElement(elem))
+            {
+                switch (elem.Name.LocalName)
+                {
+                    case "table":
+                        return elem
+                            .Elements()
+                            .Where(e => IsXhtmlElement(e, "title", "caption", "summary", "thead", "tfoor", "tbody", "tr" ))
+                            .SelectMany(ExpandTablesAndLists);
+                    case "thead":
+                    case "tfoot":
+                    case "tbody":
+                        return elem.Elements(XhtmlNs + "tr").SelectMany(ExpandTablesAndLists);
+                    case "tr":
+                        return elem
+                            .Elements()
+                            .Where(e => IsXhtmlElement(e, "td", "th"))
+                            .SelectMany(ExpandTablesAndLists);
+                    case "ul":
+                    case "ol":
+                        return elem
+                            .Elements()
+                            .Where(e => IsXhtmlElement(e, "title", "caption", "li"))
+                            .SelectMany(ExpandTablesAndLists);
+                    case "dl":
+                        return elem
+                            .Elements()
+                            .Where(e => IsXhtmlElement(e, "title", "caption", "dt", "dd", "di"))
+                            .SelectMany(ExpandTablesAndLists);
+                    case "di":
+                        return elem
+                            .Elements()
+                            .Where(e => IsXhtmlElement(e, "dt", "dd"))
+                            .SelectMany(ExpandTablesAndLists);
+                    case "th":
+                    case "td":
+                    case "li":
+                    case "dd":
+                        if (elem.Elements().Any(IsInline) 
+                            || elem.Nodes().OfType<XText>().Any(t => !String.IsNullOrWhiteSpace(t.Value)))
+                        {
+                            if (elem.Elements().Any(e => !IsInline(e)))
+                            {
+                                var lineInfo = (IXmlLineInfo)elem;
+                                throw new InvalidOperationException(
+                                    $"{elem.Name.LocalName} with mixed content not supported ({lineInfo})");
+                            }
+                        }
+                        else
+                        {
+                            return elem.Elements().SelectMany(ExpandTablesAndLists);
+                        }
+                        break;
+                }
+            }
+            return new[] { elem };
+
+        }
+
         public IEnumerable<string> AudioFiles => Body
             ?.DescendantNodes()
-            .OfType<XText>()
             .SelectMany(t => t.Annotations<SyncAnnotation>())
             .Select(a => a.Src)
             .Distinct();
@@ -260,7 +330,7 @@ namespace DtbSynthesizerLibrary.Xhtml
             WaveFileWriter writer = null;
             MemoryStream writerStream = null;
             var encodingTaskStack = new Stack<Task>();
-            var elements = Body.Elements().SelectMany(ExpandBlockContainers).ToList();
+            var elements = Body.Elements().SelectMany(ExpandBlockContainers).SelectMany(ExpandTablesAndLists).ToList();
             for (int i = 0; i < elements.Count; i++)
             {
                 if (FireProgress(
@@ -335,10 +405,11 @@ namespace DtbSynthesizerLibrary.Xhtml
                 .SelectMany(n => n.Annotations<SyncAnnotation>())
                 .Where(anno =>
                     (anno.Src?.EndsWith(EncodeMp3 ? ".mp3" : ".wav") ?? false)
-                    && !String.IsNullOrEmpty(anno.Element?.Attribute("id")?.Value)))
+                    && !String.IsNullOrEmpty(anno.Element?.Attribute("id")?.Value)
+                    && anno.ClipEnd > anno.ClipBegin))
             {
                 var smilName = $"{anno.Src.Substring(0, anno.Src.Length - 4)}.smil".ToLowerInvariant();
-                Debug.Print($"Anno: {anno.Src}[{anno.ClipBegin};{anno.ClipEnd}]: {anno.Text.Value}");
+                Debug.Print($"Anno: {anno.Src}[{anno.ClipBegin};{anno.ClipEnd}]: {anno.Element.Value}");
                 if (!smilFiles.ContainsKey(smilName))
                 {
                     smilFiles.Add(smilName,
