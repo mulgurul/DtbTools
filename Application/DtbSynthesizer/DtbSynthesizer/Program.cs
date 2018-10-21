@@ -84,28 +84,36 @@ namespace DtbSynthesizer
                 Console.WriteLine($"Could not find input file {input}");
                 return -2;
             }
-            if (!String.IsNullOrEmpty(output) && !Directory.Exists(output))
+            if (!Directory.Exists(output))
             {
                 Directory.CreateDirectory(output);
             }
             switch (format.ToLowerInvariant())
             {
                 case "daisy202":
-                    return SynthesizeDaisy202Dtb();
+                    return GenerateDaisy202Dtb();
                 default:
                     Console.WriteLine($"Unknown format {format}\n{OptionDescriptions}");
                     return -2;
             }
         }
 
-        static int SynthesizeDaisy202Dtb(XDocument xhtmlDocument)
+        static int GenerateDaisy202Dtb(XDocument xhtmlDocument)
         {
             var startTime = DateTime.Now;
-            if (!Directory.Exists(output))
-            {
-                Directory.CreateDirectory(output);
-            }
             output = Path.GetFullPath(output);
+            if (!String.IsNullOrWhiteSpace(identifier))
+            {
+                Utils.SetMeta(xhtmlDocument,  "dc:identifier", identifier);
+            }
+            if (String.IsNullOrWhiteSpace(Utils.GetMetaContent(xhtmlDocument, "dc:creator")))
+            {
+                Utils.SetMeta(xhtmlDocument, "dc:creator", creator);
+            }
+            if (String.IsNullOrWhiteSpace(Utils.GetMetaContent(xhtmlDocument, "dc:publisher")))
+            {
+                Utils.SetMeta(xhtmlDocument, "dc:publisher", publisher);
+            }
             var synthesizer = new XhtmlSynthesizer()
             {
                 XhtmlDocument = xhtmlDocument,
@@ -116,39 +124,13 @@ namespace DtbSynthesizer
             {
                 Console.Write($"{args.ProgressPercentage:D3}% {args.ProgressMessage}".PadRight(80).Substring(0, 80) + "\r");
             };
-            synthesizer.Synthesize();
+            synthesizer.GenerateDaisy202Dtb();
             Console.Write($"{new String(' ', 80)}\r");
-            synthesizer.GenerateDaisy202SmilFiles();
-            synthesizer.GenerateNccDocument();
-            if (!String.IsNullOrWhiteSpace(identifier))
-            {
-                foreach (var doc in synthesizer
-                    .SmilFiles
-                    .Values
-                    .Concat(new[] { synthesizer.NccDocument, synthesizer.XhtmlDocument }))
-                {
-                    Utils.SetMeta(doc, "dc:identifier", identifier);
-                }
-            }
-            if (String.IsNullOrWhiteSpace(Utils.GetMetaContent(synthesizer.NccDocument, "dc:creator")))
-            {
-                Utils.SetMeta(synthesizer.NccDocument, "dc:creator", creator);
-            }
-            if (String.IsNullOrWhiteSpace(Utils.GetMetaContent(synthesizer.NccDocument, "dc:publisher")))
-            {
-                Utils.SetMeta(synthesizer.NccDocument, "dc:publisher", publisher);
-            }
-
-            synthesizer.NccDocument.Save(Path.Combine(output, "ncc.html"));
-            foreach (var smilFile in synthesizer.SmilFiles)
-            {
-                smilFile.Value.Save(Path.Combine(output, smilFile.Key));
-            }
             Console.WriteLine($"Succesfulle generated Daisy 2.02 DTB in {output}\nDuration: {DateTime.Now.Subtract(startTime)}");
             return 0;
         }
 
-        static int SynthesizeDaisy202Dtb()
+        static int GenerateDaisy202Dtb()
         {
             if (new[] { "ncc.htm", "ncc.html" }.Any(n =>
                 n.Equals(Path.GetFileName(input), StringComparison.InvariantCultureIgnoreCase)))
@@ -191,7 +173,7 @@ namespace DtbSynthesizer
                 File.Copy(input, xhtml, true);
             }
             inputDoc = XDocument.Load(xhtml, LoadOptions.SetBaseUri | LoadOptions.SetLineInfo);
-            return SynthesizeDaisy202Dtb(inputDoc);
+            return GenerateDaisy202Dtb(inputDoc);
         }
     }
 }

@@ -9,6 +9,8 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.Xml;
@@ -23,8 +25,31 @@ namespace DtbSynthesizerGui
     public partial class MainForm : Form
     {
         private XDocument xhtmlDocument;
+        private AudioFormat selectedAudioFormat;
 
-        public ChangableDictionary<CultureInfo, IXmlSynthesizer> SynthesizersByLanguage { get; } 
+        private AudioFormat SelectedAudioFormat
+        {
+            get => selectedAudioFormat;
+            set
+            {
+                selectedAudioFormat = value;
+                audioFormatComboBox.SelectedItem = selectedAudioFormat;
+            }
+        }
+
+        private class AudioFormat
+        {
+            public bool EncodeMp3 { get; set; }
+
+            public int Mp3BitRate { get; set; }
+
+            public override string ToString()
+            {
+                return EncodeMp3 ? $"MP3 {Mp3BitRate} kbps" : "WAVE PCM";
+            }
+        }
+
+        public Dictionary<CultureInfo, IXmlSynthesizer> SynthesizersByLanguage { get; } 
 
         public void ResetSynthesizers()
         {
@@ -54,7 +79,7 @@ namespace DtbSynthesizerGui
                     SynthesizersByLanguage.Add(key,Utils.GetPrefferedXmlSynthesizerForCulture(key, SynthesizersByLanguage[CultureInfo.InvariantCulture]));
                 }
             }
-
+            UpdateSynthesizersView();
         }
 
         public XDocument XhtmlDocument
@@ -64,7 +89,25 @@ namespace DtbSynthesizerGui
             {
                 xhtmlDocument = value;
                 UpdateBrowserView();
+                UpdateMetadataView();
                 ResetSynthesizers();
+            }
+        }
+
+        private IEnumerable<Control> GetControls(Control control)
+        {
+            return control.Controls.OfType<Control>().SelectMany(ctrl => new[] {ctrl}.Union(GetControls(ctrl)));
+        }
+
+        private void UpdateMetadataView()
+        {
+
+            foreach (var textBox in GetControls(this).OfType<TextBox>())
+            {
+                if (textBox.Tag is string metaName && Regex.IsMatch(metaName, @"^meta:\w+:\w+$"))
+                {
+                    textBox.Text = Utils.GetMetaContent(XhtmlDocument, metaName.Substring(5));
+                }
             }
         }
 
@@ -95,16 +138,21 @@ namespace DtbSynthesizerGui
             synthesizersDataGridView.Rows.Clear();
             foreach (var key in SynthesizersByLanguage.Keys)
             {
-                synthesizersDataGridView.Rows.Add(key, SynthesizersByLanguage[key].VoiceInfo.Type, SynthesizersByLanguage[key].VoiceInfo.Name);
+                synthesizersDataGridView.Rows.Add(key, SynthesizersByLanguage[key].VoiceInfo.Description);
             }
-
         }
 
         public MainForm()
         {
             InitializeComponent();
-            SynthesizersByLanguage = new ChangableDictionary<CultureInfo, IXmlSynthesizer>();
-            SynthesizersByLanguage.CollectionChanged += (sender, args) => UpdateSynthesizersView();
+            voiceColumn.DataSource = Utils.GetAllSynthesizers().Select(s => s.VoiceInfo.Description).ToList();
+            SynthesizersByLanguage = new Dictionary<CultureInfo, IXmlSynthesizer>();
+            var audioFormats = new List<AudioFormat>(
+                new[] {32, 40, 48, 56, 64, 80, 96, 112, 128, 160, 192, 224, 256, 320}
+                    .Select(v => new AudioFormat() {EncodeMp3 = true, Mp3BitRate = v}));
+            audioFormats.Add(new AudioFormat() {EncodeMp3 = false});
+            audioFormatComboBox.DataSource = audioFormats;
+            audioFormatComboBox.SelectedItem = audioFormats.First(af => af.EncodeMp3 && af.Mp3BitRate == 48);
         }
 
         private void OpenSourceButtonClickHandler(object sender, EventArgs e)
@@ -205,6 +253,8 @@ namespace DtbSynthesizerGui
                 openSourceButton.Enabled = false;
                 synthesizeDtbButton.Enabled = false;
                 cancelSynthesisButton.Visible = true;
+                synthesizeProgressMessageLabel.Visible = true;
+                synthesizeProgressBar.Visible = true;
                 synthesizeBackgroundWorker.RunWorkerAsync(fbd.SelectedPath);
             }
         }
@@ -229,6 +279,7 @@ namespace DtbSynthesizerGui
                     this,
                     "Synthesis was cancelled by the user",
                     "Synthesize DTB");
+                
             }
             else if (e.Error != null)
             {
@@ -238,6 +289,7 @@ namespace DtbSynthesizerGui
                     "Synthesize DTB",
                     MessageBoxButtons.OK,
                     MessageBoxIcon.Error);
+                
             }
             else 
             {
@@ -265,98 +317,51 @@ namespace DtbSynthesizerGui
             synthesizeDtbButton.Enabled = true;
             cancelSynthesisButton.Visible = false;
             synthesizeProgressMessageLabel.Text = "-";
+            synthesizeProgressMessageLabel.Visible = false;
+            synthesizeProgressBar.Visible = false;
             synthesizeProgressBar.Value = 0;
         }
 
+
         private void SynthesizeBackgroundWorkerDoWorkHandler(object sender, DoWorkEventArgs e)
         {
-            var worker = sender as BackgroundWorker;
-            if (worker == null)
+            var outputDirectory = e.Argument as string;
+            var audioFormat = SelectedAudioFormat;
+            if (audioFormat == null)
             {
+                throw new ApplicationException("No audio format was selected");
+            }
+            if (!Utils.CopyXhtmlDocumentWithImages(XhtmlDocument, outputDirectory, out var xhtmlPath, (i, s) =>
+            {
+                synthesizeBackgroundWorker.ReportProgress(i, s);
+                return synthesizeBackgroundWorker.CancellationPending;
+            }))
+            {
+                e.Cancel = true;
                 return;
             }
-            var outputDirectory = e.Argument as string;
-            if (outputDirectory == null)
-            {
-                throw new ApplicationException("No output directory was given");
-            }
-            if (!Directory.Exists(outputDirectory))
-            {
-                throw new ApplicationException($"Output directory {outputDirectory} does not exist");
-            }
-            var entries = new DirectoryInfo(outputDirectory).GetFileSystemInfos();
-            for (int i = 0; i < entries.Length; i++)
-            {
-                worker.ReportProgress(100*i/entries.Length, $"Emptying output directory {outputDirectory} (entry {i}/{entries.Length})");
-                if (worker.CancellationPending)
-                {
-                    e.Cancel = true;
-                    return;
-                }
-                if (entries[i] is DirectoryInfo di)
-                {
-                    di.Delete(true);
-                }
-                if (entries[i] is FileInfo fi)
-                {
-                    fi.Delete();
-                }
-            }
-            var xhtmlPath = Path.Combine(
-                outputDirectory,
-                Path.GetFileNameWithoutExtension(new Uri(XhtmlDocument.BaseUri).LocalPath) + ".html");
-            var xhtmlUri = new Uri(xhtmlPath);
-            var sourceUri = new Uri(XhtmlDocument.BaseUri);
-            var imageSrcs = XhtmlDocument
-                .Descendants(Utils.XhtmlNs + "img")
-                .Select(img => img.Attribute("src")?.Value)
-                .Where(src => !String.IsNullOrWhiteSpace(src))
-                .Distinct(StringComparer.InvariantCultureIgnoreCase)
-                .Where(src => Uri.IsWellFormedUriString(src, UriKind.Relative))
-                .ToArray();
-            for (int i = 0; i < imageSrcs.Length; i++)
-            {
-                worker.ReportProgress(100 * i / imageSrcs.Length, $"Copying image {imageSrcs[i]} (entry {i}/{imageSrcs.Length})");
-                if (worker.CancellationPending)
-                {
-                    e.Cancel = true;
-                    return;
-                }
-                var source = new Uri(sourceUri, imageSrcs[i]).LocalPath;
-                var dest = new Uri(xhtmlUri, imageSrcs[i]).LocalPath;
-                var destDir = Path.GetDirectoryName(dest);
-                if (destDir != null && !Directory.Exists(destDir))
-                {
-                    Directory.CreateDirectory(destDir);
-                }
-                File.Copy(source, dest);
-            }
-            XhtmlDocument.Save(xhtmlPath);
             var synthByCulture = new ReadOnlyDictionary<CultureInfo, IXmlSynthesizer>(SynthesizersByLanguage);
             var synthesizer = new XhtmlSynthesizer()
             {
                 XhtmlDocument = XDocument.Load(xhtmlPath, LoadOptions.SetBaseUri|LoadOptions.SetLineInfo),
-                EncodeMp3 = true,
-                Mp3BitRate = 48,
+                EncodeMp3 = audioFormat.EncodeMp3,
+                Mp3BitRate = audioFormat.Mp3BitRate,
                 SynthesizerSelector = info => synthByCulture.ContainsKey(info) ? synthByCulture[info] : Utils.GetPrefferedXmlSynthesizerForCulture(info)
             };
             synthesizer.Progress += (s, a) =>
             {
-                worker.ReportProgress(a.ProgressPercentage, a.ProgressMessage);
-                if (worker.CancellationPending)
+                synthesizeBackgroundWorker.ReportProgress(a.ProgressPercentage, a.ProgressMessage);
+                if (synthesizeBackgroundWorker.CancellationPending)
                 {
                     a.Cancel = true;
                 }
             };
-            synthesizer.Synthesize();
-            synthesizer.GenerateDaisy202SmilFiles();
-            synthesizer.GenerateNccDocument();
-            synthesizer.NccDocument.Save(Path.Combine(outputDirectory, "ncc.html"));
-            foreach (var smilFile in synthesizer.SmilFiles)
+            if (!synthesizer.GenerateDaisy202Dtb())
             {
-                smilFile.Value.Save(Path.Combine(outputDirectory, smilFile.Key));
+                e.Cancel = true;
+                return;
             }
-            if (worker.CancellationPending)
+            if (synthesizeBackgroundWorker.CancellationPending)
             {
                 e.Cancel = true;
             }
@@ -368,6 +373,61 @@ namespace DtbSynthesizerGui
             if (synthesizeBackgroundWorker.IsBusy && !synthesizeBackgroundWorker.CancellationPending)
             {
                 synthesizeBackgroundWorker.CancelAsync();
+            }
+        }
+
+        private void SynthesizersDataGridViewCellValueChangedHandler(object sender, DataGridViewCellEventArgs e)
+        {
+            if (e.RowIndex < 0 || e.ColumnIndex < 0) return;
+            var lang = synthesizersDataGridView.Rows[e.RowIndex].Cells[languageColumn.Index].Value as CultureInfo;
+            var voiceDesc = synthesizersDataGridView.Rows[e.RowIndex].Cells[voiceColumn.Index].Value.ToString();
+            if (e.ColumnIndex == voiceColumn.Index 
+                && lang != null 
+                && SynthesizersByLanguage.ContainsKey(lang) 
+                && !String.IsNullOrWhiteSpace(voiceDesc))
+            {
+                SynthesizersByLanguage[lang] = Utils.GetAllSynthesizers()
+                    .First(s => s.VoiceInfo.Description == voiceDesc);
+            }
+        }
+
+        private void AudioFormatComboBoxSelectedValueChangedHandler(object sender, EventArgs e)
+        {
+            SelectedAudioFormat = audioFormatComboBox.SelectedItem as AudioFormat;
+        }
+
+        private void ResetSynthesizersButtonClickHandler(object sender, EventArgs e)
+        {
+            ResetSynthesizers();
+        }
+
+        private void MainFormFormClosingHandler(object sender, FormClosingEventArgs e)
+        {
+            if (synthesizeBackgroundWorker.IsBusy)
+            {
+                if (MessageBox.Show(
+                        this,
+                        "A DTB is currently being synthesized. If you close the application, the synthesis will be cancelled",
+                        Text,
+                        MessageBoxButtons.OKCancel,
+                        MessageBoxIcon.Warning) == DialogResult.Cancel)
+                {
+                    e.Cancel = true;
+                    return;
+                }
+                synthesizeBackgroundWorker.CancelAsync();
+                while (synthesizeBackgroundWorker.IsBusy)
+                {
+                    Application.DoEvents();
+                }
+            }
+        }
+
+        private void MetaDataTextBoxTextChangedHandler(object sender, EventArgs e)
+        {
+           if (XhtmlDocument != null && sender is TextBox textBox && textBox.Tag is string metaName && !String.IsNullOrWhiteSpace(metaName))
+            {
+                Utils.SetMeta(XhtmlDocument, metaName.Substring(5), textBox.Text);
             }
         }
     }

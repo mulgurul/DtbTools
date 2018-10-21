@@ -36,12 +36,28 @@ namespace DtbSynthesizerLibraryTests.Xhtml
             return synthesizer;
         }
 
+        [DataRow(@"Pages\Pages.html", 0, 5, 5, 0)]
+        [DataTestMethod]
+        public void GenerateDtbWithPagesTest(string xhtmlFile, int pageFront, int pageNormal, int maxPageNormal, int pageSpecial)
+        {
+            var synthesizer = GetXhtmlSynthesizer(xhtmlFile, true);
+            synthesizer.Synthesize();
+            synthesizer.GenerateDaisy202SmilFiles();
+            Assert.AreEqual(synthesizer.AudioFiles.Count(), synthesizer.SmilFiles.Count, $"Expected one smil file per audio file");
+            synthesizer.GenerateNccDocument();
+            Assert.AreEqual(pageFront.ToString(), Utils.GetMetaContent(synthesizer.NccDocument, "ncc:pageFront"), "Unexpected ncc:pageFront");
+            Assert.AreEqual(pageNormal.ToString(), Utils.GetMetaContent(synthesizer.NccDocument, "ncc:pageNormal"), "Unexpected ncc:pageNormal");
+            Assert.AreEqual(maxPageNormal.ToString(), Utils.GetMetaContent(synthesizer.NccDocument, "ncc:maxPageNormal"), "Unexpected ncc:maxPageNormal");
+            Assert.AreEqual(pageSpecial.ToString(), Utils.GetMetaContent(synthesizer.NccDocument, "ncc:pageSpecial"), "Unexpected ncc:pageSpecial");
+        }
+
         [DataRow(@"Simple\Simple.html", false)]
         [DataRow(@"Sectioned\Sectioned.html", false)]
         [DataRow(@"Tables\Tables.html", false)]
         [DataRow(@"Simple\Simple.html", true)]
         [DataRow(@"Sectioned\Sectioned.html", true)]
         [DataRow(@"Tables\Tables.html", true)]
+        [DataRow(@"Pages\Pages.html", true)]
         [DataTestMethod]
         public void SynthesizeTest(string xhtmlFile, bool encodeMp3)
         {
@@ -123,10 +139,13 @@ namespace DtbSynthesizerLibraryTests.Xhtml
             }
         }
 
-        [DataRow(@"Lists\Lists.html", true)]
-        [DataRow(@"Simple\Simple.html", true)]
+        [DataRow(@"Simple\Simple.html", false)]
         [DataRow(@"Sectioned\Sectioned.html", false)]
         [DataRow(@"Tables\Tables.html", false)]
+        [DataRow(@"Simple\Simple.html", true)]
+        [DataRow(@"Sectioned\Sectioned.html", true)]
+        [DataRow(@"Tables\Tables.html", true)]
+        [DataRow(@"Pages\Pages.html", true)]
         [DataTestMethod]
         public void GenerateDaisy202SmilFilesAndNccDocumentTest(string xhtmlFile, bool encodeMp3)
         {

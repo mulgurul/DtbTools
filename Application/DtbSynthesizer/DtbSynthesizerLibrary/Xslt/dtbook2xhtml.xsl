@@ -24,11 +24,10 @@
 
 	<xsl:output 
 		method="xhtml"
-		
 		encoding="utf-8" 
 		indent="yes" 
 		doctype-public="-//W3C//DTD XHTML 1.0 Transitional//EN" 
-		doctype-system="http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"/>
+		doctype-system="http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dt"/>
 
 	<!-- <!ENTITY catts "@id|@class|@title|@xml:lang"> -->
 	<xsl:template name="copyCatts">
@@ -175,9 +174,11 @@
 		<xsl:apply-templates/>
 	</xsl:template>
 
-	<xsl:template
-		match="dtb:level1 | dtb:level2 | dtb:level3 | dtb:level4 | dtb:level5 | dtb:level6 | dtb:level">
-		<xsl:apply-templates/>
+	<xsl:template match="dtb:level1 | dtb:level2 | dtb:level3 | dtb:level4 | dtb:level5 | dtb:level6 | dtb:level">
+		<div>
+			<xsl:copy-of select="@xml:lang|@id|@class"/>
+			<xsl:apply-templates/>
+		</div>
 	</xsl:template>
 
 	<xsl:template match="dtb:covertitle">
@@ -190,10 +191,7 @@
 
 
 	<xsl:template match="dtb:p">
-		<p>
-			<xsl:call-template name="copyCatts"/>
-			<xsl:apply-templates mode="inlineOnly"/>
-		</p>
+		<p><xsl:call-template name="copyCatts"/><xsl:apply-templates mode="inlineOnly"/></p>
 	</xsl:template>
 
 

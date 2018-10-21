@@ -41,6 +41,11 @@ namespace DtbSynthesizerLibrary
         /// </summary>
         public IDictionary<string,string> AdditionalInfo { get; set; }
 
-        public string Description => $"{Name} ({Type} {Culture.DisplayName} voice)";
+        public string Description => $"{Name} ({Culture}, {Type})";
+
+        public override string ToString()
+        {
+            return Description;
+        }
     }
 }

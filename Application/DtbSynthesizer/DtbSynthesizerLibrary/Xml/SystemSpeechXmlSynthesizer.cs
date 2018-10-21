@@ -96,7 +96,7 @@ namespace DtbSynthesizerLibrary.Xml
             Culture = Voice.Culture,
             Gender = Voice.Gender.ToString(),
             AdditionalInfo = new ReadOnlyDictionary<string, string>(Synthesizer.Voice.AdditionalInfo),
-            Type = "System.Speech"
+            Type = "System.Speech/SAPI5"
         };
     }
 }

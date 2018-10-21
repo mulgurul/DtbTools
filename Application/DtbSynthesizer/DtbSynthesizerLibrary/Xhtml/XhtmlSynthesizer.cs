@@ -5,6 +5,8 @@ using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Reflection;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Xml;
 using System.Xml.Linq;
@@ -19,6 +21,15 @@ namespace DtbSynthesizerLibrary.Xhtml
     {
 
         public static XNamespace XhtmlNs => Utils.XhtmlNs;
+
+        public static bool IsPageNumberElement(XElement element)
+        {
+            return
+                element.Name == XhtmlNs + "span"
+                && (element
+                        .Attribute("class")?.Value.Split(' ')
+                        .Any(cl => new[] {"page-front", "page-normal", "page-special"}.Contains(cl)) ?? false);
+        }
 
         protected bool FireProgress(int percentage, string message)
         {
@@ -81,6 +92,8 @@ namespace DtbSynthesizerLibrary.Xhtml
                 }
             }
         }
+
+        public string OutputDirectory => Path.GetDirectoryName(XhtmlPath) ?? Directory.GetCurrentDirectory();
 
         private readonly IDictionary<string, XDocument> smilFilesByFileName = new Dictionary<string, XDocument>();
 
@@ -299,9 +312,7 @@ namespace DtbSynthesizerLibrary.Xhtml
 
         private string AudioFileName => $"aud{audioFileNumber:D5}.{(EncodeMp3 ? "mp3" : "wav")}";
 
-        private string AudioFilePath => Path.Combine(
-            Path.GetDirectoryName(XhtmlPath)??Directory.GetCurrentDirectory(),
-            AudioFileName);
+        private string AudioFilePath => Path.Combine(OutputDirectory, AudioFileName);
 
         private async Task EncodeMp3AudioFile(Stream waveStream, string audioFilePath)
         {
@@ -321,6 +332,30 @@ namespace DtbSynthesizerLibrary.Xhtml
                 }
             }
             waveStream.Dispose();
+        }
+
+        public bool GenerateDaisy202Dtb()
+        {
+            NormalizeSpaceInXhtmlDocument(XhtmlDocument);
+            Utils.SetMeta(XhtmlDocument, "dc:format", "Daisy 2.02");
+            MovePageNumbers();
+            if (!Synthesize()) return false;
+            if (!GenerateDaisy202SmilFiles()) return false;
+            int i = 0;
+            foreach (var smilFileName in SmilFiles.Keys)
+            {
+                if (FireProgress(100 * i / SmilFiles.Count,
+                    $"Saving smil file {smilFileName} ({i + 1}/{SmilFiles.Count}"))
+                {
+                    return false;
+                }
+                SmilFiles[smilFileName].Save(Path.Combine(OutputDirectory, smilFileName));
+                i++;
+            }
+            GenerateNccDocument();
+            NccDocument.Save(Path.Combine(OutputDirectory, "ncc.html"));
+            XhtmlDocument.Save(XhtmlPath);
+            return true;
         }
 
         public bool Synthesize()
@@ -396,20 +431,28 @@ namespace DtbSynthesizerLibrary.Xhtml
             }
         }
 
-        public void GenerateDaisy202SmilFiles()
+        public bool GenerateDaisy202SmilFiles()
         {
             var xhtmlFileName = Path.GetFileName(XhtmlPath);
             var smilFiles = new Dictionary<string, XDocument>();
-            foreach (var anno in (Body ?? new XElement(XhtmlNs + "body"))
+            var annos = (Body ?? new XElement(XhtmlNs + "body"))
                 .DescendantNodes()
                 .SelectMany(n => n.Annotations<SyncAnnotation>())
                 .Where(anno =>
                     (anno.Src?.EndsWith(EncodeMp3 ? ".mp3" : ".wav") ?? false)
                     && !String.IsNullOrEmpty(anno.Element?.Attribute("id")?.Value)
-                    && anno.ClipEnd > anno.ClipBegin))
+                    && anno.ClipEnd > anno.ClipBegin)
+                .ToList();
+            for (int i = 0; i < annos.Count; i++)
             {
+                if (FireProgress(
+                    100 * i / annos.Count,
+                    $"Handling synchronization point {i + 1} of {annos.Count} to {AudioFileName}"))
+                {
+                    return false;
+                }
+                var anno = annos[i];
                 var smilName = $"{anno.Src.Substring(0, anno.Src.Length - 4)}.smil".ToLowerInvariant();
-                Debug.Print($"Anno: {anno.Src}[{anno.ClipBegin};{anno.ClipEnd}]: {anno.Element.Value}");
                 if (!smilFiles.ContainsKey(smilName))
                 {
                     smilFiles.Add(smilName,
@@ -499,6 +542,7 @@ namespace DtbSynthesizerLibrary.Xhtml
             {
                 smilFilesByFileName.Add(kvp);
             }
+            return true;
         }
 
         public void GenerateNccDocument()
@@ -507,29 +551,59 @@ namespace DtbSynthesizerLibrary.Xhtml
             ncc.Root?.Element(XhtmlNs + "head")?.Add(XhtmlDocument.Root?.Element(XhtmlNs + "head")?.Elements());
             var nsMgr = new XmlNamespaceManager(ncc.CreateReader().NameTable??new NameTable());
             nsMgr.AddNamespace("x", XhtmlNs.NamespaceName);
-            var body = ncc.XPathSelectElements("/x:html/x:body", nsMgr).Single();
+            var nccBody = ncc.XPathSelectElements("/x:html/x:body", nsMgr).Single();
+            if (Utils.SelectCulture(Body).IsNeutralCulture)
             foreach (var kvp in SmilFiles)
             {
-                var firstSrcId = kvp
+                var smilTextSrcAttrs = kvp
                     .Value
                     .Descendants("text")
-                    .Select(text => text.Attribute("src")?.Value)
-                    .First(src => !String.IsNullOrEmpty(src)).Split('#').Last();
+                    .Select(text => text.Attribute("src"))
+                    .Where(src => !String.IsNullOrEmpty(src?.Value))
+                    .ToList();
+                var firstSrcId = smilTextSrcAttrs.First().Value.Split('#').Last();
                 var heading = new XElement(Body.Descendants().First(e => e.Attribute("id")?.Value == firstSrcId));
-                var headingNodes = heading.Nodes().ToList();
                 var a = new XElement(
                     XhtmlNs+"a",
                     new XAttribute("href", $"{kvp.Key}#par_00000"));
-                foreach (var e in headingNodes)
+                foreach (var e in heading.Nodes().ToList())
                 {
                     e.Remove();
                     a.Add(e);
                 }
                 heading.Add(a);
-                body.Add(heading);
+                nccBody.Add(heading);
+                var pageSpans = Body
+                    .Descendants(XhtmlNs + "span")
+                    .Where(IsPageNumberElement)
+                    .Where(span => smilTextSrcAttrs.Any(src => src.Value.Split('#').Last().Equals(span.Attribute("id")?.Value)))
+                    .Select(span => new XElement(span));
+                foreach (var pageSpan in pageSpans)
+                {
+                    var smilParId = smilTextSrcAttrs
+                        .Single(src => src.Value.Split('#').Last().Equals(pageSpan.Attribute("id")?.Value)).Parent?.Parent?.Attribute("id")?.Value;
+                    a = new XElement(
+                        XhtmlNs + "a",
+                        new XAttribute("href", $"{kvp.Key}#{smilParId}"));
+                    foreach (var n in pageSpan.Nodes().ToList())
+                    {
+                        n.Remove();
+                        a.Add(n);
+                    }
+                    pageSpan.Add(a);
+                    nccBody.Add(pageSpan);
+                }
             }
             Utils.SetMeta(ncc, "dc:format", "Daisy 2.02");
-            Utils.SetMeta(ncc, "ncc:files", (2+SmilFiles.Count+AudioFiles.Count()).ToString());
+            var imageFileCount = Body
+                .Descendants(XhtmlNs + "img")
+                .Select(img => img.Attribute("src")?.Value.ToLowerInvariant())
+                .Distinct()
+                .Count(src => Uri.IsWellFormedUriString(src, UriKind.Relative));
+            Utils.SetMeta(
+                ncc,
+                "ncc:files",
+                (2 + SmilFiles.Count + AudioFiles.Count() + imageFileCount).ToString());
             Utils.SetMeta(
                 ncc, 
                 "ncc:totalTime",
@@ -537,12 +611,12 @@ namespace DtbSynthesizerLibrary.Xhtml
                     TimeSpan.FromSeconds(
                         Body.DescendantNodes().SelectMany(n =>
                             n.Annotations<SyncAnnotation>().Select(anno => (anno.ClipEnd - anno.ClipBegin).TotalSeconds)).Sum())));
-            Utils.SetMeta(ncc, "ncc:tocItems", body.Elements().Count().ToString());
+            Utils.SetMeta(ncc, "ncc:tocItems", nccBody.Elements().Count().ToString());
             Utils.SetMeta(
                 ncc, 
                 "ncc:depth", 
-                Enumerable.Range(1, 6).Where(i => body.Elements(XhtmlNs + $"h{i}").Any()).Max().ToString());
-            var nar = (SynthesizerSelector(Utils.SelectCulture(body))??DefaultSynthesizer)?.VoiceInfo.Name;
+                Enumerable.Range(1, 6).Where(i => nccBody.Elements(XhtmlNs + $"h{i}").Any()).Max().ToString());
+            var nar = (SynthesizerSelector(Utils.SelectCulture(nccBody))??DefaultSynthesizer)?.VoiceInfo.Name;
             if (!String.IsNullOrEmpty(nar))
             {
                 Utils.SetMeta(ncc, "ncc:narrator", nar);
@@ -550,10 +624,25 @@ namespace DtbSynthesizerLibrary.Xhtml
             Utils.SetMeta(ncc, "ncc:multimediaType", "audioFullText");
             Utils.SetMeta(ncc, "ncc:generator", Utils.Generator);
             Utils.SetMeta(ncc, "ncc:charset", "utf-8");
-            Utils.SetMeta(ncc, "ncc:pageFront", "0");
-            Utils.SetMeta(ncc, "ncc:pageNormal", "0");
-            Utils.SetMeta(ncc, "ncc:maxPageNormal", "0");
-            Utils.SetMeta(ncc, "ncc:pageSpecial", "0");
+            foreach (var type in new[] {"Front", "Normal", "Special"})
+            {
+                Utils.SetMeta(
+                    ncc,
+                    $"ncc:page{type}",
+                    nccBody
+                        .Elements(XhtmlNs + "span")
+                        .Count(span => $"page-{type.ToLowerInvariant()}".Equals(span.Attribute("class")?.Value))
+                        .ToString());
+            }
+            Utils.SetMeta(
+                ncc,
+                "ncc:maxPageNormal",
+                nccBody
+                    .Elements(XhtmlNs + "span")
+                    .Where(span => "page-normal".Equals(span.Attribute("class")?.Value))
+                    .Select(span => Int32.TryParse(span.Value, out var pageNo) ? pageNo : 0)
+                    .Max()
+                    .ToString());
             var bodyLang = Utils.GetLanguage(Body);
             if (String.IsNullOrWhiteSpace(Utils.GetMetaContent(ncc, "dc:language")) &&
                 !String.IsNullOrWhiteSpace(bodyLang))
@@ -580,9 +669,57 @@ namespace DtbSynthesizerLibrary.Xhtml
             {
                 Utils.SetMeta(ncc, "dc:date", DateTime.Today.ToString("yyyy-MM-dd")).SetAttributeValue("scheme", "yyyy-mm-dd");
             }
+            NormalizeSpaceInXhtmlDocument(ncc);
             NccDocument = ncc;
         }
 
+        public void MovePageNumbers()
+        {
+            foreach (var span in XhtmlDocument.Descendants(XhtmlNs + "span").Where(IsPageNumberElement))
+            {
+                Utils.TrimWhiteSpace(span);
+                Utils.AddPageName(span);
+                MovePageNumber(span);
+            }
+        }
 
+        private void MovePageNumber(XElement pageNumSpan)
+        {
+            var parent = pageNumSpan.Parent;
+            if (parent == null || parent == Body || BlockContainerNames.Contains(parent.Name))
+            {
+                return;
+            }
+            pageNumSpan.Remove();
+            parent.AddAfterSelf(pageNumSpan);
+            MovePageNumber(pageNumSpan);
+        }
+
+        public void NormalizeSpaceInXhtmlDocument(XDocument doc)
+        {
+            foreach (var text in doc.DescendantNodes().OfType<XText>())
+            {
+                text.Value = Regex.Replace(text.Value, @"\s+", " ");
+            }
+            foreach (var element in doc.Descendants().Where(e => IsPageNumberElement(e) || !IsInline(e)))
+            {
+                if (element.NextNode is XText nt)
+                {
+                    nt.Value = $"\n{nt.Value.TrimStart()}";
+                }
+                else
+                {
+                    element.AddAfterSelf("\n");
+                }
+                if (element.PreviousNode is XText pt)
+                {
+                    pt.Value = $"{pt.Value.TrimEnd()}\n";
+                }
+                else
+                {
+                    element.AddBeforeSelf("\n");
+                }
+            }
+        }
     }
 }

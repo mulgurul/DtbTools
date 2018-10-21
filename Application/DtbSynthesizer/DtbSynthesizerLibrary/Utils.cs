@@ -369,5 +369,136 @@ namespace DtbSynthesizerLibrary
             return startOffset + TimeSpan.FromSeconds((clipTime - startOffset).TotalSeconds * factor);
         }
 
+        public static Dictionary<CultureInfo, string> PageNumberNamesByCulture =
+            new Dictionary<CultureInfo, string>()
+            {
+                {new CultureInfo("en"), "Page"},
+                {new CultureInfo("de"), "Seite"},
+                {new CultureInfo("es"), "Página"},
+                {new CultureInfo("fr"), "Page"},
+                {new CultureInfo("da"), "Side"},
+                {new CultureInfo("sv"), "Sida"},
+                {new CultureInfo("no"), "Side"},
+                {new CultureInfo("fi"), "Sivu"}
+            };
+
+        public static void AddPageName(XElement pageNumberElement)
+        {
+            if (pageNumberElement == null) return;
+            var ci = SelectCulture(pageNumberElement);
+            if (PageNumberNamesByCulture.TryGetValue(ci, out var pn))
+            {
+                if (!pageNumberElement.Value.StartsWith(pn, true, ci))
+                {
+                    pageNumberElement.Value = $"{pn} {pageNumberElement.Value}";
+                }
+            }
+        }
+
+        public static void RemovePageName(XElement pageNumberElement)
+        {
+            if (pageNumberElement == null) return;
+            var ci = SelectCulture(pageNumberElement);
+            if (PageNumberNamesByCulture.TryGetValue(ci, out var pn))
+            {
+                if (pageNumberElement.Value.StartsWith(pn, true, ci))
+                {
+                    pageNumberElement.Value = $"{pn} {pageNumberElement.Value}";
+                }
+            }
+        }
+
+        public static void TrimWhiteSpace(XElement element)
+        {
+            foreach (var text in element.DescendantNodes().OfType<XText>())
+            {
+                text.Value = Regex.Replace(text.Value, @"\s+", " ", RegexOptions.Singleline);
+            }
+
+            while (element.Nodes().FirstOrDefault() is XText t1 && String.IsNullOrWhiteSpace(t1.Value))
+            {
+                t1.Remove();
+            }
+            while (element.Nodes().LastOrDefault() is XText t2 && String.IsNullOrWhiteSpace(t2.Value))
+            {
+                t2.Remove();
+            }
+            if (element.Nodes().FirstOrDefault() is XText t3)
+            {
+                t3.Value = t3.Value.TrimStart();
+            }
+            if (element.Nodes().LastOrDefault() is XText t4)
+            {
+                t4.Value = t4.Value.TrimEnd();
+            }
+
+        }
+
+        public static bool CopyXhtmlDocumentWithImages(
+            XDocument xhtmlDoc, 
+            string outputDirectory,
+            out string xhtmlPath, 
+            Func<int, string, bool> cancellableProgressDelegate = null)
+        {
+            if (xhtmlDoc == null) throw new ArgumentNullException(nameof(xhtmlDoc));
+            if (outputDirectory == null) throw new ArgumentNullException(nameof(outputDirectory));
+            if (cancellableProgressDelegate == null) cancellableProgressDelegate = (i, s) => false;
+            xhtmlPath = null;
+            if (outputDirectory == null)
+            {
+                throw new ApplicationException("No output directory was given");
+            }
+            if (!Directory.Exists(outputDirectory))
+            {
+                throw new ApplicationException($"Output directory {outputDirectory} does not exist");
+            }
+
+            var entries = new DirectoryInfo(outputDirectory).GetFileSystemInfos();
+            for (int i = 0; i < entries.Length; i++)
+            {
+                if (cancellableProgressDelegate(100 * i / entries.Length,
+                    $"Emptying output directory {outputDirectory} (entry {i}/{entries.Length})"))
+                {
+                    return false;
+                }
+                if (entries[i] is DirectoryInfo di)
+                {
+                    di.Delete(true);
+                }
+                if (entries[i] is FileInfo fi)
+                {
+                    fi.Delete();
+                }
+            }
+            xhtmlPath = Path.Combine(
+                outputDirectory,
+                Path.GetFileNameWithoutExtension(new Uri(xhtmlDoc.BaseUri).LocalPath) + ".html");
+            var xhtmlUri = new Uri(xhtmlPath);
+            var sourceUri = new Uri(xhtmlDoc.BaseUri);
+            var imageSrcs = xhtmlDoc
+                .Descendants(Utils.XhtmlNs + "img")
+                .Select(img => img.Attribute("src")?.Value)
+                .Where(src => !String.IsNullOrWhiteSpace(src))
+                .Distinct(StringComparer.InvariantCultureIgnoreCase)
+                .Where(src => Uri.IsWellFormedUriString(src, UriKind.Relative))
+                .ToArray();
+            for (int i = 0; i < imageSrcs.Length; i++)
+            {
+                if (cancellableProgressDelegate(100 * i / imageSrcs.Length, $"Copying image {imageSrcs[i]} (entry {i}/{imageSrcs.Length})"))
+                { 
+                    return false;
+                }
+                var source = new Uri(sourceUri, imageSrcs[i]).LocalPath;
+                var dest = new Uri(xhtmlUri, imageSrcs[i]).LocalPath;
+                var destDir = Path.GetDirectoryName(dest);
+                if (destDir != null && !Directory.Exists(destDir))
+                {
+                    Directory.CreateDirectory(destDir);
+                }
+                File.Copy(source, dest);
+            }
+            xhtmlDoc.Save(xhtmlPath);
+            return true;
+        }
     }
 }

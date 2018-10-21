@@ -4,6 +4,7 @@ using System.Collections.ObjectModel;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Xml.Linq;
 using Microsoft.Speech.AudioFormat;
 using Microsoft.Speech.Synthesis;
@@ -88,7 +89,7 @@ namespace DtbSynthesizerLibrary.Xml
 
         public VoiceMetaData VoiceInfo => new VoiceMetaData()
         {
-            Name = Voice.Name,
+            Name = Regex.Replace(Voice.Name, @"^Microsoft Server Speech Text to Speech Voice \(\w+-\w+, (\w+)\)$", @"$1"),
             Culture = Voice.Culture,
             Gender = Voice.Gender.ToString(),
             AdditionalInfo =  new ReadOnlyDictionary<string, string>(Synthesizer.Voice.AdditionalInfo),
