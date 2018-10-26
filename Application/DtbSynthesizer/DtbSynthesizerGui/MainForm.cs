@@ -167,7 +167,7 @@ namespace DtbSynthesizerGui
                 Title = "Open Source File",
                 CheckFileExists = true,
                 Multiselect = false,
-                Filter = "html (*.htm;*.html)|*.htm;*.html|xml|*.xml|ePub|*.epub",
+                Filter = "dtbook|*.xml|html (*.htm;*.html)|*.htm;*.html",
                 FilterIndex = 1
             };
             if (ofd.ShowDialog(this) == DialogResult.OK)
