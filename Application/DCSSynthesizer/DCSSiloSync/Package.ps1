@@ -1,5 +1,5 @@
 param (
-    $Conf,
+    $Conf = "Release",
 	$BaseName = "DCSSiloSync"
 )
 

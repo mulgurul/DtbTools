@@ -55,13 +55,13 @@ namespace DCSSynthesizer
         private static int year = DateTime.Now.Year;
         private static int? number;
         private static bool useDate = false;
-        private static int bitrate = 48;
+        private static int bitrate = 32;
         private static string uncRoot = @"\\smb-files\Temp\DCSSynthesizer";
         private static string dcsServiceUri = "http://http-dcsarchive";
         private static string defaultCreator = "Nota";
         private static bool forceOverwriteDCS = false;
         private static bool useDCSPro = false;
-        private static DCSArchiveClientApi.ClientApi clientApi = null;
+        private static ClientApi clientApi = null;
 
         private static string DestPath => Path.Combine(uncRoot, destTitleNumber);
 
@@ -272,21 +272,15 @@ namespace DCSSynthesizer
             var synthesizer = new XhtmlSynthesizer()
             {
                 XhtmlDocument = XDocument.Load(xhtmlFileName, LoadOptions.SetBaseUri | LoadOptions.SetLineInfo),
-                AudioWaveFormat = new WaveFormat(22050, 1)
+                EncodeMp3 = true,
+                Mp3BitRate = bitrate
             };
             synthesizer.Progress += (sender, args) =>
             {
                 Console.Write($"{args.ProgressPercentage:D3}% {args.ProgressMessage}".PadRight(80).Substring(0, 80) + "\r");
             };
-            synthesizer.Synthesize();
+            synthesizer.GenerateDaisy202Dtb();
             Console.Write($"{new String(' ', 80)}\r");
-            synthesizer.GenerateDaisy202SmilFiles();
-            synthesizer.GenerateNccDocument();
-            synthesizer.NccDocument.Save(Path.Combine(DestPath, "ncc.html"));
-            foreach (var smilFile in synthesizer.SmilFiles)
-            {
-                smilFile.Value.Save(Path.Combine(DestPath, smilFile.Key));
-            }
             Console.WriteLine("Synthesized DTB");
             return 0;
         }
