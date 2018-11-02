@@ -641,6 +641,7 @@ namespace DtbSynthesizerLibrary.Xhtml
                     .Elements(XhtmlNs + "span")
                     .Where(span => "page-normal".Equals(span.Attribute("class")?.Value))
                     .Select(span => Int32.TryParse(span.Value, out var pageNo) ? pageNo : 0)
+                    .Union(new[]{0})
                     .Max()
                     .ToString());
             var bodyLang = Utils.GetLanguage(Body);

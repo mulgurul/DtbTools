@@ -170,9 +170,44 @@ namespace DtbSynthesizerLibraryTests.Xhtml
                 Utils.GetMetaContent(synthesizer.NccDocument, "dc:format"),
                 "Expected dc:format=Daisy 2.02 meta");
             Assert.AreEqual(
-                (2+synthesizer.AudioFiles.Count()+synthesizer.SmilFiles.Count).ToString(),
+                (2
+                 +synthesizer.AudioFiles.Count()
+                 +synthesizer.SmilFiles.Count
+                 +synthesizer.XhtmlDocument.Descendants(Utils.XhtmlNs+"img").Select(img => img.Attribute("src")?.Value).Distinct().Count()).ToString(),
                 Utils.GetMetaContent(synthesizer.NccDocument, "ncc:files"),
-                "Expected dc:format=Daisy 2.02 meta");
+                "Wrong ncc:files");
+            var pageNormalNumbers = synthesizer
+                .XhtmlDocument
+                .Descendants(Utils.XhtmlNs+"span")
+                .Where(span => span.Attribute("class")?.Value?.Split(' ')?.Contains("page-normal")??false)
+                .Select(span => Int32.TryParse(span.Value, out var pageNo) ? pageNo : 0)
+                .ToList();
+            if (pageNormalNumbers.Any())
+            {
+                Assert.AreEqual(pageNormalNumbers.Count.ToString(), Utils.GetMetaContent(synthesizer.NccDocument, "ncc:pageNormal"));
+                Assert.AreEqual(pageNormalNumbers.Max().ToString(), Utils.GetMetaContent(synthesizer.NccDocument, "ncc:maxPageNormal"));
+            }
+            else
+            {
+                Assert.AreEqual("0", Utils.GetMetaContent(synthesizer.NccDocument, "ncc:pageNormal"), "Wrong ncc:pageNormal");
+                Assert.AreEqual("0", Utils.GetMetaContent(synthesizer.NccDocument, "ncc:maxPageNormal"), "Wrong ncc:maxPageNormal");
+            }
+            Assert.AreEqual(
+                synthesizer
+                    .XhtmlDocument
+                    .Descendants(Utils.XhtmlNs + "span")
+                    .Count(span => span.Attribute("class")?.Value?.Split(' ')?.Contains("page-special") ?? false)
+                    .ToString(),
+                Utils.GetMetaContent(synthesizer.NccDocument, "ncc:pageSpecial"),
+                "Wrong ncc:pageSpecial");
+            Assert.AreEqual(
+                synthesizer
+                    .XhtmlDocument
+                    .Descendants(Utils.XhtmlNs + "span")
+                    .Count(span => span.Attribute("class")?.Value?.Split(' ')?.Contains("page-front") ?? false)
+                    .ToString(),
+                Utils.GetMetaContent(synthesizer.NccDocument, "ncc:pageFront"),
+                "Wrong ncc:pageFront");
             var totalElapsedTime = TimeSpan.Zero;
             foreach (var smil in synthesizer.SmilFiles)
             {
