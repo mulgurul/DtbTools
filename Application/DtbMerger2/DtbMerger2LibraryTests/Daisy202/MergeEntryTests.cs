@@ -119,10 +119,10 @@ namespace DtbMerger2LibraryTests.Daisy202
         {
             var entries = MergeEntry.LoadMergeEntriesFromNcc(dtb1NccUri)?.ToList();
             Assert.IsNotNull(entries);
-            Assert.AreEqual(3, entries.Count());
+            Assert.AreEqual(4, entries.Count());
             Assert.IsTrue(entries.All(e => e.NccElements.First().Name.LocalName == "h1"), "One loaded entry did not have h1 as first ncc element");
-            Assert.AreEqual(2, entries.Last().ChildNodes.Count, "Expected last entry to have two children");
-            Assert.AreEqual(7, entries.SelectMany(e => new[] { e }.Union(e.Descendents)).Count(), "Expected a total of 7 entries");
+            Assert.AreEqual(0, entries.Last().ChildNodes.Count, "Expected last entry to have no children");
+            Assert.AreEqual(8, entries.SelectMany(e => new[] { e }.Union(e.Descendents)).Count(), "Expected a total of 7 entries");
         }
 
         [TestMethod]

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using System.Linq;
+using System.Xml.Linq;
 using DtbMerger2Library.Daisy202;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
@@ -16,7 +17,8 @@ namespace DtbMerger2LibraryTests.Daisy202
         public void GetMacroElementsFromNccTest()
         {
             var macroElements = MacroEntry.GetMacroElementsFromNcc(dtb1NccUri);
-            Assert.AreEqual(3, macroElements.Count());
+            var ncc = Utils.LoadXDocument(dtb1NccUri);
+            Assert.AreEqual(ncc.Descendants(Utils.XhtmlNs+"h1").Count(), macroElements.Count(), "Number of macro elements must match number of h1 elements");
         }
 
     }
