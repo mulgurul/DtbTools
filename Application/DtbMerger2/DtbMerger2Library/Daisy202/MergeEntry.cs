@@ -363,26 +363,34 @@ namespace DtbMerger2Library.Daisy202
         {
             get
             {
-                var textElements = SmilElements
+                return SmilElements
                     .Select(par => par.Element(par.Name.Namespace + "text")?.Attribute("src"))
                     .Select(Utils.GetUri)
                     .Select(Utils.GetElementFromCachedXDocuments)
                     .Distinct()
-                    .ToList();
-                int i = 0;
-                while (i < textElements.Count - 1)
-                {
-                    var e1 = textElements[i];
-                    var e2 = textElements[i + 1];
-                    var siblingsBetween = e1.ElementsAfterSelf().Intersect(e2.ElementsBeforeSelf()).ToList();
-                    if (siblingsBetween.Any())
+                    .GroupBy(te => te.Document)
+                    .SelectMany(group =>
                     {
-                        textElements.InsertRange(i + 1, siblingsBetween);
-                        i += siblingsBetween.Count;
-                    }
-                    i++;
-                }
-                return textElements;
+                        var first = group.First();
+                        var last = first.Parent?.Elements()
+                            .FirstOrDefault(e => e.DescendantsAndSelf().Contains(group.Last()));
+                        if (last == null)
+                        {
+                            throw new ApplicationException(
+                                $"Unsupported text document structure in {group.Key.BaseUri}: "
+                                + $"first referenced element #{first.Attribute("id")?.Value}'s parent does not contain "
+                                + $"last referenced element {group.Last().Attribute("id")?.Value}");
+                        }
+                        if (!first.ElementsAfterSelf().Union(new[] {first}).Contains(last))
+                        {
+                            var temp = first;
+                            first = last;
+                            last = temp;
+                        }
+                        return new[] {first}
+                            .Union(first.ElementsAfterSelf())
+                            .Intersect(new[] {last}.Union(last.ElementsBeforeSelf()));
+                    });
             }
         }
 

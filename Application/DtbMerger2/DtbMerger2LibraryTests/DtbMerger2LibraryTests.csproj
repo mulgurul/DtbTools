@@ -79,6 +79,9 @@
     <None Include="DTBs\DTB1\sm0004.smil">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <None Include="DTBs\DTB1\sm0008.smil">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Include="DTBs\DTB1\sm0007.smil">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
@@ -104,6 +107,9 @@
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Include="DTBs\DTB1\ncc.html">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="DTBs\DTB1\content2.html">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <Content Include="DTBs\macro_content_links.xml">

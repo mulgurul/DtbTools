@@ -834,7 +834,7 @@ namespace DtbMerger2MacroEditor
                 if (builder.SaveDtb(path, SaveDtbProgressHandler))
                 {
                     ShowMessage(
-                        $"Succesfully generated merged DTB from macro and saved to\n{path}",
+                        $"Successfully generated merged DTB from macro and saved to\n{path}",
                         "Generate Merged DTB",
                         MessageBoxButtons.OK,
                         MessageBoxIcon.Information);

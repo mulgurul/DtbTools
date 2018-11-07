@@ -16,7 +16,7 @@ using NAudio.Wave;
 namespace DtbMerger2Library.Daisy202
 {
     /// <summary>
-    /// Builds and saves a merged DTB mased on a list of <see cref="MergeEntries"/>
+    /// Builds and saves a merged DTB based on a list of <see cref="MergeEntries"/>
     /// </summary>
     public class DtbBuilder
     {
@@ -242,9 +242,9 @@ namespace DtbMerger2Library.Daisy202
         /// Builds the merged DTB
         /// </summary>
         /// <param name="progressDelegate">
-        /// A progress delegate, recieving progress percentage and message. 
+        /// A progress delegate, receiving progress percentage and message. 
         /// When the delegate returns <c>true</c>, it is a signal to cancel the save process</param>
-        /// <returns><c>true</c> if the DTB was succesfully saved, <c>false</c> if the save process was cancelled via the <paramref name="progressDelegate"/></returns>
+        /// <returns><c>true</c> if the DTB was successfully saved, <c>false</c> if the save process was cancelled via the <paramref name="progressDelegate"/></returns>
         public bool BuildDtb(Func<int, string, bool> progressDelegate = null)
         {
             if (progressDelegate == null)
@@ -449,7 +449,7 @@ namespace DtbMerger2Library.Daisy202
         /// </summary>
         /// <param name="baseDir">The directory in which to save the built DTB</param>
         /// <param name="progressDelegate">
-        /// A progress delegate, recieving progress percentage and message. 
+        /// A progress delegate, receiving progress percentage and message. 
         /// When the delegate returns <c>true</c>, it is a signal to cancel the save process</param>
         /// <returns><c>true</c> if the DTB was succesfully saved, <c>false</c> if the save process was cancelled via the <paramref name="progressDelegate"/></returns>
         public bool SaveDtb(string baseDir, Func<int, string, bool> progressDelegate = null)

@@ -66,8 +66,25 @@ namespace DtbMerger2LibraryTests.Daisy202
             var textElements = entry.TextElements?.ToList();
             Assert.IsNotNull(textElements, "Text elements is null");
             Assert.IsTrue(textElements.Any(), "Found no text elements");
-            Assert.IsTrue(textElements.All(e => e.Parent?.Name == (e.Name.Namespace+"body")));
+            Assert.IsTrue(textElements.All(e => e.Parent?.Name == (e.Name.Namespace + "body")));
             Assert.AreEqual(3, textElements.Count(), "Expected 3 text elements, including unreferenced image");
+            entry = new MergeEntry() { SourceNavEntry = new UriBuilder(dtb1NccUri) { Fragment = "nav3_2" }.Uri };
+            textElements = entry.TextElements?.ToList();
+            Assert.IsNotNull(textElements, "Text elements is null");
+            Assert.IsTrue(textElements.Any(), "Found no text elements");
+            Assert.IsTrue(textElements.All(e => e.Parent?.Name == (e.Name.Namespace + "body")));
+            Assert.AreEqual(5, textElements.Count(), "Expected 5 text elements, including table");
+            entry = new MergeEntry() { SourceNavEntry = new UriBuilder(dtb1NccUri) { Fragment = "nav4" }.Uri };
+            textElements = entry.TextElements?.ToList();
+            Assert.IsNotNull(textElements, "Text elements is null");
+            Assert.IsTrue(textElements.Any(), "Found no text elements");
+            Assert.IsTrue(textElements.All(e => e.Parent?.Name == (e.Name.Namespace + "body")));
+            Assert.AreEqual(4, textElements.Count(), "Expected 4 text elements");
+            Assert.AreEqual(
+                2, 
+                textElements.Select(te => te.Document).Distinct().Count(),
+                "Expected text elements from two content documents");
+
         }
 
         [TestMethod]
