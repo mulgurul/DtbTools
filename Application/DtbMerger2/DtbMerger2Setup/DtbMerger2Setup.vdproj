@@ -226,7 +226,7 @@
             {
             "AssemblyRegister" = "3:1"
             "AssemblyIsInGAC" = "11:FALSE"
-            "AssemblyAsmDisplayName" = "8:DtbMerger2Library, Version=2.0.5.14466, Culture=neutral, processorArchitecture=MSIL"
+            "AssemblyAsmDisplayName" = "8:DtbMerger2Library, Version=2.0.6.41765, Culture=neutral, processorArchitecture=MSIL"
                 "ScatterAssemblies"
                 {
                     "_60C17DBEEC68CE30EAE14A55D9F178CB"
@@ -402,15 +402,15 @@
         {
         "Name" = "8:Microsoft Visual Studio"
         "ProductName" = "8:DtbMerger2"
-        "ProductCode" = "8:{A63D54DA-0AEB-41EB-BB7B-24F08C811141}"
-        "PackageCode" = "8:{709D2E24-163F-4182-9388-51AF96082087}"
+        "ProductCode" = "8:{22F15364-ECEE-4455-A05D-562CAEB19A7F}"
+        "PackageCode" = "8:{CEACFEC4-9282-44A5-9133-2E9D2BFDF97A}"
         "UpgradeCode" = "8:{35AAFEF2-F9C9-4A63-9D02-7700203AC172}"
         "AspNetVersion" = "8:4.0.30319.0"
         "RestartWWWService" = "11:FALSE"
         "RemovePreviousVersions" = "11:TRUE"
         "DetectNewerInstalledVersion" = "11:TRUE"
         "InstallAllUsers" = "11:TRUE"
-        "ProductVersion" = "8:2.0.6"
+        "ProductVersion" = "8:2.0.7"
         "Manufacturer" = "8:Nota"
         "ARPHELPTELEPHONE" = "8:"
         "ARPHELPLINK" = "8:"

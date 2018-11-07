@@ -351,6 +351,14 @@ namespace DtbMerger2Library.Daisy202
                 NccDocument.Root?.Element(Utils.XhtmlNs + "head")?.Element(Utils.XhtmlNs + "title"));
             ContentDocument?.Root?.Element(Utils.XhtmlNs + "head")?.Add(
                 NccDocument.Root?.Element(Utils.XhtmlNs + "head")?.Elements(Utils.XhtmlNs + "meta").Where(meta => meta.Attribute("name")?.Value == "dc:identifier"));
+            var firstContentDocHead = MergeEntries
+                .First()
+                .ContentDocuments
+                .FirstOrDefault()
+                .Value?.Root
+                ?.Element(Utils.XhtmlNs + "head");
+            ContentDocument?.Root?.Element(Utils.XhtmlNs + "head")?.Add(
+                firstContentDocHead?.Elements(Utils.XhtmlNs+"style"));
 
             Utils.CreateOrGetMeta(NccDocument, "dc:format")
                 ?.SetAttributeValue("content", "Daisy 2.02");
