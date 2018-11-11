@@ -86,6 +86,67 @@ namespace DtbSynthesizerLibraryTests.Xhtml
         [DataRow(@"Tables\Tables.html", true)]
         [DataRow(@"Pages\Pages.html", true)]
         [DataTestMethod]
+        public void SynthesizeTest(string xhtmlFile, bool encodeMp3)
+        {
+            var synthesizer = GetDaisy202Synthesizer(xhtmlFile, encodeMp3);
+            synthesizer.Synthesize();
+
+            Assert.AreEqual(
+                synthesizer
+                    .Body
+                    .Descendants()
+                    .Count(elem => synthesizer.HeaderNames.Contains(elem.Name)),
+                synthesizer.AudioFiles.Count(),
+                "Expected one audio file per heading");
+            Console.WriteLine(
+                $"Xhtml file {Path.GetFileName(new Uri(synthesizer.XhtmlDocument.BaseUri).LocalPath)}");
+
+            foreach (var elem in synthesizer.Body.Descendants()
+                .Where(e => e.Attribute("id")?.Value != null))
+            {
+                var anno = elem.Annotation<SyncAnnotation>();
+                if (anno != null)
+                {
+                    Console.WriteLine(
+                        $"#{elem.Attribute("id")?.Value}={anno.Src}:{anno.ClipBegin}-{anno.ClipEnd}");
+                }
+            }
+            foreach (var audioFile in synthesizer
+                .Body
+                .Descendants().SelectMany(e => e.Annotations<SyncAnnotation>().Select(a =>
+                    new Uri(new Uri(e.BaseUri), a.Src).LocalPath)).Distinct())
+            {
+                if (encodeMp3)
+                {
+                    using (var wr = new Mp3FileReader(audioFile))
+                    {
+                        Assert.AreEqual(synthesizer.AudioWaveFormat.SampleRate, wr.WaveFormat.SampleRate, $"Audio file {audioFile} has unexpected sample rate");
+                        Assert.AreEqual(synthesizer.AudioWaveFormat.BitsPerSample, wr.WaveFormat.BitsPerSample, $"Audio file {audioFile} has unexpected bits per sample");
+                        Assert.AreEqual(synthesizer.AudioWaveFormat.Channels, wr.WaveFormat.Channels, $"Audio file {audioFile} has unexpected number of channels");
+                    }
+                }
+                else
+                {
+                    using (var wr = new WaveFileReader(audioFile))
+                    {
+                        Assert.AreEqual(synthesizer.AudioWaveFormat.SampleRate, wr.WaveFormat.SampleRate, $"Audio file {audioFile} has unexpected sample rate");
+                        Assert.AreEqual(synthesizer.AudioWaveFormat.BitsPerSample, wr.WaveFormat.BitsPerSample, $"Audio file {audioFile} has unexpected bits per sample");
+                        Assert.AreEqual(synthesizer.AudioWaveFormat.Channels, wr.WaveFormat.Channels, $"Audio file {audioFile} has unexpected number of channels");
+                    }
+
+                }
+                TestContext.AddResultFile(audioFile);
+            }
+        }
+
+        [DataRow(@"Simple\Simple.html", false)]
+        [DataRow(@"Sectioned\Sectioned.html", false)]
+        [DataRow(@"Tables\Tables.html", false)]
+        [DataRow(@"Simple\Simple.html", true)]
+        [DataRow(@"Sectioned\Sectioned.html", true)]
+        [DataRow(@"Tables\Tables.html", true)]
+        [DataRow(@"Pages\Pages.html", true)]
+        [DataTestMethod]
         public void GenerateDaisy202SmilFilesAndNccDocumentTest(string xhtmlFile, bool encodeMp3)
         {
             var synthesizer = GetDaisy202Synthesizer(xhtmlFile, encodeMp3);

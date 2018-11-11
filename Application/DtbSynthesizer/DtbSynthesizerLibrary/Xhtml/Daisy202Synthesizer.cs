@@ -5,21 +5,134 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using System.Xml;
 using System.Xml.Linq;
 using System.Xml.XPath;
 using DtbSynthesizerLibrary.Xml;
+using NAudio.Lame;
+using NAudio.Wave;
 
 namespace DtbSynthesizerLibrary.Xhtml
 {
     public class Daisy202Synthesizer : XhtmlSynthesizer
     {
+        private int audioFileNumber;
+
+        private string AudioFileName => $"aud{audioFileNumber:D5}.{(EncodeMp3 ? "mp3" : "wav")}";
+        private string AudioFilePath => Path.Combine(OutputDirectory, AudioFileName);
+
+        public override bool Synthesize()
+        {
+            ValidateSynthesizer();
+            audioFileNumber = -1;
+            WaveFileWriter writer = null;
+            MemoryStream writerStream = null;
+            var encodingTaskStack = new Stack<Task>();
+            var elements = ElementsToSynthesize;
+            for (int i = 0; i < elements.Count; i++)
+            {
+                if (FireProgress(
+                    100 * i / elements.Count,
+                    $"Synthesizing element {i + 1} of {elements.Count} to {AudioFileName}"))
+                {
+                    return false;
+                }
+                var elem = elements[i];
+                if (HeaderNames.Contains(elem.Name) || writer == null)
+                {
+                    if (EncodeMp3)
+                    {
+                        writer?.Flush();
+                        encodingTaskStack.Push(EncodeMp3AudioFile(writerStream, AudioFilePath));
+                        audioFileNumber++;
+                        writerStream = new MemoryStream();
+                        writer = new WaveFileWriter(writerStream, AudioWaveFormat);
+                    }
+                    else
+                    {
+                        writer?.Close();
+                        audioFileNumber++;
+                        writer = new WaveFileWriter(AudioFilePath, AudioWaveFormat);
+                    }
+                }
+                var ci = Utils.SelectCulture(elem);
+                var synth = CultureInfo.InvariantCulture.Equals(ci)
+                    ? DefaultSynthesizer
+                    : SynthesizerSelector(ci);
+                synth.TextToSynthesizeDelegate = e => e.Value;
+                synth.SynthesizeElement(elem, writer, AudioFileName);
+            }
+            if (EncodeMp3 && writer != null)
+            {
+                writer.Flush();
+                encodingTaskStack.Push(EncodeMp3AudioFile(writerStream, AudioFilePath));
+                var taskCount = encodingTaskStack.Count;
+                while (encodingTaskStack.Any())
+                {
+                    FireProgress(
+                        100 * (taskCount - encodingTaskStack.Count) / taskCount,
+                        $"Waiting for mp3 encoding to finish {encodingTaskStack.Count} left of {taskCount}");
+                    encodingTaskStack.Pop().Wait();
+                }
+            }
+            else
+            {
+                writer?.Close();
+            }
+            return true;
+        }
 
 
         private readonly IDictionary<string, XDocument> smilFilesByFileName = new Dictionary<string, XDocument>();
 
         public IReadOnlyDictionary<string, XDocument> SmilFilesByName =>
             new ReadOnlyDictionary<string, XDocument>(smilFilesByFileName);
+
+        public string DcIdentifier
+        {
+            get => Utils.GetMetaContent(XhtmlDocument, "dc:identifier");
+
+            set
+            {
+                if (value == null)
+                {
+                    throw new InvalidOperationException($"Cannot set {nameof(DcIdentifier)} to null");
+                }
+
+                if (XhtmlDocument == null)
+                {
+                    throw new InvalidOperationException($"Cannot set {nameof(DcIdentifier)} when {nameof(XhtmlDocument)} is null");
+                }
+                Utils.SetMeta(XhtmlDocument, "dc:identifier", value);
+            }
+        }
+
+        public string OutputDirectory => Path.GetDirectoryName(XhtmlPath) ?? Directory.GetCurrentDirectory();
+        public bool EncodeMp3 { get; set; } = true;
+        public int Mp3BitRate { get; set; } = 32;
+        public WaveFormat AudioWaveFormat { get; set; } = new WaveFormat(22050, 1);
+
+        public string XhtmlPath
+        {
+            get
+            {
+                var baseUri = XhtmlDocument?.BaseUri;
+                if (baseUri == null)
+                {
+                    return null;
+                }
+                try
+                {
+                    return new Uri(baseUri).LocalPath;
+                }
+                catch (Exception e)
+                {
+                    throw new InvalidOperationException(
+                        $"Could not get local path from {nameof(XhtmlDocument)} BaseUri {baseUri}: {e.Message}");
+                }
+            }
+        }
 
         public XDocument NccDocument;
 
@@ -288,6 +401,26 @@ namespace DtbSynthesizerLibrary.Xhtml
             }
             NormalizeSpaceInXhtmlDocument(ncc);
             NccDocument = ncc;
+        }
+
+        protected async Task EncodeMp3AudioFile(Stream waveStream, string audioFilePath)
+        {
+            if (waveStream == null)
+            {
+                return;
+            }
+            waveStream.Position = 0;
+            using (var reader = new WaveFileReader(waveStream))
+            {
+                using (var mp3Writer = new LameMP3FileWriter(
+                    audioFilePath,
+                    AudioWaveFormat,
+                    Mp3BitRate))
+                {
+                    await reader.CopyToAsync(mp3Writer);
+                }
+            }
+            waveStream.Dispose();
         }
     }
 }

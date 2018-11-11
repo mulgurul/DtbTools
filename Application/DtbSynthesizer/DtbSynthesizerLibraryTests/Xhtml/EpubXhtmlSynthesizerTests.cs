@@ -18,14 +18,18 @@ namespace DtbSynthesizerLibraryTests.Xhtml
     {
         public TestContext TestContext { get; set; }
 
-        private EpubXhtmlSynthesizer GetEpubSynthesizer(string xhtmlFile, bool encodeMp3 = false)
+        private EpubXhtmlSynthesizer GetEpubSynthesizer(string xhtmlFile)
         {
             xhtmlFile = Path.Combine(TestContext.DeploymentDirectory, xhtmlFile);
             TestContext.AddResultFile(xhtmlFile);
+            var audioFileSrc = $"{Path.GetFileNameWithoutExtension(xhtmlFile)}.wav";
+            var audioFile = Path.Combine(TestContext.DeploymentDirectory, audioFileSrc);
+            TestContext.AddResultFile(audioFile);
             var synthesizer = new EpubXhtmlSynthesizer()
             {
                 XhtmlDocument = XDocument.Load(xhtmlFile, LoadOptions.SetBaseUri | LoadOptions.SetLineInfo),
-                EncodeMp3 = encodeMp3
+                AudioFileSrc = audioFileSrc,
+                AudioWriter = new WaveFileWriter(audioFile, new WaveFormat(22050, 1))
             };
             if (synthesizer.Body.Elements().Select(Utils.SetMissingIds).Sum() > 0)
             {
@@ -35,17 +39,14 @@ namespace DtbSynthesizerLibraryTests.Xhtml
             return synthesizer;
         }
 
-        [DataRow(@"Simple\Simple.html", false)]
-        [DataRow(@"Sectioned\Sectioned.html", false)]
-        [DataRow(@"Tables\Tables.html", false)]
-        [DataRow(@"Simple\Simple.html", true)]
-        [DataRow(@"Sectioned\Sectioned.html", true)]
-        [DataRow(@"Tables\Tables.html", true)]
-        [DataRow(@"Pages\Pages.html", true)]
+        [DataRow(@"Simple\Simple.html")]
+        [DataRow(@"Sectioned\Sectioned.html")]
+        [DataRow(@"Tables\Tables.html")]
+        [DataRow(@"Pages\Pages.html")]
         [DataTestMethod]
-        public void MediaOverlayDocumentTest(string xhtmlFile, bool encodeMp3)
+        public void MediaOverlayDocumentTest(string xhtmlFile)
         {
-            var synthesizer = GetEpubSynthesizer(xhtmlFile, encodeMp3);
+            var synthesizer = GetEpubSynthesizer(xhtmlFile);
             synthesizer.Synthesize();
             Assert.AreEqual(1, synthesizer.AudioFiles.Count(), "EpubSynthesizer should produce one audio file per xhtml file");
             Assert.IsNotNull(synthesizer.MediaOverlayDocument, "MediaOverlayDocument is null");

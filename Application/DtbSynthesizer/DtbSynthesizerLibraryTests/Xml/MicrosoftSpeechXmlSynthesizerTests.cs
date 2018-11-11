@@ -60,7 +60,7 @@ namespace DtbSynthesizerLibraryTests.Xml
                 foreach (var elem in body.Elements())
                 {
                     var ci = Utils.SelectCulture(elem);
-                    var synth = SystemSpeechXmlSynthesizer.GetPreferedVoiceForCulture(ci);
+                    var synth = MicrosoftSpeechXmlSynthesizer.GetPreferedVoiceForCulture(ci);
                     dur += synth.SynthesizeElement(elem, writer);
                 }
 

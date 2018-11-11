@@ -1,12 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
-using System.IO;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Xml.Linq;
 using DtbSynthesizerLibrary.Xml;
+using NAudio.Wave;
 
 namespace DtbSynthesizerLibrary.Xhtml
 {
@@ -45,13 +43,6 @@ namespace DtbSynthesizerLibrary.Xhtml
             return new[] {smilElem};
         }
 
-        public EpubXhtmlSynthesizer()
-        {
-            NewAudioFileAtHeading = false;
-            TextToSynthesizeDelegate = e =>
-                Utils.GetFirstNonEmpty(e.Value, e.Attribute("title")?.Value, e.Attribute("alt")?.Value);
-        }
-
         public XDocument MediaOverlayDocument => new XDocument(
             new XElement(
                 Smil30Ns + "smil",
@@ -61,6 +52,33 @@ namespace DtbSynthesizerLibrary.Xhtml
                     new XAttribute(EpubOpsNs + "type", Body.Attribute(EpubOpsNs+"type")?.Value??""),
                     Body.Elements().SelectMany(GetSmil30ElementFromXhtmlElement))
             ));
+
+        public WaveFileWriter AudioWriter { get; set; }
+
+        public string AudioFileSrc { get; set; }
+
+
+        public override bool Synthesize()
+        {
+            var elements = ElementsToSynthesize;
+            for (int i = 0; i < elements.Count; i++)
+            {
+                var elem = elements[i];
+                if (FireProgress(
+                    100 * i / elements.Count,
+                    $"Synthesizing element {i + 1} of {elements.Count} to {AudioFileSrc}"))
+                {
+                    return false;
+                }
+                var ci = Utils.SelectCulture(elem);
+                var synth = CultureInfo.InvariantCulture.Equals(ci)
+                    ? DefaultSynthesizer
+                    : SynthesizerSelector(ci);
+                synth.TextToSynthesizeDelegate = e => e.Value;
+                synth.SynthesizeElement(elem, AudioWriter, AudioFileSrc);
+            }
+            return true;
+        }
 
     }
 }

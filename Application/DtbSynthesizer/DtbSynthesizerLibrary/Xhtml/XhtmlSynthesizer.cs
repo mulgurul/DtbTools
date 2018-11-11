@@ -14,67 +14,17 @@ using NAudio.Wave;
 
 namespace DtbSynthesizerLibrary.Xhtml
 {
-    public class XhtmlSynthesizer
+    public abstract class XhtmlSynthesizer
     {
-        private int audioFileNumber;
         public static XNamespace XhtmlNs => Utils.XhtmlNs;
         public XDocument XhtmlDocument { get; set; }
 
-        protected Func<XElement, string> TextToSynthesizeDelegate { get; set; } = null;
-
-        public bool NewAudioFileAtHeading { get; set; } = true;
-
-        public string DcIdentifier
-        {
-            get => Utils.GetMetaContent(XhtmlDocument, "dc:identifier");
-
-            set
-            {
-                if (value == null)
-                {
-                    throw new InvalidOperationException($"Cannot set {nameof(DcIdentifier)} to null");
-                }
-
-                if (XhtmlDocument == null)
-                {
-                    throw new InvalidOperationException($"Cannot set {nameof(DcIdentifier)} when {nameof(XhtmlDocument)} is null");
-                }
-                Utils.SetMeta(XhtmlDocument, "dc:identifier", value);
-            }
-        }
-
-        public bool EncodeMp3 { get; set; } = true;
-        public int Mp3BitRate { get; set; } = 32;
         public XElement Body => XhtmlDocument?.Root?.Element(XhtmlNs + "body");
-
-        public string XhtmlPath
-        {
-            get
-            {
-                var baseUri = XhtmlDocument?.BaseUri;
-                if (baseUri == null)
-                {
-                    return null;
-                }
-                try
-                {
-                    return new Uri(baseUri).LocalPath;
-                }
-                catch (Exception e)
-                {
-                    throw new InvalidOperationException(
-                        $"Could not get local path from {nameof(XhtmlDocument)} BaseUri {baseUri}: {e.Message}");
-                }
-            }
-        }
-
-        public string OutputDirectory => Path.GetDirectoryName(XhtmlPath) ?? Directory.GetCurrentDirectory();
 
         public Func<CultureInfo, IXmlSynthesizer> SynthesizerSelector { get; set; } 
             = (ci) => Utils.GetPrefferedXmlSynthesizerForCulture(ci);
 
         public IXmlSynthesizer DefaultSynthesizer { get; set; }
-        public WaveFormat AudioWaveFormat { get; set; } = new WaveFormat(22050, 1);
 
         public IList<XName> BlockContainerNames { get; } = new List<XName>(new[]
         {
@@ -134,9 +84,6 @@ namespace DtbSynthesizerLibrary.Xhtml
             .Select(a => a.Src)
             .Distinct();
 
-        protected string AudioFileName => $"aud{audioFileNumber:D5}.{(EncodeMp3 ? "mp3" : "wav")}";
-        private string AudioFilePath => Path.Combine(OutputDirectory, AudioFileName);
-
         public static bool IsPageNumberElement(XElement element)
         {
             return
@@ -160,7 +107,7 @@ namespace DtbSynthesizerLibrary.Xhtml
 
         public event EventHandler<ProgressEventArgs> Progress;
 
-        private void ValidateSynthesizer()
+        protected void ValidateSynthesizer()
         {
             if (XhtmlDocument == null)
             {
@@ -178,7 +125,7 @@ namespace DtbSynthesizerLibrary.Xhtml
             {
                 throw new InvalidOperationException($"nameof{DefaultSynthesizer} is null");
             }
-            var languages = Body.Descendants().Select(Utils.GetLanguage).Distinct().Where(lang => lang != null).ToList();
+            var languages = ElementsToSynthesize.Select(Utils.GetLanguage).Distinct().Where(lang => lang != null).ToList();
             if (languages.Any())
             {
                 if (SynthesizerSelector == null)
@@ -194,14 +141,14 @@ namespace DtbSynthesizerLibrary.Xhtml
                 }
             }
             if (
-                Body.Descendants().Select(Utils.SelectCulture).Any(CultureInfo.InvariantCulture.Equals) 
+                ElementsToSynthesize.Select(Utils.SelectCulture).Any(CultureInfo.InvariantCulture.Equals) 
                 && DefaultSynthesizer == null)
             {
                 throw new InvalidOperationException($"{nameof(DefaultSynthesizer)} is null");
             }
         }
 
-        public bool IsInline(XElement element)
+        private bool IsInline(XElement element)
         {
             return element != null && InlineElementNames.Contains(element.Name);
         }
@@ -228,7 +175,6 @@ namespace DtbSynthesizerLibrary.Xhtml
                 elem != null
                 && elem.Name.Namespace == XhtmlNs
                 && (names.Contains(elem.Name.LocalName) || (names?.Length??0)==0);
-
         }
 
         private IEnumerable<XElement> ExpandTablesAndLists(XElement elem)
@@ -293,89 +239,10 @@ namespace DtbSynthesizerLibrary.Xhtml
 
         }
 
-        private async Task EncodeMp3AudioFile(Stream waveStream, string audioFilePath)
-        {
-            if (waveStream == null)
-            {
-                return;
-            }
-            waveStream.Position = 0;
-            using (var reader = new WaveFileReader(waveStream))
-            {
-                using (var mp3Writer = new LameMP3FileWriter(
-                    audioFilePath,
-                    AudioWaveFormat,
-                    Mp3BitRate))
-                {
-                    await reader.CopyToAsync(mp3Writer);
-                }
-            }
-            waveStream.Dispose();
-        }
+        public IReadOnlyList<XElement> ElementsToSynthesize =>
+            Body.Elements().SelectMany(ExpandBlockContainers).SelectMany(ExpandTablesAndLists).ToList().AsReadOnly();
 
-        public bool Synthesize()
-        {
-            ValidateSynthesizer();
-            audioFileNumber = -1;
-            WaveFileWriter writer = null;
-            MemoryStream writerStream = null;
-            var encodingTaskStack = new Stack<Task>();
-            var elements = Body.Elements().SelectMany(ExpandBlockContainers).SelectMany(ExpandTablesAndLists).ToList();
-            for (int i = 0; i < elements.Count; i++)
-            {
-                if (FireProgress(
-                    100 * i / elements.Count,
-                    $"Synthesizing element {i + 1} of {elements.Count} to {AudioFileName}"))
-                {
-                    return false;
-                }
-                var elem = elements[i];
-                if ((HeaderNames.Contains(elem.Name) && NewAudioFileAtHeading) || writer == null)
-                {
-                    if (EncodeMp3)
-                    {
-                        writer?.Flush();
-                        encodingTaskStack.Push(EncodeMp3AudioFile(writerStream, AudioFilePath));
-                        audioFileNumber++;
-                        writerStream = new MemoryStream();
-                        writer = new WaveFileWriter(writerStream, AudioWaveFormat);
-                    }
-                    else
-                    {
-                        writer?.Close();
-                        audioFileNumber++;
-                        writer = new WaveFileWriter(AudioFilePath, AudioWaveFormat);
-                    }
-                }
-                var ci = Utils.SelectCulture(elem);
-                var synth = CultureInfo.InvariantCulture.Equals(ci)
-                    ? DefaultSynthesizer
-                    : SynthesizerSelector(ci);
-                if (TextToSynthesizeDelegate != null)
-                {
-                    synth.TextToSynthesizeDelegate = TextToSynthesizeDelegate;
-                }
-                synth.SynthesizeElement(elem, writer, AudioFileName);
-            }
-            if (EncodeMp3 && writer != null)
-            {
-                writer.Flush();
-                encodingTaskStack.Push(EncodeMp3AudioFile(writerStream, AudioFilePath));
-                var taskCount = encodingTaskStack.Count;
-                while (encodingTaskStack.Any())
-                {
-                    FireProgress(
-                        100 * (taskCount - encodingTaskStack.Count) / taskCount,
-                        $"Waiting for mp3 encoding to finish {encodingTaskStack.Count} left of {taskCount}");
-                    encodingTaskStack.Pop().Wait();
-                }
-            }
-            else
-            {
-                writer?.Close();
-            }
-            return true;
-        }
+        public abstract bool Synthesize();
 
         public void MovePageNumbers()
         {
