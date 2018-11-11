@@ -65,6 +65,10 @@ namespace DtbSynthesizerLibraryTests.Xml
                 }
 
                 Assert.AreEqual(dur, body.Descendants().Select(e => e.Annotation<SyncAnnotation>()).Last(s => s != null).ClipEnd, "Last ClipEnd is not equal to dur");
+                foreach (var elem in body.Descendants().Where(e => e.Annotation<SyncAnnotation>() != null))
+                {
+                    Assert.AreEqual(elem, elem.Annotation<SyncAnnotation>()?.Element, "SyncAnnotation.Element must be the element the annotation is attached to");
+                }
                 var annotations = body.DescendantNodes().SelectMany(n => n.Annotations<SyncAnnotation>());
                 var sum = TimeSpan.FromMilliseconds(
                     annotations.Select(a => a?.ClipEnd.Subtract(a.ClipBegin).TotalMilliseconds).Sum() ?? 0);

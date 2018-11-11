@@ -85,12 +85,14 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="MicrosoftSpeechTests.cs" />
+    <Compile Include="Xhtml\EpubXhtmlSynthesizerTests.cs" />
+    <Compile Include="Xhtml\XhtmlSynthesizerTests.cs" />
     <Compile Include="Xml\SystemSpeechXmlSynthesizerTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Xml\MicrosoftSpeechXmlSynthesizerTests.cs" />
     <Compile Include="SystemSpeechTests.cs" />
     <Compile Include="UtilsTests.cs" />
-    <Compile Include="Xhtml\XhtmlSynthesizerTests.cs" />
+    <Compile Include="Xhtml\Daisy202SynthesizerTests.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config">

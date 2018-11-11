@@ -74,6 +74,10 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="ChangableDictionary.cs" />
+    <Compile Include="Xhtml\EpubSynthesizer.cs" />
+    <Compile Include="Xhtml\EpubXhtmlSynthesizer.cs" />
+    <Compile Include="Xhtml\XhtmlSynthesizer.cs" />
+    <Compile Include="Xml\AbstractXmlSynthesizer.cs" />
     <Compile Include="Xml\IXmlSynthesizer.cs" />
     <Compile Include="ProgressEventArgs.cs" />
     <Compile Include="Xml\SystemSpeechXmlSynthesizer.cs" />
@@ -82,7 +86,7 @@
     <Compile Include="Xml\SyncAnnotation.cs" />
     <Compile Include="Utils.cs" />
     <Compile Include="VoiceMetaData.cs" />
-    <Compile Include="Xhtml\XhtmlSynthesizer.cs" />
+    <Compile Include="Xhtml\Daisy202Synthesizer.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="DtbSynthesizerLibrary.nuspec" />

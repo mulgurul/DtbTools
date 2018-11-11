@@ -341,7 +341,7 @@ namespace DtbSynthesizerGui
                 return;
             }
             var synthByCulture = new ReadOnlyDictionary<CultureInfo, IXmlSynthesizer>(SynthesizersByLanguage);
-            var synthesizer = new XhtmlSynthesizer()
+            var synthesizer = new Daisy202Synthesizer()
             {
                 XhtmlDocument = XDocument.Load(xhtmlPath, LoadOptions.SetBaseUri|LoadOptions.SetLineInfo),
                 EncodeMp3 = audioFormat.EncodeMp3,
@@ -356,7 +356,7 @@ namespace DtbSynthesizerGui
                     a.Cancel = true;
                 }
             };
-            if (!synthesizer.GenerateDaisy202Dtb())
+            if (!synthesizer.GenerateDtb())
             {
                 e.Cancel = true;
                 return;

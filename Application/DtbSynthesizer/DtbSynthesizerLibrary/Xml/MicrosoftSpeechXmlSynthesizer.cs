@@ -12,7 +12,7 @@ using NAudio.Wave;
 
 namespace DtbSynthesizerLibrary.Xml
 {
-    public class MicrosoftSpeechXmlSynthesizer : IXmlSynthesizer
+    public class MicrosoftSpeechXmlSynthesizer : AbstractXmlSynthesizer
     {
         static MicrosoftSpeechXmlSynthesizer()
         {
@@ -61,9 +61,9 @@ namespace DtbSynthesizerLibrary.Xml
             }
         }
 
-        public TimeSpan SynthesizeElement(XElement element, WaveFileWriter writer, string src = "")
+        public override SyncAnnotation SynthesizeText(string text, WaveFileWriter writer, string src = "")
         {
-            if (element == null) throw new ArgumentNullException(nameof(element));
+            if (text == null) throw new ArgumentNullException(nameof(text));
             var startOffset = writer.TotalTime;
             var audioStream = new MemoryStream();
             Synthesizer.SetOutputToAudioStream(
@@ -73,21 +73,21 @@ namespace DtbSynthesizerLibrary.Xml
                     (AudioBitsPerSample)writer.WaveFormat.BitsPerSample,
                     (AudioChannel)writer.WaveFormat.Channels));
             Synthesizer.SelectVoice(Voice.Name);
-            Synthesizer.Speak(element.Value);
+            Synthesizer.Speak(text);
             Synthesizer.SetOutputToNull();
             audioStream.WriteTo(writer);
             writer.Flush();
-            element.AddAnnotation(new SyncAnnotation()
+            return new SyncAnnotation()
             {
                 ClipBegin = startOffset,
                 ClipEnd = writer.TotalTime,
-                Element = element,
                 Src = src
-            });
-            return writer.TotalTime.Subtract(startOffset);
+            };
+
         }
 
-        public VoiceMetaData VoiceInfo => new VoiceMetaData()
+
+        public override VoiceMetaData VoiceInfo => new VoiceMetaData()
         {
             Name = Regex.Replace(Voice.Name, @"^Microsoft Server Speech Text to Speech Voice \(\w+-\w+, (\w+)\)$", @"$1"),
             Culture = Voice.Culture,

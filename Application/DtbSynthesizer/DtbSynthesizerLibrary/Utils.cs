@@ -500,5 +500,19 @@ namespace DtbSynthesizerLibrary
             xhtmlDoc.Save(xhtmlPath);
             return true;
         }
+
+        public static string GetFileName(XObject node)
+        {
+            if (String.IsNullOrEmpty(node.BaseUri))
+            {
+                return "";
+            }
+            return Path.GetFileName(new Uri(node.BaseUri).LocalPath);
+        }
+
+        public static string GetFirstNonEmpty(params string[] values)
+        {
+            return values.FirstOrDefault(v => !String.IsNullOrEmpty(v)) ?? "";
+        }
     }
 }

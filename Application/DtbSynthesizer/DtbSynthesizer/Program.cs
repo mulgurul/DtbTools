@@ -114,7 +114,7 @@ namespace DtbSynthesizer
             {
                 Utils.SetMeta(xhtmlDocument, "dc:publisher", publisher);
             }
-            var synthesizer = new XhtmlSynthesizer()
+            var synthesizer = new Daisy202Synthesizer()
             {
                 XhtmlDocument = xhtmlDocument,
                 EncodeMp3 = mp3,
@@ -124,7 +124,7 @@ namespace DtbSynthesizer
             {
                 Console.Write($"{args.ProgressPercentage:D3}% {args.ProgressMessage}".PadRight(80).Substring(0, 80) + "\r");
             };
-            synthesizer.GenerateDaisy202Dtb();
+            synthesizer.GenerateDtb();
             Console.Write($"{new String(' ', 80)}\r");
             Console.WriteLine($"Succesfulle generated Daisy 2.02 DTB in {output}\nDuration: {DateTime.Now.Subtract(startTime)}");
             return 0;
@@ -154,7 +154,7 @@ namespace DtbSynthesizer
                 var inputDocUri = new Uri(inputDoc.BaseUri);
                 var xhtmlUri = new Uri(xhtml);
                 foreach (var src in transformedDoc
-                    .Descendants(XhtmlSynthesizer.XhtmlNs + "img")
+                    .Descendants(Daisy202Synthesizer.XhtmlNs + "img")
                     .Select(img => img.Attribute("src")?.Value)
                     .Where(s => !String.IsNullOrEmpty(s))
                     .Distinct())
