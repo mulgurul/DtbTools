@@ -604,13 +604,14 @@ namespace DtbMerger2Library.Daisy202
                                     SeekOrigin.Current);
                                 var bytesToRead =
                                     (long) (segment.Duration.TotalSeconds * audioReader.WaveFormat.AverageBytesPerSecond);
-                                var bytesRead = 0;
-                                var buf = new Byte[10*1024];
-                                while (bytesRead < bytesToRead)
+                                var totalBytesRead = 0;
+                                var buf = new byte[10*1024];
+                                while (totalBytesRead < bytesToRead)
                                 {
-                                    var byteCount = (int)Math.Min(bytesToRead - bytesRead, buf.Length);
-                                    bytesRead += audioReader.Read(buf, 0, byteCount);
-                                    audioStream.Write(buf, 0, byteCount);
+                                    var byteCount = (int)Math.Min(bytesToRead - totalBytesRead, buf.Length);
+                                    var bytesRead = audioReader.Read(buf, 0, byteCount);
+                                    totalBytesRead += bytesRead;
+                                    audioStream.Write(buf, 0, bytesRead);
                                 }
                             }
                         }

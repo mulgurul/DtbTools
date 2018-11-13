@@ -22,7 +22,7 @@ namespace DtbMerger2LibraryTests.Daisy202
             var entries = MergeEntry.LoadMergeEntriesFromNcc(Dtb1NccUri).ToList();
             foreach (var smil in entries.SelectMany(e => e.DescententsAndSelf).Select(e => e.Smil))
             {
-                DtbAudioGenerator.NarrateTextsForSmilFile(smil, ref totelElapsedTime);
+                DtbAudioGenerator.NarrateTextsForSmilFile(smil, ref totelElapsedTime, smil.BaseUri.EndsWith("sm0001.smil"));
                 smil.Save(new Uri(smil.BaseUri).LocalPath);
             }
             var nccHead = entries.First().Ncc.Root?.Element(Utils.XhtmlNs + "head");
@@ -36,8 +36,8 @@ namespace DtbMerger2LibraryTests.Daisy202
                     ttMeta = new XElement(Utils.XhtmlNs+"meta", new XAttribute("name", "nccHead:totalTime"));
                     nccHead.Add(ttMeta);
                 }
-
             }
+
         }
 
         private static readonly Uri Dtb1NccUri = new Uri(new Uri(new Uri(Directory.GetCurrentDirectory()), "Out/"), "DTB1/ncc.html");
@@ -58,6 +58,7 @@ namespace DtbMerger2LibraryTests.Daisy202
             builder.BuildDtb();
             builder.SaveDtb("./MergedDTB");
             ValidateSavedDtb(builder, "./MergedDTB");
+            
         }
 
         [TestMethod]

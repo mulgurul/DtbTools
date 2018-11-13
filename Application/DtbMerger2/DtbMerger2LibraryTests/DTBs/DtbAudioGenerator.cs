@@ -53,42 +53,71 @@ namespace DtbMerger2LibraryTests.DTBs
             }
         }
 
-        public static void NarrateTextsForSmilFile(XDocument smilDocument, ref TimeSpan totalElapsedTime)
+        private static string GetTextValue(XElement smilTextElement)
+        {
+            var uri = Utils.GetUri(smilTextElement.Attribute("src"));
+            return
+                XDocument.Load(Uri.UnescapeDataString(uri.AbsolutePath))
+                    .Descendants()
+                    .FirstOrDefault(e => e.Attribute("id")?.Value == uri.Fragment.TrimStart('#'))?.Value ?? "";
+        }
+
+        public static void NarrateTextsForSmilFile(XDocument smilDocument, ref TimeSpan totalElapsedTime, bool multipleAudioFiles = false)
         {
             var smilPars = smilDocument.Descendants("par").ToList();
-            var audioFileName = smilDocument
-                .Descendants("audio")
-                .Select(audio => audio.Attribute("src"))
-                .FirstOrDefault(src => src != null)
-                ?.Value.Split('#').FirstOrDefault()??"aud.mp3";
-            var texts = smilPars
-                .Select(par => Utils.GetUri(par.Element("text")?.Attribute("src")))
-                .Select(uri =>
-                    XDocument.Load(Uri.UnescapeDataString(uri.AbsolutePath)).Descendants()
-                        .FirstOrDefault(e => e.Attribute("id")?.Value == uri.Fragment.TrimStart('#'))?.Value ?? "");
-            var durs = NarrateTexts(texts, Uri.UnescapeDataString(new Uri(new Uri(smilDocument.BaseUri), audioFileName).AbsolutePath)).ToList();
             var elapsed = TimeSpan.Zero;
-            for (int i = 0; i < smilPars.Count; i++)
+            if (multipleAudioFiles)
             {
-                var audio = smilPars[i].Descendants("audio").FirstOrDefault();
-                audio?.SetAttributeValue("clip-begin", $"npt={elapsed.TotalSeconds.ToString("F3", CultureInfo.InvariantCulture)}s");
-                elapsed += durs[i];
-                audio?.SetAttributeValue("clip-end", $"npt={elapsed.TotalSeconds.ToString("F3", CultureInfo.InvariantCulture)}s");
-                foreach (var followingAudio in audio?.ElementsAfterSelf("audio") ?? new List<XElement>())
+                for (int i = 0; i < smilPars.Count; i++)
                 {
-                    followingAudio.Remove();
+                    var audio = smilPars[i].Descendants("audio").FirstOrDefault();
+                    var audioFileName = $"{Path.GetFileNameWithoutExtension(audio?.Attribute("src")?.Value ?? "")}_{i:D2}.mp3";
+                    var durs = NarrateTexts(
+                        new []{"Text not belonging to the book", GetTextValue(smilPars[i].Element("text"))}, 
+                        Uri.UnescapeDataString(new Uri(new Uri(smilDocument.BaseUri), audioFileName).AbsolutePath)).ToList();
+                    audio?.SetAttributeValue("src", audioFileName);
+                    audio?.SetAttributeValue("clip-begin", $"npt={durs[0].TotalSeconds.ToString("F3", CultureInfo.InvariantCulture)}s");
+                    audio?.SetAttributeValue("clip-end", $"npt={(durs[0].TotalSeconds+durs[1].TotalSeconds).ToString("F3", CultureInfo.InvariantCulture)}s");
+                    elapsed += durs[1];
+                    foreach (var followingAudio in audio?.ElementsAfterSelf("audio") ?? new List<XElement>())
+                    {
+                        followingAudio.Remove();
+                    }
                 }
             }
-
-            var dur = TimeSpan.FromSeconds(durs.Select(d => d.TotalSeconds).Sum());
+            else
+            {
+                var audioFileName = smilDocument
+                                        .Descendants("audio")
+                                        .Select(audio => audio.Attribute("src"))
+                                        .FirstOrDefault(src => src != null)
+                                        ?.Value.Split('#').FirstOrDefault() ?? "aud.mp3";
+                var texts = smilPars.Select(par => GetTextValue(par.Element("text")));
+                var durs = NarrateTexts(texts,
+                        Uri.UnescapeDataString(new Uri(new Uri(smilDocument.BaseUri), audioFileName).AbsolutePath))
+                    .ToList();
+                for (int i = 0; i < smilPars.Count; i++)
+                {
+                    var audio = smilPars[i].Descendants("audio").FirstOrDefault();
+                    audio?.SetAttributeValue("clip-begin",
+                        $"npt={elapsed.TotalSeconds.ToString("F3", CultureInfo.InvariantCulture)}s");
+                    elapsed += durs[i];
+                    audio?.SetAttributeValue("clip-end",
+                        $"npt={elapsed.TotalSeconds.ToString("F3", CultureInfo.InvariantCulture)}s");
+                    foreach (var followingAudio in audio?.ElementsAfterSelf("audio") ?? new List<XElement>())
+                    {
+                        followingAudio.Remove();
+                    }
+                }
+            }
             Utils.CreateOrGetMeta(smilDocument, "ncc:timeInThisSmil")?.SetAttributeValue(
-                "content", dur.ToString(@"hh\:mm\:ss"));
+                "content", elapsed.ToString(@"hh\:mm\:ss"));
             Utils.CreateOrGetMeta(smilDocument, "ncc:totalElapsedTime")?.SetAttributeValue(
                 "content", totalElapsedTime.ToString(@"hh\:mm\:ss"));
             smilDocument.Root?.Element("body")?.Element("seq")?.SetAttributeValue(
                 "dur",
-                $"{dur.TotalSeconds.ToString("f", CultureInfo.InvariantCulture)}");
-            totalElapsedTime = totalElapsedTime.Add(dur);
+                $"{elapsed.TotalSeconds.ToString("f", CultureInfo.InvariantCulture)}");
+            totalElapsedTime = totalElapsedTime.Add(elapsed);
         }
     }
 }
