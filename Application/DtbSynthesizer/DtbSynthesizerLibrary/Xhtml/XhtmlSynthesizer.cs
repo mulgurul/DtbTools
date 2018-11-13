@@ -22,7 +22,7 @@ namespace DtbSynthesizerLibrary.Xhtml
         public XElement Body => XhtmlDocument?.Root?.Element(XhtmlNs + "body");
 
         public Func<CultureInfo, IXmlSynthesizer> SynthesizerSelector { get; set; } 
-            = (ci) => Utils.GetPrefferedXmlSynthesizerForCulture(ci);
+            = ci => Utils.GetPrefferedXmlSynthesizerForCulture(ci);
 
         public IXmlSynthesizer DefaultSynthesizer { get; set; }
 

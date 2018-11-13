@@ -514,5 +514,28 @@ namespace DtbSynthesizerLibrary
         {
             return values.FirstOrDefault(v => !String.IsNullOrEmpty(v)) ?? "";
         }
+
+        /// <summary>
+        /// Gets the <see cref="Uri"/> represented by a <see cref="XAttribute"/>
+        /// </summary>
+        /// <param name="uriAttr">The <see cref="XAttribute"/></param>
+        /// <returns>
+        /// The <see cref="Uri"/> represented by <paramref name="uriAttr"/>.T
+        /// The <see cref="XObject.BaseUri"/> of is used as base of the returned <see cref="Uri"/>, if present.
+        /// If <paramref name="uriAttr"/> is <c>null</c>, <c>null</c> is returned
+        /// </returns>
+        public static Uri GetUri(XAttribute uriAttr)
+        {
+            if (uriAttr == null)
+            {
+                return null;
+            }
+
+            if (String.IsNullOrEmpty(uriAttr.BaseUri))
+            {
+                return new Uri(uriAttr.Value);
+            }
+            return new Uri(new Uri(uriAttr.BaseUri, UriKind.Absolute), uriAttr.Value);
+        }
     }
 }
