@@ -8,8 +8,14 @@ using NAudio.Wave;
 
 namespace DtbSynthesizerLibrary.Xhtml
 {
+    public class XElementReachedEventArgs : EventArgs
+    {
+        public XElement Element { get; set; }
+    }
+
     public class EpubXhtmlSynthesizer : AbstractXhtmlSynthesizer
     {
+        public event EventHandler<XElementReachedEventArgs> ElementReached;
 
         public static XNamespace Smil30Ns = "http://www.w3.org/ns/SMIL";
         public static XNamespace EpubOpsNs = "http://www.idpf.org/2007/ops";
@@ -71,6 +77,7 @@ namespace DtbSynthesizerLibrary.Xhtml
                 {
                     return false;
                 }
+                ElementReached?.Invoke(this, new XElementReachedEventArgs() { Element = elem });
                 var ci = Utils.SelectCulture(elem);
                 var synth = CultureInfo.InvariantCulture.Equals(ci)
                     ? DefaultSynthesizer

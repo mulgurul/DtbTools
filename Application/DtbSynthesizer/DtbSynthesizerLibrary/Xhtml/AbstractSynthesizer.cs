@@ -13,6 +13,7 @@ namespace DtbSynthesizerLibrary.Xhtml
         public IXmlSynthesizer DefaultSynthesizer { get; set; }
         public int Mp3BitRate { get; set; } = 32;
         public WaveFormat AudioWaveFormat { get; set; } = new WaveFormat(22050, 1);
+        public string AudioFilePrefix { get; set; } = $"aud{new Random().Next(Char.MaxValue):x4}";
         public abstract bool Synthesize();
     }
 }

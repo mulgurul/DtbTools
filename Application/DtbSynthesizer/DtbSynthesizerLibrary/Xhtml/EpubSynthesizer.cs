@@ -8,6 +8,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Xml;
 using System.Xml.Linq;
+using System.Xml.XPath;
 using NAudio.Lame;
 using NAudio.Wave;
 
@@ -102,7 +103,18 @@ namespace DtbSynthesizerLibrary.Xhtml
             {
                 throw new ArgumentException($"{uri} is not rooted in Ocf container uri {OcfContainerUri}", nameof(uri));
             }
-            SaveXDocument(doc, EpubContainer.CreateEntry(uri.AbsolutePath.TrimStart('/')));
+            if (!EpubContainerMutex.WaitOne())
+            {
+                throw new ApplicationException("Could not get Epub Container access Mutex");
+            }
+            try
+            {
+                SaveXDocument(doc, EpubContainer.CreateEntry(uri.AbsolutePath.TrimStart('/')));
+            }
+            finally
+            {
+                EpubContainerMutex.ReleaseMutex();
+            }
         }
 
         private void SaveXDocument(XDocument doc, ZipArchiveEntry entry)
@@ -119,6 +131,46 @@ namespace DtbSynthesizerLibrary.Xhtml
                 }
                 stream.Close();
             }
+        }
+
+        public XElement AddWaveStreamAsMp3(Stream waveStream, Uri uri, string itemId = null)
+        {
+            if (waveStream == null) throw new ArgumentNullException(nameof(waveStream));
+            if (uri == null) throw new ArgumentNullException(nameof(uri));
+            if (!IsOcfContainerUri(uri))
+            {
+                throw new ArgumentException($"{uri} is not rooted in Ocf container uri {OcfContainerUri}", nameof(uri));
+            }
+            using (var reader = new WaveFileReader(waveStream))
+            {
+                if (!EpubContainerMutex.WaitOne())
+                {
+                    throw new ApplicationException("Could not get Epub Container access Mutex");
+                }
+                try
+                {
+                    var entry = EpubContainer.CreateEntry(uri.AbsolutePath.TrimStart('/'));
+                    using (var mp3Stream = entry.Open())
+                    {
+                        var writer = new LameMP3FileWriter(mp3Stream, AudioWaveFormat, Mp3BitRate);
+                        reader.CopyTo(writer);
+                        writer.Close();
+                    }
+                }
+                finally
+                {
+                    EpubContainerMutex.ReleaseMutex();
+                }
+            }
+            var item = new XElement(
+                OpfNs + "item",
+                new XAttribute("href", PackageFileUri.MakeRelativeUri(uri)),
+                new XAttribute("media-type", "audio/mpeg"));
+            if (!String.IsNullOrEmpty(itemId))
+            {
+                item.SetAttributeValue("id", itemId);
+            }
+            return item;
         }
 
         public Uri PackageFileUri => new Uri(
@@ -158,6 +210,9 @@ namespace DtbSynthesizerLibrary.Xhtml
 
         public event EventHandler<ProgressEventArgs> Progress;
 
+        //private int audioFileNo;
+        //private MemoryStream waveMemoryStream;
+
         public override bool Synthesize()
         {
             var xhtmlDocs = XhtmlDocuments
@@ -174,6 +229,8 @@ namespace DtbSynthesizerLibrary.Xhtml
             var manifest = packageFile.Descendants(OpfNs + "manifest").Single();
             var metadata = packageFile.Descendants(OpfNs + "metadata").Single();
             var totalDur = TimeSpan.Zero;
+            int audioFileNo = 0;
+            MemoryStream waveMemoryStream;
             foreach (var doc in xhtmlDocs)
             {
                 foreach (var elem in doc.Descendants(Utils.XhtmlNs + "body").Elements())
@@ -211,31 +268,34 @@ namespace DtbSynthesizerLibrary.Xhtml
                         args.Cancel = true;
                     }
                 };
-                using (var memStr = new MemoryStream())
-                {
-                    synth.AudioWriter = new WaveFileWriter(memStr, AudioWaveFormat);
-                    if (!synth.Synthesize())
-                    {
-                        return false;
-                    }
-                    memStr.Position = 0;
-                    var reader = new WaveFileReader(memStr);
-                    var mp3Uri = new Uri(docUri, $"{docBaseName}.mp3");
-                    var mp3Entry = 
-                        EpubContainer.CreateEntry(mp3Uri.AbsolutePath.TrimStart('/'));
-                    using (var mp3Stream = mp3Entry.Open())
-                    {
-                        var writer = new LameMP3FileWriter(mp3Stream, AudioWaveFormat, Mp3BitRate);
-                        reader.CopyTo(writer);
-                        writer.Close();
-                    }
-                    manifest.Add(new XElement(
-                        OpfNs + "item",
-                        new XAttribute("id", Utils.GenerateNewId(packageFile)),
-                        new XAttribute("href", PackageFileUri.MakeRelativeUri(mp3Uri)),
-                        new XAttribute("media-type", "audio/mpeg")));
-                }
                 var smilUri = new Uri(docUri, $"{docBaseName}.smil");
+                waveMemoryStream = new MemoryStream();
+                var mp3Uri = new Uri(PackageFileUri, $"{AudioFilePrefix}{audioFileNo++:D5}.mp3");
+                synth.AudioWriter = new WaveFileWriter(waveMemoryStream, AudioWaveFormat);
+                synth.AudioFileSrc = smilUri.MakeRelativeUri(mp3Uri).ToString();
+                synth.ElementReached += (sender, args) =>
+                {
+                    if (
+                        synth.HeaderNames.Contains(args.Element.Name) 
+                        && args
+                            .Element
+                            .XPathSelectElements("preceding::*")
+                            .Any(e => synth.HeaderNames.Contains(e.Name)))
+                    {
+                        waveMemoryStream.Position = 0;
+                        manifest.Add(AddWaveStreamAsMp3(waveMemoryStream, mp3Uri, Utils.GenerateNewId(packageFile)));
+                        waveMemoryStream.SetLength(0);
+                        mp3Uri = new Uri(PackageFileUri, $"{AudioFilePrefix}{audioFileNo++:D5}.mp3");
+                        synth.AudioWriter = new WaveFileWriter(waveMemoryStream, AudioWaveFormat);
+                        synth.AudioFileSrc = smilUri.MakeRelativeUri(mp3Uri).ToString();
+                    }
+                };
+                if (!synth.Synthesize())
+                {
+                    return false;
+                }
+                waveMemoryStream.Position = 0;
+                manifest.Add(AddWaveStreamAsMp3(waveMemoryStream, mp3Uri, Utils.GenerateNewId(packageFile)));
                 AddXDocument(synth.MediaOverlayDocument, smilUri);
                 var smilId = Utils.GenerateNewId(packageFile);
                 manifest.Add(new XElement(

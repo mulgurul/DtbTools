@@ -2,6 +2,7 @@
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
+using DtbSynthesizerLibrary;
 using DtbSynthesizerLibrary.Xhtml;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
@@ -70,17 +71,18 @@ namespace DtbSynthesizerLibraryTests.Xhtml
             using (var epubContainer = ZipFile.Open(output, ZipArchiveMode.Update))
             {
                 var synth = new EpubSynthesizer() { EpubContainer = epubContainer };
+                var headerNames = Enumerable.Range(1, 6).Select(i => Utils.XhtmlNs + $"h{i}").ToList();
                 synth.Synthesize();
                 Assert.AreEqual(
                     synth.XhtmlDocuments.Count(),
                     synth.EpubContainer.Entries.Count(entry => entry.Name.EndsWith(".smil")),
                     "Expected one smil file per xhtml file");
                 Assert.AreEqual(
-                    synth.XhtmlDocuments.Count(),
+                    synth.XhtmlDocuments.SelectMany(doc => doc.Descendants()).Count(e => headerNames.Contains(e.Name)),
                     synth.EpubContainer.Entries.Count(entry => entry.Name.EndsWith(".mp3")),
                     "Expected one audio file per xhtml file");
                 Assert.AreEqual(
-                    synth.XhtmlDocuments.Count(),
+                    synth.XhtmlDocuments.SelectMany(doc => doc.Descendants()).Count(e => headerNames.Contains(e.Name)),
                     synth.PackageFile.Descendants(EpubSynthesizer.OpfNs + "item").Count(item => item.Attribute("href")?.Value?.EndsWith(".mp3") ?? false),
                     "Expected one mp3 item in manifest per xhtml file");
                 Assert.AreEqual(

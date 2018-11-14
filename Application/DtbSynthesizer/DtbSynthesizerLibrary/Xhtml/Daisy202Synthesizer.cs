@@ -19,7 +19,7 @@ namespace DtbSynthesizerLibrary.Xhtml
     {
         private int audioFileNumber;
 
-        private string AudioFileName => $"aud{audioFileNumber:D5}.{(EncodeMp3 ? "mp3" : "wav")}";
+        private string AudioFileName => $"{AudioFilePrefix}{audioFileNumber:D5}.{(EncodeMp3 ? "mp3" : "wav")}";
         private string AudioFilePath => Path.Combine(OutputDirectory, AudioFileName);
 
         public override bool Synthesize()
