@@ -537,5 +537,40 @@ namespace DtbSynthesizerLibrary
             }
             return new Uri(new Uri(uriAttr.BaseUri, UriKind.Absolute), uriAttr.Value);
         }
+
+
+        /// <summary>
+        /// Parses a SMIL 3.0 file clip attribute value (only "n.nnns" form is supported)
+        /// </summary>
+        /// <param name="val">The value</param>
+        /// <returns>The <see cref="TimeSpan"/> equivalent of the value</returns>
+        public static TimeSpan ParseSmilClip(string val)
+        {
+            if (val == null) throw new ArgumentNullException(nameof(val));
+            if (String.IsNullOrWhiteSpace(val))
+            {
+                throw new ArgumentException($"Value is empty", nameof(val));
+            }
+            val = val.Trim();
+            if (val.EndsWith("s"))
+            {
+                var secs = Double.Parse(
+                    val.Substring(0, val.Length - 1),
+                    NumberStyles.Float,
+                    CultureInfo.InvariantCulture);
+                return TimeSpan.FromSeconds(secs);
+            }
+            else
+            {
+                throw new ArgumentException($"Value {val} is not a valid Daisy 2.02 smil clip value", nameof(val));
+            }
+        }
+
+        public static TimeSpan GetAudioDuration(XElement audio)
+        {
+            var clipBegin = ParseSmilClip(audio.Attribute("clipBegin")?.Value ?? "0s");
+            var clipEnd = ParseSmilClip(audio.Attribute("clipEnd")?.Value ?? "0s");
+            return clipEnd.Subtract(clipBegin);
+        }
     }
 }

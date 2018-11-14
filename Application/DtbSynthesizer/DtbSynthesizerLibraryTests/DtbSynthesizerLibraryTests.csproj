@@ -100,6 +100,9 @@
     <None Include="packages.config">
       <SubType>Designer</SubType>
     </None>
+    <Content Include="TestFiles\Epub\test.epub">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\DtbSynthesizerLibrary\DtbSynthesizerLibrary.csproj">

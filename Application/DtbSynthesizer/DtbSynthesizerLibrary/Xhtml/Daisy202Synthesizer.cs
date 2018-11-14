@@ -15,7 +15,7 @@ using NAudio.Wave;
 
 namespace DtbSynthesizerLibrary.Xhtml
 {
-    public class Daisy202Synthesizer : XhtmlSynthesizer
+    public class Daisy202Synthesizer : AbstractXhtmlSynthesizer
     {
         private int audioFileNumber;
 
@@ -110,8 +110,6 @@ namespace DtbSynthesizerLibrary.Xhtml
 
         public string OutputDirectory => Path.GetDirectoryName(XhtmlPath) ?? Directory.GetCurrentDirectory();
         public bool EncodeMp3 { get; set; } = true;
-        public int Mp3BitRate { get; set; } = 32;
-        public WaveFormat AudioWaveFormat { get; set; } = new WaveFormat(22050, 1);
 
         public string XhtmlPath
         {

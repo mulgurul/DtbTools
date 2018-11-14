@@ -160,10 +160,10 @@ namespace DtbSynthesizerLibraryTests.Xhtml
                 synthesizer
                     .NccDocument
                     .Root
-                    ?.Element(XhtmlSynthesizer.XhtmlNs + "body")
+                    ?.Element(AbstractXhtmlSynthesizer.XhtmlNs + "body")
                     ?.Elements()
                     .Count(e => 
-                        Enumerable.Range(1, 6).Select(i => XhtmlSynthesizer.XhtmlNs+ $"h{i}").Contains(e.Name)),
+                        Enumerable.Range(1, 6).Select(i => AbstractXhtmlSynthesizer.XhtmlNs+ $"h{i}").Contains(e.Name)),
                 "Expected one ncc heading per smil file");
             Assert.AreEqual(
                 "Daisy 2.02",

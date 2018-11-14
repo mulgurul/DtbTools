@@ -14,17 +14,12 @@ using NAudio.Wave;
 
 namespace DtbSynthesizerLibrary.Xhtml
 {
-    public abstract class XhtmlSynthesizer
+    public abstract class AbstractXhtmlSynthesizer : AbstractSynthesizer
     {
         public static XNamespace XhtmlNs => Utils.XhtmlNs;
         public XDocument XhtmlDocument { get; set; }
 
         public XElement Body => XhtmlDocument?.Root?.Element(XhtmlNs + "body");
-
-        public Func<CultureInfo, IXmlSynthesizer> SynthesizerSelector { get; set; } 
-            = ci => Utils.GetPrefferedXmlSynthesizerForCulture(ci);
-
-        public IXmlSynthesizer DefaultSynthesizer { get; set; }
 
         public IList<XName> BlockContainerNames { get; } = new List<XName>(new[]
         {
@@ -241,8 +236,6 @@ namespace DtbSynthesizerLibrary.Xhtml
 
         public IReadOnlyList<XElement> ElementsToSynthesize =>
             Body.Elements().SelectMany(ExpandBlockContainers).SelectMany(ExpandTablesAndLists).ToList().AsReadOnly();
-
-        public abstract bool Synthesize();
 
         public void MovePageNumbers()
         {

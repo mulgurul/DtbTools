@@ -8,7 +8,7 @@ using NAudio.Wave;
 
 namespace DtbSynthesizerLibrary.Xhtml
 {
-    public class EpubXhtmlSynthesizer : XhtmlSynthesizer
+    public class EpubXhtmlSynthesizer : AbstractXhtmlSynthesizer
     {
 
         public static XNamespace Smil30Ns = "http://www.w3.org/ns/SMIL";
@@ -44,6 +44,7 @@ namespace DtbSynthesizerLibrary.Xhtml
         }
 
         public XDocument MediaOverlayDocument => new XDocument(
+            new XDeclaration("1.0", "utf-8", "1"),
             new XElement(
                 Smil30Ns + "smil",
                 new XAttribute("version", "3.0"),
