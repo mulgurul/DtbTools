@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
@@ -7,6 +8,7 @@ using System.Diagnostics;
 using System.Drawing;
 using System.Globalization;
 using System.IO;
+using System.IO.Compression;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -22,8 +24,18 @@ using DtbSynthesizerLibrary.Xml;
 
 namespace DtbSynthesizerGui
 {
+    public enum DocumentType
+    {
+        None,
+        Xhtml,
+        Epub
+    }
+
     public partial class MainForm : Form
     {
+
+        private DocumentType inputDocumentType = DocumentType.None;
+        private string epubDocumentPath;
         private XDocument xhtmlDocument;
         private AudioFormat selectedAudioFormat;
 
@@ -51,33 +63,46 @@ namespace DtbSynthesizerGui
 
         public Dictionary<CultureInfo, IXmlSynthesizer> SynthesizersByLanguage { get; } 
 
+
+
         public void ResetSynthesizers()
         {
             SynthesizersByLanguage.Clear();
-            if (XhtmlDocument != null)
+            IEnumerable<CultureInfo> cultureInfos = null;
+            switch (inputDocumentType)
             {
-                SynthesizersByLanguage.Add(
-                    CultureInfo.InvariantCulture,
-                    Utils.GetPrefferedXmlSynthesizerForCulture(
-                        XhtmlDocument
-                            .Root
-                            ?.Elements(Utils.XhtmlNs+"body")
-                            .Select(Utils.GetLanguage)
-                            .Where(v => !String.IsNullOrWhiteSpace(v))
-                            .Select(lang => new CultureInfo(lang))
-                            .FirstOrDefault() ?? CultureInfo.InvariantCulture));
+                case DocumentType.Xhtml:
+                    if (XhtmlDocument != null)
+                    {
+                        SynthesizersByLanguage.Add(
+                            CultureInfo.InvariantCulture,
+                            Utils.GetPrefferedXmlSynthesizerForCulture(
+                                XhtmlDocument
+                                    .Root
+                                    ?.Elements(Utils.XhtmlNs + "body")
+                                    .Select(Utils.GetLanguage)
+                                    .Where(v => !String.IsNullOrWhiteSpace(v))
+                                    .Select(lang => new CultureInfo(lang))
+                                    .FirstOrDefault() ?? CultureInfo.InvariantCulture));
+                        cultureInfos = Utils.GetCultures(XhtmlDocument);
 
+                    }
+                    break;
+                case DocumentType.Epub:
+                    if (EpubDocument != null)
+                    {
+                        var epubSynth = new EpubSynthesizer() { EpubContainer = EpubDocument};
+                        SynthesizersByLanguage.Add(
+                            CultureInfo.InvariantCulture,
+                            Utils.GetPrefferedXmlSynthesizerForCulture(epubSynth.PublicationLanguage));
+                        cultureInfos = epubSynth.XhtmlDocuments.SelectMany(Utils.GetCultures).Distinct();
+                    }
+                    break;
+            }
 
-                foreach (var key in XhtmlDocument
-                    .Descendants()
-                    .Select(Utils.GetLanguage)
-                    .Where(v => !String.IsNullOrWhiteSpace(v))
-                    .Select(lang => new CultureInfo(lang))
-                    .Distinct())
-                {
-
-                    SynthesizersByLanguage.Add(key,Utils.GetPrefferedXmlSynthesizerForCulture(key, SynthesizersByLanguage[CultureInfo.InvariantCulture]));
-                }
+            foreach (var ci in cultureInfos??new CultureInfo[0])
+            {
+                SynthesizersByLanguage.Add(ci, Utils.GetPrefferedXmlSynthesizerForCulture(ci, SynthesizersByLanguage[CultureInfo.InvariantCulture]));
             }
             UpdateSynthesizersView();
         }
@@ -94,6 +119,37 @@ namespace DtbSynthesizerGui
             }
         }
 
+        public string EpubDocumentPath    
+        {
+            get => epubDocumentPath;
+            set
+            {
+                if (epubDocumentPath != null && epubDocumentPath.Equals(value))
+                {
+                    return;
+                }
+                epubDocumentPath = value;
+                if (File.Exists(epubDocumentPath))
+                {
+                    using (var fs = new FileStream(epubDocumentPath, FileMode.Open, FileAccess.Read))
+                    {
+                        var memStr = new MemoryStream(new byte[fs.Length]);
+                        fs.CopyTo(memStr);
+                        EpubDocument = new ZipArchive(memStr, ZipArchiveMode.Read);
+                    }
+                }
+                else
+                {
+                    EpubDocument = null;
+                }
+                UpdateBrowserView();
+                UpdateMetadataView();
+                ResetSynthesizers();
+            }
+        }
+
+        public ZipArchive EpubDocument { get; private set; }
+
         private IEnumerable<Control> GetControls(Control control)
         {
             return control.Controls.OfType<Control>().SelectMany(ctrl => new[] {ctrl}.Union(GetControls(ctrl)));
@@ -106,31 +162,87 @@ namespace DtbSynthesizerGui
             {
                 if (textBox.Tag is string metaName && Regex.IsMatch(metaName, @"^meta:\w+:\w+$"))
                 {
-                    textBox.Text = Utils.GetMetaContent(XhtmlDocument, metaName.Substring(5));
+                    textBox.Enabled = true;
+                    switch (inputDocumentType)
+                    {
+                        case DocumentType.None:
+                            break;
+                        case DocumentType.Xhtml:
+                            textBox.Text = Utils.GetMetaContent(XhtmlDocument, metaName.Substring(5));
+                            break;
+                        case DocumentType.Epub:
+                            var pgkFile = new EpubSynthesizer() {EpubContainer = EpubDocument}.PackageFile;
+                            if (metaName.StartsWith("meta:dc:"))
+                            {
+                                textBox.Text = pgkFile
+                                                   .Descendants(EpubSynthesizer.DcNs + metaName.Substring(8))
+                                                   .Select(m => m.Value)
+                                                   .FirstOrDefault() 
+                                               ?? "";
+                            }
+                            else
+                            {
+                                textBox.Text = pgkFile
+                                                   .Descendants(EpubSynthesizer.OcfNs + "meta")
+                                                   .Where(meta =>
+                                                       meta.Attribute("name")?.Value == metaName.Substring(5))
+                                                   .Select(meta => meta.Attribute("content")?.Value)
+                                                   .FirstOrDefault(v => v != null) 
+                                               ?? "";
+                            }
+                            textBox.Enabled = ((string) textBox.Tag ?? "") == "meta:dc:identifier";
+                            break;
+                        default:
+                            throw new ArgumentOutOfRangeException();
+                    }
                 }
             }
         }
 
         private void UpdateBrowserView()
         {
-            if (xhtmlDocument == null)
+            string xhtml = "";
+            switch (inputDocumentType)
             {
-                sourceXhtmlWebBrowser.DocumentText = "";
-                return;
+                case DocumentType.None:
+                    xhtml = "";
+                    break;
+                case DocumentType.Xhtml:
+                    if (xhtmlDocument == null)
+                    {
+                        sourceXhtmlWebBrowser.DocumentText = "";
+                        return;
+                    }
+                    if (String.IsNullOrWhiteSpace(xhtmlDocument.BaseUri))
+                    {
+                        sourceXhtmlWebBrowser.DocumentText = xhtmlDocument.ToString();
+                        return;
+                    }
+                    var doc = new XDocument(xhtmlDocument);
+                    foreach (var img in doc.Descendants(Utils.XhtmlNs + "img"))
+                    {
+                        img.SetAttributeValue(
+                            "src",
+                            new Uri(new Uri(XhtmlDocument.BaseUri), img.Attribute("src")?.Value ?? ""));
+                    }
+                    xhtml = doc.ToString();
+                    break;
+                case DocumentType.Epub:
+                    xhtml = new EpubSynthesizer() {EpubContainer = EpubDocument}
+                                .XhtmlDocuments?.FirstOrDefault()?.ToString() ?? "";
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException();
             }
-            if (String.IsNullOrWhiteSpace(xhtmlDocument.BaseUri))
+            if (sourceXhtmlWebBrowser.Document == null)
             {
-                sourceXhtmlWebBrowser.DocumentText = xhtmlDocument.ToString();
-                return;
+                sourceXhtmlWebBrowser.DocumentText = xhtml;
             }
-            var doc = new XDocument(xhtmlDocument);
-            foreach (var img in doc.Descendants(Utils.XhtmlNs + "img"))
+            else
             {
-                img.SetAttributeValue(
-                    "src",
-                    new Uri(new Uri(XhtmlDocument.BaseUri), img.Attribute("src")?.Value ?? ""));
+                var doc = sourceXhtmlWebBrowser.Document.OpenNew(true);
+                doc?.Write(xhtml);
             }
-            sourceXhtmlWebBrowser.DocumentText = doc.ToString();
         }
 
         private void UpdateSynthesizersView()
@@ -167,7 +279,7 @@ namespace DtbSynthesizerGui
                 Title = "Open Source File",
                 CheckFileExists = true,
                 Multiselect = false,
-                Filter = "dtbook|*.xml|html (*.htm;*.html)|*.htm;*.html",
+                Filter = "dtbook|*.xml|html (*.htm;*.html)|*.htm;*.html|ePub|*.epub",
                 FilterIndex = 1
             };
             if (ofd.ShowDialog(this) == DialogResult.OK)
@@ -178,6 +290,7 @@ namespace DtbSynthesizerGui
                     {
                         case 1:
                         case 2:
+                            inputDocumentType = DocumentType.Xhtml;
                             var sourceDoc = XDocument.Load(ofd.FileName, LoadOptions.SetBaseUri | LoadOptions.SetLineInfo);
                             if (sourceDoc.Root == null)
                             {
@@ -197,7 +310,9 @@ namespace DtbSynthesizerGui
                             }
                             break;
                         case 3:
-                           throw new NotImplementedException("Epub source file loading not yet implemented");
+                            inputDocumentType = DocumentType.Epub;
+                            EpubDocumentPath = ofd.FileName;
+                            break;
                     }
 
                 }
@@ -218,6 +333,66 @@ namespace DtbSynthesizerGui
         }
 
         private void SynthesizeDtb()
+        {
+            switch (inputDocumentType)
+            {
+                case DocumentType.None:
+                    MessageBox.Show(
+                        this,
+                        "No source document is loaded",
+                        "Synthesize DTB");
+                    break;
+                case DocumentType.Xhtml:
+                    SynthesizeDtbFromXhtml();
+                    break;
+                case DocumentType.Epub:
+                    SynthesizeDtbFromEpub();
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
+        }
+
+        private void SynthesizeDtbFromEpub()
+        {
+            if (EpubDocument == null)
+            {
+                MessageBox.Show(
+                    this,
+                    "No source document is loaded",
+                    "Synthesize DTB");
+                return;
+            }
+            var sfd = new SaveFileDialog()
+            {
+                Filter = "ePub|*.epub",
+                CreatePrompt = false,
+                DefaultExt = "epub",
+                AddExtension = true,
+                OverwritePrompt = true,
+                Title = "Select output epub file"
+            };
+            if (sfd.ShowDialog(this) != DialogResult.OK)
+            {
+                return;
+            }
+            File.Copy(epubDocumentPath, sfd.FileName, true);
+            if (!synthesizeBackgroundWorker.IsBusy)
+            {
+                openSourceButton.Enabled = false;
+                synthesizeDtbButton.Enabled = false;
+                cancelSynthesisButton.Visible = true;
+                synthesizeProgressMessageLabel.Visible = true;
+                synthesizeProgressBar.Visible = true;
+                synthesizeBackgroundWorker.RunWorkerAsync(
+                    new Tuple<string, string>(
+                        sfd.FileName,
+                        GetControls(this).OfType<TextBox>()
+                            .FirstOrDefault(tb => ((string) tb.Tag ?? "") == "meta:dc:identifier")?.Text));
+            }
+        }
+
+        private void SynthesizeDtbFromXhtml()
         {
             if (XhtmlDocument == null)
             {
@@ -322,8 +497,7 @@ namespace DtbSynthesizerGui
             synthesizeProgressBar.Value = 0;
         }
 
-
-        private void SynthesizeBackgroundWorkerDoWorkHandler(object sender, DoWorkEventArgs e)
+        private void SynthesizeXhtmlWorker(DoWorkEventArgs e)
         {
             var outputDirectory = e.Argument as string;
             var audioFormat = SelectedAudioFormat;
@@ -343,7 +517,7 @@ namespace DtbSynthesizerGui
             var synthByCulture = new ReadOnlyDictionary<CultureInfo, IXmlSynthesizer>(SynthesizersByLanguage);
             var synthesizer = new Daisy202Synthesizer()
             {
-                XhtmlDocument = XDocument.Load(xhtmlPath, LoadOptions.SetBaseUri|LoadOptions.SetLineInfo),
+                XhtmlDocument = XDocument.Load(xhtmlPath, LoadOptions.SetBaseUri | LoadOptions.SetLineInfo),
                 EncodeMp3 = audioFormat.EncodeMp3,
                 Mp3BitRate = audioFormat.Mp3BitRate,
                 SynthesizerSelector = info => synthByCulture.ContainsKey(info) ? synthByCulture[info] : Utils.GetPrefferedXmlSynthesizerForCulture(info)
@@ -366,6 +540,71 @@ namespace DtbSynthesizerGui
                 e.Cancel = true;
             }
             e.Result = outputDirectory;
+        }
+
+        private void SynthesizeEpubWorker(DoWorkEventArgs e)
+        {
+            var audioFormat = SelectedAudioFormat;
+            if (audioFormat == null)
+            {
+                throw new ApplicationException("No audio format was selected");
+            }
+            var input = e.Argument as Tuple<string,string>;
+            if (input == null)
+            {
+                throw new ApplicationException("Invalid worker input");
+            }
+            var epubPath = ((System.Tuple<string, string>) e.Argument)?.Item1;
+            var dcIdentifier = ((System.Tuple<string, string>)e.Argument)?.Item2;
+            var synthByCulture = new ReadOnlyDictionary<CultureInfo, IXmlSynthesizer>(SynthesizersByLanguage);
+            using (var epubZip = ZipFile.Open(epubPath, ZipArchiveMode.Update))
+            {
+                var synthesizer = new EpubSynthesizer()
+                {
+                    EpubContainer = epubZip,
+                    Mp3BitRate = audioFormat.Mp3BitRate,
+                    SynthesizerSelector = info => synthByCulture.ContainsKey(info) ? synthByCulture[info] : Utils.GetPrefferedXmlSynthesizerForCulture(info)
+                };
+                synthesizer.Progress += (s, a) =>
+                {
+                    synthesizeBackgroundWorker.ReportProgress(a.ProgressPercentage, a.ProgressMessage);
+                    if (synthesizeBackgroundWorker.CancellationPending)
+                    {
+                        a.Cancel = true;
+                    }
+                };
+                if (!synthesizer.Synthesize())
+                {
+                    e.Cancel = true;
+                    return;
+                }
+                if (synthesizeBackgroundWorker.CancellationPending)
+                {
+                    e.Cancel = true;
+                }
+                if (!String.IsNullOrEmpty(dcIdentifier))
+                {
+                    synthesizer.SetDcIdentifier(dcIdentifier);
+                }
+                e.Result = Path.GetDirectoryName(epubPath);
+            }
+        }
+
+        private void SynthesizeBackgroundWorkerDoWorkHandler(object sender, DoWorkEventArgs e)
+        {
+            switch (inputDocumentType)
+            {
+                case DocumentType.None:
+                    break;
+                case DocumentType.Xhtml:
+                    SynthesizeXhtmlWorker(e);
+                    break;
+                case DocumentType.Epub:
+                    SynthesizeEpubWorker(e);
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
         }
 
         private void CancelSynthesisButtonClickHandler(object sender, EventArgs e)
@@ -425,9 +664,20 @@ namespace DtbSynthesizerGui
 
         private void MetaDataTextBoxTextChangedHandler(object sender, EventArgs e)
         {
-           if (XhtmlDocument != null && sender is TextBox textBox && textBox.Tag is string metaName && !String.IsNullOrWhiteSpace(metaName))
+            switch (inputDocumentType)
             {
-                Utils.SetMeta(XhtmlDocument, metaName.Substring(5), textBox.Text);
+                case DocumentType.None:
+                    break;
+                case DocumentType.Xhtml:
+                    if (XhtmlDocument != null && sender is TextBox textBox && textBox.Tag is string metaName && !String.IsNullOrWhiteSpace(metaName))
+                    {
+                        Utils.SetMeta(XhtmlDocument, metaName.Substring(5), textBox.Text);
+                    }
+                    break;
+                case DocumentType.Epub:
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException();
             }
         }
     }

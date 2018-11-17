@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
@@ -16,8 +17,10 @@ namespace DtbSynthesizerLibrary.Xhtml
 {
     public class EpubSynthesizer : AbstractSynthesizer
     {
-        public static XNamespace OcfNs = "urn:oasis:names:tc:opendocument:xmlns:container";
-        public static XNamespace OpfNs = "http://www.idpf.org/2007/opf";
+        public static XNamespace XhtmlNs => Utils.XhtmlNs;
+        public static XNamespace OcfNs => Utils.OcfNs;
+        public static XNamespace OpfNs => Utils.OpfNs;
+        public static XNamespace DcNs => Utils.DcNs;
         public static Uri OcfContainerUri = new Uri("zip://ocf");
 
         private bool IsOcfContainerUri(Uri uri)
@@ -89,12 +92,6 @@ namespace DtbSynthesizerLibrary.Xhtml
             {
                 EpubContainerMutex.ReleaseMutex();
             }
-        }
-
-        private void AddXDocument(XDocument doc)
-        {
-            var uri = new Uri(doc.BaseUri);
-            AddXDocument(doc, uri);
         }
 
         public void AddXDocument(XDocument doc, Uri uri)
@@ -182,6 +179,26 @@ namespace DtbSynthesizerLibrary.Xhtml
 
         public XDocument PackageFile => GetXDocument(PackageFileUri);
 
+        public CultureInfo PublicationLanguage => PackageFile
+                                                      ?.Descendants(DcNs + "language")
+                                                      .Select(le => new CultureInfo(le.Value))
+                                                      .FirstOrDefault() 
+                                                  ?? CultureInfo.InvariantCulture;
+
+        public void SetDcIdentifier(string identifier)
+        {
+            var packageFile = PackageFile;
+            var dcIdentifier = Utils.GetEpubUniqueIdentifierElement(packageFile, true);
+            dcIdentifier.Value = identifier;
+            UpdateXDocument(packageFile);
+            foreach (var xhtml in XhtmlDocuments)
+            {
+                Utils.SetMeta(xhtml, "dc:identifier", identifier);
+                UpdateXDocument(xhtml);
+            }
+        }
+
+
         private XElement GetItemElement(Uri uri)
         {
             return PackageFile
@@ -192,6 +209,7 @@ namespace DtbSynthesizerLibrary.Xhtml
         public IEnumerable<XDocument> XhtmlDocuments => PackageFile
             .Descendants(OpfNs+"item")
             .Where(item => item.Attribute("media-type")?.Value == "application/xhtml+xml")
+            .OrderBy(item => (item.Attribute("properties")?.Value??"")=="nav"?0:1)
             .Select(item => item.Attribute("href"))
             .Select(Utils.GetUri)
             .Select(GetXDocument);
@@ -209,10 +227,9 @@ namespace DtbSynthesizerLibrary.Xhtml
         }
 
         public event EventHandler<ProgressEventArgs> Progress;
-
-        //private int audioFileNo;
-        //private MemoryStream waveMemoryStream;
-
+        int audioFileNo;
+        MemoryStream waveMemoryStream;
+        
         public override bool Synthesize()
         {
             var xhtmlDocs = XhtmlDocuments
@@ -229,8 +246,7 @@ namespace DtbSynthesizerLibrary.Xhtml
             var manifest = packageFile.Descendants(OpfNs + "manifest").Single();
             var metadata = packageFile.Descendants(OpfNs + "metadata").Single();
             var totalDur = TimeSpan.Zero;
-            int audioFileNo = 0;
-            MemoryStream waveMemoryStream;
+            audioFileNo = 0;
             foreach (var doc in xhtmlDocs)
             {
                 foreach (var elem in doc.Descendants(Utils.XhtmlNs + "body").Elements())

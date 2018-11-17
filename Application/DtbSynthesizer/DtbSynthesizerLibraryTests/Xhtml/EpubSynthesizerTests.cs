@@ -53,6 +53,16 @@ namespace DtbSynthesizerLibraryTests.Xhtml
                         item.Attribute("media-type")?.Value == "application/xhtml+xml") ?? 0,
                     synth.XhtmlDocuments.Count(),
                     "Unexpected number of Xhtml documents");
+                Assert.AreEqual(
+                    synth.PackageFile
+                        ?.Descendants(EpubSynthesizer.OpfNs + "item")
+                        .Where(item => 
+                            (item.Attribute("media-type")?.Value??"") == "application/xhtml+xml"
+                            && (item.Attribute("properties")?.Value??"") == "nav")
+                        .Select(item => new Uri(synth.PackageFileUri, item.Attribute("href")?.Value??""))
+                        .Single(),
+                        new Uri(synth.XhtmlDocuments.First().BaseUri),
+                        "First XhtmlDocument is not nav document");
             }
         }
 

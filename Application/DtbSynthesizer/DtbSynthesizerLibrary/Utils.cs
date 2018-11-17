@@ -19,6 +19,9 @@ namespace DtbSynthesizerLibrary
     public static class Utils
     {
         public static XNamespace XhtmlNs => "http://www.w3.org/1999/xhtml";
+        public static XNamespace OcfNs => "urn:oasis:names:tc:opendocument:xmlns:container";
+        public static XNamespace OpfNs => "http://www.idpf.org/2007/opf";
+        public static XNamespace DcNs => "http://purl.org/dc/elements/1.1/";
 
         /// <summary>
         /// Gets the language of an <see cref="XElement"/>
@@ -61,12 +64,13 @@ namespace DtbSynthesizerLibrary
 
         public static IEnumerable<IXmlSynthesizer> GetAllSynthesizers()
         {
-            return SystemSpeechXmlSynthesizer 
+            return SystemSpeechXmlSynthesizer
                 .Synthesizers
                 .Concat(MicrosoftSpeechXmlSynthesizer.Synthesizers);
         }
 
-        public static IXmlSynthesizer GetPrefferedXmlSynthesizerForCulture(CultureInfo ci, IXmlSynthesizer defaultSynthesizer = null)
+        public static IXmlSynthesizer GetPrefferedXmlSynthesizerForCulture(CultureInfo ci,
+            IXmlSynthesizer defaultSynthesizer = null)
         {
             return GetPrefferedXmlSynthesizerForCulture(ci, GetAllSynthesizers().ToList(), defaultSynthesizer);
         }
@@ -81,7 +85,7 @@ namespace DtbSynthesizerLibrary
             {
                 return defaultSynthesizer;
             }
-            return 
+            return
                 synthesizerList.FirstOrDefault(s => s.VoiceInfo.Culture.Equals(ci))
                 ?? synthesizerList.FirstOrDefault(s =>
                     s.VoiceInfo.Culture.TwoLetterISOLanguageName == ci.TwoLetterISOLanguageName)
@@ -128,9 +132,9 @@ namespace DtbSynthesizerLibrary
             return CloneWithBaseUri(
                 new XDocument(
                     new XDocumentType(
-                        "html", 
-                        "-//W3C//DTD XHTML 1.0 Transitional//EN", 
-                        "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd", 
+                        "html",
+                        "-//W3C//DTD XHTML 1.0 Transitional//EN",
+                        "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd",
                         null),
                     new XElement(
                         Utils.XhtmlNs + "html",
@@ -250,7 +254,7 @@ namespace DtbSynthesizerLibrary
         public static string GetHHMMSSFromTimeSpan(TimeSpan val)
         {
             var rounded = TimeSpan.FromSeconds(Math.Round(val.TotalSeconds, MidpointRounding.AwayFromZero));
-            return $"{(int)Math.Floor(rounded.TotalHours):D2}:{rounded.Minutes:D2}:{rounded.Seconds:D2}";
+            return $"{(int) Math.Floor(rounded.TotalHours):D2}:{rounded.Minutes:D2}:{rounded.Seconds:D2}";
         }
 
         public static string Generator =>
@@ -282,7 +286,7 @@ namespace DtbSynthesizerLibrary
                             using (var resStr = Assembly.GetExecutingAssembly().GetManifestResourceStream(xsltName))
                             {
                                 using (var fs = new FileStream(
-                                    Path.Combine(temp, xsltName.Substring((typeof(Utils).Namespace??"").Length + 6)),
+                                    Path.Combine(temp, xsltName.Substring((typeof(Utils).Namespace ?? "").Length + 6)),
                                     FileMode.CreateNew,
                                     FileAccess.Write))
                                 {
@@ -290,7 +294,8 @@ namespace DtbSynthesizerLibrary
                                 }
                             }
                         }
-                        foreach (var xsltFile in Directory.GetFiles(temp).Where(n => !Path.Combine(temp, "l10n.xsl").Equals(n)))
+                        foreach (var xsltFile in Directory.GetFiles(temp)
+                            .Where(n => !Path.Combine(temp, "l10n.xsl").Equals(n)))
                         {
                             embeddedXsltExecutables.Add(
                                 Path.GetFileName(xsltFile),
@@ -348,12 +353,12 @@ namespace DtbSynthesizerLibrary
             }
             if (deleteDualH1Title)
             {
-                var firstH1 = res.Root?.Element(XhtmlNs + "body")?.Element(XhtmlNs+"h1");
-                if (firstH1?.Attribute("class")?.Value.Split(' ').Contains("title")??false)
+                var firstH1 = res.Root?.Element(XhtmlNs + "body")?.Element(XhtmlNs + "h1");
+                if (firstH1?.Attribute("class")?.Value.Split(' ').Contains("title") ?? false)
                 {
                     var secondH1 = firstH1.ElementsAfterSelf().FirstOrDefault();
                     if (secondH1?.Name == XhtmlNs + "h1"
-                        && (secondH1?.Attribute("class")?.Value.Split(' ').Contains("title")??false)
+                        && (secondH1?.Attribute("class")?.Value.Split(' ').Contains("title") ?? false)
                         && firstH1.Value == secondH1?.Value)
                     {
                         secondH1.Remove();
@@ -435,9 +440,9 @@ namespace DtbSynthesizerLibrary
         }
 
         public static bool CopyXhtmlDocumentWithImages(
-            XDocument xhtmlDoc, 
+            XDocument xhtmlDoc,
             string outputDirectory,
-            out string xhtmlPath, 
+            out string xhtmlPath,
             Func<int, string, bool> cancellableProgressDelegate = null)
         {
             if (xhtmlDoc == null) throw new ArgumentNullException(nameof(xhtmlDoc));
@@ -484,8 +489,9 @@ namespace DtbSynthesizerLibrary
                 .ToArray();
             for (int i = 0; i < imageSrcs.Length; i++)
             {
-                if (cancellableProgressDelegate(100 * i / imageSrcs.Length, $"Copying image {imageSrcs[i]} (entry {i}/{imageSrcs.Length})"))
-                { 
+                if (cancellableProgressDelegate(100 * i / imageSrcs.Length,
+                    $"Copying image {imageSrcs[i]} (entry {i}/{imageSrcs.Length})"))
+                {
                     return false;
                 }
                 var source = new Uri(sourceUri, imageSrcs[i]).LocalPath;
@@ -571,6 +577,73 @@ namespace DtbSynthesizerLibrary
             var clipBegin = ParseSmilClip(audio.Attribute("clipBegin")?.Value ?? "0s");
             var clipEnd = ParseSmilClip(audio.Attribute("clipEnd")?.Value ?? "0s");
             return clipEnd.Subtract(clipBegin);
+        }
+
+        public static IEnumerable<CultureInfo> GetCultures(XDocument doc)
+        {
+            return doc
+                .Descendants()
+                .Select(Utils.GetLanguage)
+                .Where(v => !String.IsNullOrWhiteSpace(v))
+                .Select(lang => new CultureInfo(lang))
+                .Distinct();
+        }
+
+        public static XElement GetEpubUniqueIdentifierElement(XDocument packageFile, bool create = false)
+        {
+            var result = packageFile
+                .Descendants(DcNs + "identifier")
+                .FirstOrDefault(dcId =>
+                    (dcId.Attribute("id")?.Value ?? "") ==
+                    (packageFile.Root?.Attribute("unique-identifier")?.Value ?? ""));
+            if (result == null && create)
+            {
+                var metadata = packageFile.Descendants(OpfNs + "metadata").FirstOrDefault();
+                if (metadata != null)
+                {
+                    var id = Utils.GenerateNewId(packageFile);
+                    result = new XElement(
+                        DcNs + "identifier",
+                        new XAttribute("id", id));
+                    metadata.AddFirst(result);
+                    packageFile.Root?.SetAttributeValue("unique-identifier", id);
+
+                }
+            }
+            return result;
+        }
+
+        public static XElement GetEpubMetadataElement(XDocument packageFile, string name, bool create = false)
+        {
+            if (packageFile == null) throw new ArgumentNullException(nameof(packageFile));
+            if (name == null) throw new ArgumentNullException(nameof(name));
+            XElement result = null;
+            var metadata = packageFile.Descendants(OpfNs + "metadata").FirstOrDefault();
+            if (name.StartsWith("dc:"))
+            {
+                result = packageFile
+                    .Descendants(DcNs + name.Substring(3))
+                    .FirstOrDefault(dcId =>
+                        (dcId.Attribute("id")?.Value ?? "") ==
+                        (packageFile.Root?.Attribute("unique-identifier")?.Value ?? ""));
+                if (result == null && create && metadata != null)
+                {
+                    result = new XElement(DcNs + name.Substring(3));
+                    metadata.Add(result);
+                }
+            }
+            else
+            {
+                result = packageFile
+                    .Descendants(OpfNs + "meta")
+                    .FirstOrDefault(meta => (meta.Attribute("name")?.Value ?? "") == name);
+                if (result == null && create && metadata != null)
+                {
+                    result = new XElement(OpfNs + "meta");
+                    metadata.Add(result);
+                }
+            }
+            return result;
         }
     }
 }

@@ -41,6 +41,8 @@
             this.synthesizeProgressBar = new System.Windows.Forms.ProgressBar();
             this.cancelSynthesisButton = new System.Windows.Forms.Button();
             this.settingsTableLayoutPanel = new System.Windows.Forms.TableLayoutPanel();
+            this.textBox1 = new System.Windows.Forms.TextBox();
+            this.label1 = new System.Windows.Forms.Label();
             this.dcPublisherTextBox = new System.Windows.Forms.TextBox();
             this.dcCreatorTextBox = new System.Windows.Forms.TextBox();
             this.dcPublisherLabel = new System.Windows.Forms.Label();
@@ -101,14 +103,18 @@
             // 
             // sourceXhtmlWebBrowser
             // 
+            this.sourceXhtmlWebBrowser.AllowNavigation = false;
+            this.sourceXhtmlWebBrowser.AllowWebBrowserDrop = false;
             this.mainTableLayoutPanel.SetColumnSpan(this.sourceXhtmlWebBrowser, 4);
             this.sourceXhtmlWebBrowser.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.sourceXhtmlWebBrowser.IsWebBrowserContextMenuEnabled = false;
             this.sourceXhtmlWebBrowser.Location = new System.Drawing.Point(3, 3);
             this.sourceXhtmlWebBrowser.MinimumSize = new System.Drawing.Size(20, 20);
             this.sourceXhtmlWebBrowser.Name = "sourceXhtmlWebBrowser";
             this.mainTableLayoutPanel.SetRowSpan(this.sourceXhtmlWebBrowser, 2);
             this.sourceXhtmlWebBrowser.Size = new System.Drawing.Size(742, 740);
             this.sourceXhtmlWebBrowser.TabIndex = 0;
+            this.sourceXhtmlWebBrowser.WebBrowserShortcutsEnabled = false;
             // 
             // openSourceButton
             // 
@@ -210,9 +216,11 @@
             this.mainTableLayoutPanel.SetColumnSpan(this.settingsTableLayoutPanel, 2);
             this.settingsTableLayoutPanel.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle());
             this.settingsTableLayoutPanel.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100F));
-            this.settingsTableLayoutPanel.Controls.Add(this.dcPublisherTextBox, 5, 3);
+            this.settingsTableLayoutPanel.Controls.Add(this.textBox1, 1, 3);
+            this.settingsTableLayoutPanel.Controls.Add(this.label1, 0, 3);
+            this.settingsTableLayoutPanel.Controls.Add(this.dcPublisherTextBox, 5, 4);
             this.settingsTableLayoutPanel.Controls.Add(this.dcCreatorTextBox, 5, 2);
-            this.settingsTableLayoutPanel.Controls.Add(this.dcPublisherLabel, 0, 3);
+            this.settingsTableLayoutPanel.Controls.Add(this.dcPublisherLabel, 0, 4);
             this.settingsTableLayoutPanel.Controls.Add(this.dcCreatorLabel, 0, 2);
             this.settingsTableLayoutPanel.Controls.Add(this.dcIdentifierLabel, 0, 1);
             this.settingsTableLayoutPanel.Controls.Add(this.audioFormatLabel, 0, 0);
@@ -221,20 +229,43 @@
             this.settingsTableLayoutPanel.Dock = System.Windows.Forms.DockStyle.Fill;
             this.settingsTableLayoutPanel.Location = new System.Drawing.Point(751, 376);
             this.settingsTableLayoutPanel.Name = "settingsTableLayoutPanel";
-            this.settingsTableLayoutPanel.RowCount = 5;
+            this.settingsTableLayoutPanel.RowCount = 6;
             this.settingsTableLayoutPanel.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 40F));
             this.settingsTableLayoutPanel.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 40F));
             this.settingsTableLayoutPanel.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 40F));
             this.settingsTableLayoutPanel.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 40F));
             this.settingsTableLayoutPanel.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 40F));
-            this.settingsTableLayoutPanel.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 20F));
+            this.settingsTableLayoutPanel.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 40F));
             this.settingsTableLayoutPanel.Size = new System.Drawing.Size(373, 367);
             this.settingsTableLayoutPanel.TabIndex = 9;
+            // 
+            // textBox1
+            // 
+            this.textBox1.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.textBox1.Enabled = false;
+            this.textBox1.Location = new System.Drawing.Point(103, 128);
+            this.textBox1.Margin = new System.Windows.Forms.Padding(5, 8, 5, 5);
+            this.textBox1.Name = "textBox1";
+            this.textBox1.Size = new System.Drawing.Size(265, 22);
+            this.textBox1.TabIndex = 12;
+            this.textBox1.Tag = "meta:dc:title";
+            // 
+            // label1
+            // 
+            this.label1.AutoSize = true;
+            this.label1.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.label1.Location = new System.Drawing.Point(3, 120);
+            this.label1.Name = "label1";
+            this.label1.Size = new System.Drawing.Size(92, 40);
+            this.label1.TabIndex = 11;
+            this.label1.Text = "dc:title";
+            this.label1.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
             // 
             // dcPublisherTextBox
             // 
             this.dcPublisherTextBox.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.dcPublisherTextBox.Location = new System.Drawing.Point(103, 128);
+            this.dcPublisherTextBox.Enabled = false;
+            this.dcPublisherTextBox.Location = new System.Drawing.Point(103, 168);
             this.dcPublisherTextBox.Margin = new System.Windows.Forms.Padding(5, 8, 5, 5);
             this.dcPublisherTextBox.Name = "dcPublisherTextBox";
             this.dcPublisherTextBox.Size = new System.Drawing.Size(265, 22);
@@ -245,6 +276,7 @@
             // dcCreatorTextBox
             // 
             this.dcCreatorTextBox.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.dcCreatorTextBox.Enabled = false;
             this.dcCreatorTextBox.Location = new System.Drawing.Point(103, 88);
             this.dcCreatorTextBox.Margin = new System.Windows.Forms.Padding(5, 8, 5, 5);
             this.dcCreatorTextBox.Name = "dcCreatorTextBox";
@@ -257,7 +289,7 @@
             // 
             this.dcPublisherLabel.AutoSize = true;
             this.dcPublisherLabel.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.dcPublisherLabel.Location = new System.Drawing.Point(3, 120);
+            this.dcPublisherLabel.Location = new System.Drawing.Point(3, 160);
             this.dcPublisherLabel.Name = "dcPublisherLabel";
             this.dcPublisherLabel.Size = new System.Drawing.Size(92, 40);
             this.dcPublisherLabel.TabIndex = 8;
@@ -311,6 +343,7 @@
             // dcIdentifierTextBox
             // 
             this.dcIdentifierTextBox.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.dcIdentifierTextBox.Enabled = false;
             this.dcIdentifierTextBox.Location = new System.Drawing.Point(103, 48);
             this.dcIdentifierTextBox.Margin = new System.Windows.Forms.Padding(5, 8, 5, 5);
             this.dcIdentifierTextBox.Name = "dcIdentifierTextBox";
@@ -382,6 +415,8 @@
         private System.Windows.Forms.Label dcCreatorLabel;
         private System.Windows.Forms.Label dcIdentifierLabel;
         private System.Windows.Forms.TextBox dcIdentifierTextBox;
+        private System.Windows.Forms.TextBox textBox1;
+        private System.Windows.Forms.Label label1;
     }
 }
 
