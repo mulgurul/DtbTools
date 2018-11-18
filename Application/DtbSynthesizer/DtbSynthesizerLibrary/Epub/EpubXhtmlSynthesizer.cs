@@ -3,16 +3,12 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Xml.Linq;
+using DtbSynthesizerLibrary.Xhtml;
 using DtbSynthesizerLibrary.Xml;
 using NAudio.Wave;
 
-namespace DtbSynthesizerLibrary.Xhtml
+namespace DtbSynthesizerLibrary.Epub
 {
-    public class XElementReachedEventArgs : EventArgs
-    {
-        public XElement Element { get; set; }
-    }
-
     public class EpubXhtmlSynthesizer : AbstractXhtmlSynthesizer
     {
         public event EventHandler<XElementReachedEventArgs> ElementReached;
@@ -88,5 +84,13 @@ namespace DtbSynthesizerLibrary.Xhtml
             return true;
         }
 
+    }
+}
+
+namespace DtbSynthesizerLibrary.Xhtml
+{
+    public class XElementReachedEventArgs : EventArgs
+    {
+        public XElement Element { get; set; }
     }
 }

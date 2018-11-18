@@ -12,6 +12,7 @@ using System.Threading.Tasks;
 using System.Xml;
 using System.Xml.Linq;
 using DtbSynthesizerLibrary;
+using DtbSynthesizerLibrary.Daisy202;
 using DtbSynthesizerLibrary.Xhtml;
 using Mono.Options;
 

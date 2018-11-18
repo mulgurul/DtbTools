@@ -4,16 +4,16 @@ using System.Collections.ObjectModel;
 using System.Globalization;
 using System.IO;
 using System.Linq;
-using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Xml;
 using System.Xml.Linq;
 using System.Xml.XPath;
+using DtbSynthesizerLibrary.Xhtml;
 using DtbSynthesizerLibrary.Xml;
 using NAudio.Lame;
 using NAudio.Wave;
 
-namespace DtbSynthesizerLibrary.Xhtml
+namespace DtbSynthesizerLibrary.Daisy202
 {
     public class Daisy202Synthesizer : AbstractXhtmlSynthesizer
     {

@@ -4,12 +4,13 @@ using System.IO;
 using System.Linq;
 using System.Xml.Linq;
 using DtbSynthesizerLibrary;
+using DtbSynthesizerLibrary.Daisy202;
 using DtbSynthesizerLibrary.Xhtml;
 using DtbSynthesizerLibrary.Xml;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using NAudio.Wave;
 
-namespace DtbSynthesizerLibraryTests.Xhtml
+namespace DtbSynthesizerLibraryTests.Daisy202
 {
     [TestClass]
     [DeploymentItem(@".\TestFiles")]

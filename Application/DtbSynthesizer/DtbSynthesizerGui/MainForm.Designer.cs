@@ -41,8 +41,8 @@
             this.synthesizeProgressBar = new System.Windows.Forms.ProgressBar();
             this.cancelSynthesisButton = new System.Windows.Forms.Button();
             this.settingsTableLayoutPanel = new System.Windows.Forms.TableLayoutPanel();
-            this.textBox1 = new System.Windows.Forms.TextBox();
-            this.label1 = new System.Windows.Forms.Label();
+            this.dcTitleTextBox = new System.Windows.Forms.TextBox();
+            this.dcTitleLabel = new System.Windows.Forms.Label();
             this.dcPublisherTextBox = new System.Windows.Forms.TextBox();
             this.dcCreatorTextBox = new System.Windows.Forms.TextBox();
             this.dcPublisherLabel = new System.Windows.Forms.Label();
@@ -216,8 +216,8 @@
             this.mainTableLayoutPanel.SetColumnSpan(this.settingsTableLayoutPanel, 2);
             this.settingsTableLayoutPanel.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle());
             this.settingsTableLayoutPanel.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100F));
-            this.settingsTableLayoutPanel.Controls.Add(this.textBox1, 1, 3);
-            this.settingsTableLayoutPanel.Controls.Add(this.label1, 0, 3);
+            this.settingsTableLayoutPanel.Controls.Add(this.dcTitleTextBox, 1, 3);
+            this.settingsTableLayoutPanel.Controls.Add(this.dcTitleLabel, 0, 3);
             this.settingsTableLayoutPanel.Controls.Add(this.dcPublisherTextBox, 5, 4);
             this.settingsTableLayoutPanel.Controls.Add(this.dcCreatorTextBox, 5, 2);
             this.settingsTableLayoutPanel.Controls.Add(this.dcPublisherLabel, 0, 4);
@@ -239,27 +239,27 @@
             this.settingsTableLayoutPanel.Size = new System.Drawing.Size(373, 367);
             this.settingsTableLayoutPanel.TabIndex = 9;
             // 
-            // textBox1
+            // dcTitleTextBox
             // 
-            this.textBox1.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.textBox1.Enabled = false;
-            this.textBox1.Location = new System.Drawing.Point(103, 128);
-            this.textBox1.Margin = new System.Windows.Forms.Padding(5, 8, 5, 5);
-            this.textBox1.Name = "textBox1";
-            this.textBox1.Size = new System.Drawing.Size(265, 22);
-            this.textBox1.TabIndex = 12;
-            this.textBox1.Tag = "meta:dc:title";
+            this.dcTitleTextBox.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.dcTitleTextBox.Enabled = false;
+            this.dcTitleTextBox.Location = new System.Drawing.Point(103, 128);
+            this.dcTitleTextBox.Margin = new System.Windows.Forms.Padding(5, 8, 5, 5);
+            this.dcTitleTextBox.Name = "dcTitleTextBox";
+            this.dcTitleTextBox.Size = new System.Drawing.Size(265, 22);
+            this.dcTitleTextBox.TabIndex = 12;
+            this.dcTitleTextBox.Tag = "meta:dc:title";
             // 
-            // label1
+            // dcTitleLabel
             // 
-            this.label1.AutoSize = true;
-            this.label1.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.label1.Location = new System.Drawing.Point(3, 120);
-            this.label1.Name = "label1";
-            this.label1.Size = new System.Drawing.Size(92, 40);
-            this.label1.TabIndex = 11;
-            this.label1.Text = "dc:title";
-            this.label1.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
+            this.dcTitleLabel.AutoSize = true;
+            this.dcTitleLabel.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.dcTitleLabel.Location = new System.Drawing.Point(3, 120);
+            this.dcTitleLabel.Name = "dcTitleLabel";
+            this.dcTitleLabel.Size = new System.Drawing.Size(92, 40);
+            this.dcTitleLabel.TabIndex = 11;
+            this.dcTitleLabel.Text = "dc:title";
+            this.dcTitleLabel.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
             // 
             // dcPublisherTextBox
             // 
@@ -382,6 +382,7 @@
             this.Name = "MainForm";
             this.Text = "Dtb Synthesizer";
             this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.MainFormFormClosingHandler);
+            this.FormClosed += new System.Windows.Forms.FormClosedEventHandler(this.MainFormFormClosedHandler);
             this.mainTableLayoutPanel.ResumeLayout(false);
             this.mainTableLayoutPanel.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)(this.synthesizersDataGridView)).EndInit();
@@ -415,8 +416,8 @@
         private System.Windows.Forms.Label dcCreatorLabel;
         private System.Windows.Forms.Label dcIdentifierLabel;
         private System.Windows.Forms.TextBox dcIdentifierTextBox;
-        private System.Windows.Forms.TextBox textBox1;
-        private System.Windows.Forms.Label label1;
+        private System.Windows.Forms.TextBox dcTitleTextBox;
+        private System.Windows.Forms.Label dcTitleLabel;
     }
 }
 

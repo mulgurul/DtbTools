@@ -76,9 +76,11 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="ChangableDictionary.cs" />
+    <Compile Include="Epub\DisposeNotifyingStream.cs" />
+    <Compile Include="Epub\EpubPublication.cs" />
     <Compile Include="Xhtml\AbstractSynthesizer.cs" />
-    <Compile Include="Xhtml\EpubSynthesizer.cs" />
-    <Compile Include="Xhtml\EpubXhtmlSynthesizer.cs" />
+    <Compile Include="Epub\EpubSynthesizer.cs" />
+    <Compile Include="Epub\EpubXhtmlSynthesizer.cs" />
     <Compile Include="Xhtml\AbstractXhtmlSynthesizer.cs" />
     <Compile Include="Xml\AbstractXmlSynthesizer.cs" />
     <Compile Include="Xml\IXmlSynthesizer.cs" />
@@ -89,7 +91,7 @@
     <Compile Include="Xml\SyncAnnotation.cs" />
     <Compile Include="Utils.cs" />
     <Compile Include="VoiceMetaData.cs" />
-    <Compile Include="Xhtml\Daisy202Synthesizer.cs" />
+    <Compile Include="Daisy202\Daisy202Synthesizer.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="DtbSynthesizerLibrary.nuspec" />
@@ -111,5 +113,6 @@
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
