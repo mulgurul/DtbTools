@@ -1,5 +1,4 @@
 ﻿using System;
-using System.ComponentModel;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -7,11 +6,9 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Xml.Linq;
 using DCSArchiveClientApi;
-using DCSArchiveLibrary.Model;
 using DtbSynthesizerLibrary;
-using DtbSynthesizerLibrary.Xhtml;
+using DtbSynthesizerLibrary.Daisy202;
 using Mono.Options;
-using NAudio.Wave;
 using Directory = System.IO.Directory;
 
 namespace DCSSynthesizer
@@ -269,7 +266,7 @@ namespace DCSSynthesizer
             {
                 File.Delete(sourceFileName);
             }
-            var synthesizer = new XhtmlSynthesizer()
+            var synthesizer = new Daisy202Synthesizer()
             {
                 XhtmlDocument = XDocument.Load(xhtmlFileName, LoadOptions.SetBaseUri | LoadOptions.SetLineInfo),
                 EncodeMp3 = true,
@@ -279,7 +276,7 @@ namespace DCSSynthesizer
             {
                 Console.Write($"{args.ProgressPercentage:D3}% {args.ProgressMessage}".PadRight(80).Substring(0, 80) + "\r");
             };
-            synthesizer.GenerateDaisy202Dtb();
+            synthesizer.GenerateDtb();
             Console.Write($"{new String(' ', 80)}\r");
             Console.WriteLine("Synthesized DTB");
             return 0;
