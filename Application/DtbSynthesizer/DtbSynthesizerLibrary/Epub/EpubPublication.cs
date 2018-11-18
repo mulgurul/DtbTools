@@ -11,9 +11,15 @@ using System.Xml.Linq;
 
 namespace DtbSynthesizerLibrary.Epub
 {
+    /// <summary>
+    /// Represents an ePub 3.0 publication stored in a Ofc/zip container on disk
+    /// </summary>
+    /// <remarks>
+    /// If the publication is changed make sure you call <see cref="Dispose"/>, in order for the changed to be saved to disk
+ 
+    /// </remarks>
     public class EpubPublication : IDisposable
     {
-
         private static XNamespace OcfNs => Utils.OcfNs;
         private static XNamespace OpfNs => Utils.OpfNs;
         private static XNamespace DcNs => Utils.DcNs;
@@ -122,9 +128,14 @@ namespace DtbSynthesizerLibrary.Epub
 
         private void SaveXDocument(Stream stream, XDocument doc)
         {
-            using (var swr = new StreamWriter(stream, Encoding.GetEncoding(doc.Declaration?.Encoding ?? "utf-8")))
+            using (var swr = new StreamWriter(stream, Encoding.GetEncoding(doc.Declaration?.Encoding ?? "utf-8")) {AutoFlush = true})
             {
-                using (var xwr = XmlWriter.Create(swr, new XmlWriterSettings() {Indent = true, IndentChars = "  "}))
+                using (var xwr = XmlWriter.Create(swr, new XmlWriterSettings()
+                {
+                    Indent = true,
+                    IndentChars = "  ",
+                    NamespaceHandling = NamespaceHandling.OmitDuplicates
+                }))
                 {
                     doc.WriteTo(xwr);
                 }

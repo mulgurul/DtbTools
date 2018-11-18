@@ -85,7 +85,7 @@ namespace DtbSynthesizer
                 case ".htm":
                 case ".html":
                     return GenerateDaisy202Dtb();
-                case "*.epub":
+                case ".epub":
                     return GenerateEpub30Dtb();
                 default:
                     Console.WriteLine($"Cannot determine format of input file {input}\nSupported formats are xhtml (*.htm or *.html) and ePub (*.epub)");
@@ -131,6 +131,7 @@ namespace DtbSynthesizer
             synthesizer.Synthesize();
             Console.Write($"{new String(' ', 80)}\r");
             Console.WriteLine($"Successfully generated ePub 3.0 DTB {output}\nDuration: {DateTime.Now.Subtract(startTime)}");
+            publication.Dispose();
             return 0;
         }
 
