@@ -16,7 +16,7 @@ namespace DtbSynthesizerLibrary.Xhtml
 {
     public abstract class AbstractXhtmlSynthesizer : AbstractSynthesizer
     {
-        public static XNamespace XhtmlNs => Utils.XhtmlNs;
+        protected static XNamespace XhtmlNs => Utils.XhtmlNs;
         public XDocument XhtmlDocument { get; set; }
 
         public XElement Body => XhtmlDocument?.Root?.Element(XhtmlNs + "body");
