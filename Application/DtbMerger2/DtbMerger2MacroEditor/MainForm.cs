@@ -963,7 +963,7 @@ namespace DtbMerger2MacroEditor
 
         private void CancelButtonClickHandler(object sender, EventArgs e)
         {
-            var bw = (BackgroundWorker) sender;
+            var bw = saveDtbBackgroundWorker;
             if (bw.IsBusy)
             {
                 bw.CancelAsync();

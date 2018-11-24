@@ -591,7 +591,7 @@ namespace DtbMerger2Library.Daisy202
                     {
                         foreach (var segment in AudioSegmentsByAudioFileDictionary[audioFileName])
                         {
-                            using (var audioReader = 
+                            using (var audioReader =
                                 GetAudioPcmStream(Uri.UnescapeDataString(segment.AudioFile.LocalPath)))
                             {
                                 if (!waveFormat.Equals(audioReader.WaveFormat))
@@ -600,12 +600,12 @@ namespace DtbMerger2Library.Daisy202
                                         $"Audio file {segment.AudioFile} has different wave format from first audio file in segment");
                                 }
                                 audioReader.Seek(
-                                    (long)segment.ClipBegin.TotalSeconds * audioReader.WaveFormat.AverageBytesPerSecond,
+                                    (long)(segment.ClipBegin.TotalSeconds * audioReader.WaveFormat.SampleRate) * audioReader.WaveFormat.BlockAlign, 
                                     SeekOrigin.Current);
                                 var bytesToRead =
-                                    (long) (segment.Duration.TotalSeconds * audioReader.WaveFormat.AverageBytesPerSecond);
+                                    (long)(segment.Duration.TotalSeconds * audioReader.WaveFormat.SampleRate) * audioReader.WaveFormat.BlockAlign;
                                 var totalBytesRead = 0;
-                                var buf = new byte[10*1024];
+                                var buf = new byte[10 * 1024];
                                 while (totalBytesRead < bytesToRead)
                                 {
                                     var byteCount = (int)Math.Min(bytesToRead - totalBytesRead, buf.Length);
@@ -651,7 +651,8 @@ namespace DtbMerger2Library.Daisy202
                 {
                     return false;
                 }
-                foreach (var imgUri in entry.TextElements                    .SelectMany(e => e.DescendantsAndSelf(e.Name.Namespace + "img").Select(img => img.Attribute("src")))
+                foreach (var imgUri in entry.TextElements                    
+                    .SelectMany(e => e.DescendantsAndSelf(e.Name.Namespace + "img").Select(img => img.Attribute("src")))
                     .Select(Utils.GetUri)
                     .Distinct())
                 {
