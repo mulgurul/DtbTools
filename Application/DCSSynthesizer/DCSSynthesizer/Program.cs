@@ -10,6 +10,7 @@ using DtbSynthesizerLibrary;
 using DtbSynthesizerLibrary.Daisy202;
 using Mono.Options;
 using Directory = System.IO.Directory;
+using Nota.NLogExtention;
 
 namespace DCSSynthesizer
 {
@@ -58,6 +59,8 @@ namespace DCSSynthesizer
         private static string defaultCreator = "Nota";
         private static bool forceOverwriteDCS = false;
         private static bool useDCSPro = false;
+        private static bool noCleanupOfTemp = false;
+        private static bool skipUploadToArchive = false;
         private static ClientApi clientApi = null;
 
         private static string DestPath => Path.Combine(uncRoot, destTitleNumber);
@@ -76,7 +79,13 @@ namespace DCSSynthesizer
             .Add("usedate", "Use date for default number (mmdd), otherwise the iso week number of the next following saturday is used",
                 s => useDate = s != null)
             .Add("force", "Force overwriting destination DTB in DCS", s => forceOverwriteDCS = s != null)
+            .Add("nocleanup", "Prevents cleanup of temp files, can be used for debug", s => noCleanupOfTemp = s != null)
+            .Add("skipupload", "Create output but skips upload to arch. Can be used for debug", s => skipUploadToArchive = s != null)
             .Add("usedcspro", "Use smb-dcspro in place of smb-dcsweb", s => useDCSPro = s != null);
+
+        // Get a logger
+        private static NotaLogger logger = NotaLogManager.GetCurrentClassLogger(null, "DCSSynthesizer");
+
         private static string OptionDescriptions
         {
             get
@@ -123,24 +132,24 @@ namespace DCSSynthesizer
             }
             catch (OptionException e)
             {
-                Console.WriteLine($"{e.Message}\n{OptionDescriptions}");
+                logger.Error(e, $"{e.Message}\n{OptionDescriptions}");
                 return -1;
             }
             try
             {
-                Console.WriteLine($"Synthesizing {sourceTitleNumber} to {destTitleNumber}");
+                logger.Info($"Synthesizing {sourceTitleNumber} to {destTitleNumber}");
                 clientApi = new ClientApi {BaseAddress = dcsServiceUri};
                 try
                 {
                     if (!clientApi.Ping().Wait(10000))//Will throw an exception, if service is not accessible
                     {
-                        Console.WriteLine($"Timeout while pinging DCS Archive api {dcsServiceUri}");
+                        logger.Error($"Timeout while pinging DCS Archive api {dcsServiceUri}");
                         return -1;
                     }
                 }
                 catch (Exception e)
                 {
-                    Console.WriteLine($"Could not connect to DCS Archive api {dcsServiceUri} due to an {e.GetType()}: {e.Message}");
+                    logger.Error(e, $"Could not connect to DCS Archive api {dcsServiceUri} due to an {e.GetType()}: {e.Message}");
                     return -1;
                 }
                 var task = Execute();
@@ -149,36 +158,36 @@ namespace DCSSynthesizer
                 {
                     return task.Result;
                 }
-                Console.WriteLine($"Succesfully synthesized {sourceTitleNumber} to {destTitleNumber} in DCS Archive");
+                logger.Info($"Succesfully synthesized {sourceTitleNumber} to {destTitleNumber} in DCS Archive");
                 return 0;
             }
             catch (AggregateException e)
             {
-                Console.WriteLine($"An unexpected {e.GetType()} occured with the following inner exceptions:");
-                foreach (var ie in e.InnerExceptions)
-                {
-                    Console.WriteLine($"{ie.GetType()}: {ie.Message}");
-                }
+                logger.Error(e, $"Unexpected exception in DCSSynthesizer");
                 return -1000;
             }
             catch (Exception e)
             {
-                Console.WriteLine($"An unexpected {e.GetType()} occured: {e.Message}\nStack Trace:\n{e.StackTrace}");
+                logger.Error(e, $"Unexpected exception in DCSSynthesizer");
                 return -1000;
             }
             finally
             {
                 try
                 {
-                    if (Directory.Exists(DestPath))
+                    if (Directory.Exists(DestPath) && !noCleanupOfTemp)
                     {
                         Directory.Delete(DestPath, true);
-                        Console.WriteLine($"Cleaned up destination folder {DestPath}");
+                        logger.Info($"Cleaned up destination folder {DestPath}");
+                    }
+                    else
+                    {
+                        logger.Info($"Skipping clean up of destination folder {DestPath}");
                     }
                 }
                 catch (Exception e)
                 {
-                    Console.WriteLine($"Could not cleanup destination folder {DestPath} due to an unexpected {e.GetType()}: {e.Message}");
+                    logger.Error(e, $"Could not cleanup destination folder {DestPath} due to an unexpected {e.GetType()}: {e.Message}");
                 }
             }
         }
@@ -188,27 +197,27 @@ namespace DCSSynthesizer
             var title = await clientApi.GetTitle(sourceTitleNumber);
             if (title == null)
             {
-                Console.WriteLine($"Could not find source title {sourceTitleNumber} in DCS Archive");
+                logger.Error($"Could not find source title {sourceTitleNumber} in DCS Archive");
                 return -1;
             }
             if (title.MaterialType.Code != "ETXT")
             {
-                Console.WriteLine($"Source title has Material Type Code {title.MaterialType.Code}, expected ETXT");
+                logger.Error($"Source title has Material Type Code {title.MaterialType.Code}, expected ETXT");
                 return -1;
             }
             if (!title.Items.ContainsKey("DTB"))
             {
-                Console.WriteLine($"Source title {sourceTitleNumber} has no DTB (Dtbook xml) item");
+                logger.Error($"Source title {sourceTitleNumber} has no DTB (Dtbook xml) item");
                 return -1;
             }
             var sourceDir = title.DirectoriesAsList.Select(d => useDCSPro ? d.FullPath : d.WebFullPath).First();
             if (!Directory.Exists(sourceDir))
             {
-                Console.WriteLine($"Could not access source title at {sourceDir}");
+                logger.Error($"Could not access source title at {sourceDir}");
                 return -1;
             }
             CopyDirectory(sourceDir, DestPath);
-            Console.WriteLine($"Downloaded source dtbook from {sourceDir}");
+            logger.Info($"Downloaded source dtbook from {sourceDir}");
             return 0;
         }
 
@@ -237,7 +246,7 @@ namespace DCSSynthesizer
             {
                 await clientApi.CreateTitle(titleUpdate);
             }
-            Console.WriteLine("Uploaded synthesized DTB to DCSArchive");
+            logger.Info("Uploaded synthesized DTB to DCSArchive");
             return 0;
         }
 
@@ -246,7 +255,7 @@ namespace DCSSynthesizer
             var sourceFileName = Path.Combine(DestPath, $"{sourceTitleNumber}.xml");
             if (!File.Exists(sourceFileName))
             {
-                Console.WriteLine($"Could not find source file {sourceFileName}");
+                logger.Error($"Could not find source file {sourceFileName}");
                 return -1;
             }
             XDocument dtbook;
@@ -256,7 +265,7 @@ namespace DCSSynthesizer
             }
             catch (Exception e)
             {
-                Console.WriteLine($"Could not load source file {sourceFileName}: {e.Message}");
+                logger.Error(e, $"Could not load source file {sourceFileName}");
                 return -1;
             }
             var xhtmlFileName = Path.Combine(DestPath, $"{destTitleNumber}.html");
@@ -278,7 +287,7 @@ namespace DCSSynthesizer
             };
             synthesizer.GenerateDtb();
             Console.Write($"{new String(' ', 80)}\r");
-            Console.WriteLine("Synthesized DTB");
+            logger.Info("Synthesized DTB");
             return 0;
         }
 
@@ -294,13 +303,13 @@ namespace DCSSynthesizer
             }
             catch (Exception e)
             {
-                Console.WriteLine($"Could not create destination directory {DestPath} due to an unexpected {e.GetType()}: {e.Message}");
+                logger.Error(e, $"Could not create destination directory {DestPath} due to an unexpected {e.GetType()}: {e.Message}");
                 return -2;
             }
 
             if (!forceOverwriteDCS && (await clientApi.GetTitle(destTitleNumber)) != null)
             {
-                Console.WriteLine($"Destination title {destTitleNumber} already exists in DCS. Use -force to overwrite");
+                logger.Warn($"Destination title {destTitleNumber} already exists in DCS. Use -force to overwrite");
                 return 0;
             }
 
@@ -316,7 +325,15 @@ namespace DCSSynthesizer
                 return res;
             }
 
-            return await UploadDestination();
+            if (!skipUploadToArchive)
+            {
+                return await UploadDestination();
+            }
+            else
+            {
+                logger.Info($"Skipping upload of title {destTitleNumber} to DCSArchive");
+                return 0;
+            }
         }
 
         private static void CopyDirectory(string source, string dest)
