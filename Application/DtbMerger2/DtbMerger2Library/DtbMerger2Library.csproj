@@ -79,4 +79,9 @@
     </Content>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <PropertyGroup>
+    <PreBuildEvent>if not exist "$(ProjectDir)libmp3lame.32.dll" (copy "$(SolutionDir)packages\NAudio.Lame.1.0.7\content\libmp3lame.32.dll" "$(ProjectDir)")
+if not exist "$(ProjectDir)libmp3lame.64.dll" (copy "$(SolutionDir)packages\NAudio.Lame.1.0.7\content\libmp3lame.64.dll" "$(ProjectDir)")
+</PreBuildEvent>
+  </PropertyGroup>
 </Project>

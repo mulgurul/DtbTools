@@ -27,60 +27,6 @@
         }
         "Entry"
         {
-        "MsmKey" = "8:_60C17DBEEC68CE30EAE14A55D9F178CB"
-        "OwnerKey" = "8:_0D1B76EBFA744EEC8F6D5F50CAC664A1"
-        "MsmSig" = "8:_UNDEFINED"
-        }
-        "Entry"
-        {
-        "MsmKey" = "8:_60C17DBEEC68CE30EAE14A55D9F178CB"
-        "OwnerKey" = "8:_462485110D0B4607A0883D46C65307D2"
-        "MsmSig" = "8:_UNDEFINED"
-        }
-        "Entry"
-        {
-        "MsmKey" = "8:_9CB6FB96DB70543C680944E34562ECEF"
-        "OwnerKey" = "8:_60C17DBEEC68CE30EAE14A55D9F178CB"
-        "MsmSig" = "8:_UNDEFINED"
-        }
-        "Entry"
-        {
-        "MsmKey" = "8:_9CB6FB96DB70543C680944E34562ECEF"
-        "OwnerKey" = "8:_0D1B76EBFA744EEC8F6D5F50CAC664A1"
-        "MsmSig" = "8:_UNDEFINED"
-        }
-        "Entry"
-        {
-        "MsmKey" = "8:_9CB6FB96DB70543C680944E34562ECEF"
-        "OwnerKey" = "8:_462485110D0B4607A0883D46C65307D2"
-        "MsmSig" = "8:_UNDEFINED"
-        }
-        "Entry"
-        {
-        "MsmKey" = "8:_DE112DB3A07A5590E918A9ABE3F6C91C"
-        "OwnerKey" = "8:_60C17DBEEC68CE30EAE14A55D9F178CB"
-        "MsmSig" = "8:_UNDEFINED"
-        }
-        "Entry"
-        {
-        "MsmKey" = "8:_DE112DB3A07A5590E918A9ABE3F6C91C"
-        "OwnerKey" = "8:_9CB6FB96DB70543C680944E34562ECEF"
-        "MsmSig" = "8:_UNDEFINED"
-        }
-        "Entry"
-        {
-        "MsmKey" = "8:_DE112DB3A07A5590E918A9ABE3F6C91C"
-        "OwnerKey" = "8:_0D1B76EBFA744EEC8F6D5F50CAC664A1"
-        "MsmSig" = "8:_UNDEFINED"
-        }
-        "Entry"
-        {
-        "MsmKey" = "8:_DE112DB3A07A5590E918A9ABE3F6C91C"
-        "OwnerKey" = "8:_462485110D0B4607A0883D46C65307D2"
-        "MsmSig" = "8:_UNDEFINED"
-        }
-        "Entry"
-        {
         "MsmKey" = "8:_F2569EFEA1FE5865AC27494F5825BDDE"
         "OwnerKey" = "8:_0D1B76EBFA744EEC8F6D5F50CAC664A1"
         "MsmSig" = "8:_UNDEFINED"
@@ -95,36 +41,18 @@
         {
         "MsmKey" = "8:_UNDEFINED"
         "OwnerKey" = "8:_0D1B76EBFA744EEC8F6D5F50CAC664A1"
+        "MsmSig" = "8:_UNDEFINED"
+        }
+        "Entry"
+        {
+        "MsmKey" = "8:_UNDEFINED"
+        "OwnerKey" = "8:_462485110D0B4607A0883D46C65307D2"
         "MsmSig" = "8:_UNDEFINED"
         }
         "Entry"
         {
         "MsmKey" = "8:_UNDEFINED"
         "OwnerKey" = "8:_F2569EFEA1FE5865AC27494F5825BDDE"
-        "MsmSig" = "8:_UNDEFINED"
-        }
-        "Entry"
-        {
-        "MsmKey" = "8:_UNDEFINED"
-        "OwnerKey" = "8:_DE112DB3A07A5590E918A9ABE3F6C91C"
-        "MsmSig" = "8:_UNDEFINED"
-        }
-        "Entry"
-        {
-        "MsmKey" = "8:_UNDEFINED"
-        "OwnerKey" = "8:_9CB6FB96DB70543C680944E34562ECEF"
-        "MsmSig" = "8:_UNDEFINED"
-        }
-        "Entry"
-        {
-        "MsmKey" = "8:_UNDEFINED"
-        "OwnerKey" = "8:_60C17DBEEC68CE30EAE14A55D9F178CB"
-        "MsmSig" = "8:_UNDEFINED"
-        }
-        "Entry"
-        {
-        "MsmKey" = "8:_UNDEFINED"
-        "OwnerKey" = "8:_462485110D0B4607A0883D46C65307D2"
         "MsmSig" = "8:_UNDEFINED"
         }
     }
@@ -222,84 +150,6 @@
         }
         "File"
         {
-            "{9F6F8455-1EF1-4B85-886A-4223BCC8E7F7}:_60C17DBEEC68CE30EAE14A55D9F178CB"
-            {
-            "AssemblyRegister" = "3:1"
-            "AssemblyIsInGAC" = "11:FALSE"
-            "AssemblyAsmDisplayName" = "8:DtbMerger2Library, Version=2.0.6.41765, Culture=neutral, processorArchitecture=MSIL"
-                "ScatterAssemblies"
-                {
-                }
-            "SourcePath" = "8:DtbMerger2Library.dll"
-            "TargetName" = "8:"
-            "Tag" = "8:"
-            "Folder" = "8:_96A4A170F4A64DFE9B274FCB17565575"
-            "Condition" = "8:"
-            "Transitive" = "11:FALSE"
-            "Vital" = "11:TRUE"
-            "ReadOnly" = "11:FALSE"
-            "Hidden" = "11:FALSE"
-            "System" = "11:FALSE"
-            "Permanent" = "11:FALSE"
-            "SharedLegacy" = "11:FALSE"
-            "PackageAs" = "3:1"
-            "Register" = "3:1"
-            "Exclude" = "11:FALSE"
-            "IsDependency" = "11:TRUE"
-            "IsolateTo" = "8:"
-            }
-            "{9F6F8455-1EF1-4B85-886A-4223BCC8E7F7}:_9CB6FB96DB70543C680944E34562ECEF"
-            {
-            "AssemblyRegister" = "3:1"
-            "AssemblyIsInGAC" = "11:FALSE"
-            "AssemblyAsmDisplayName" = "8:NAudio.Lame, Version=1.0.5.22475, Culture=neutral, processorArchitecture=MSIL"
-                "ScatterAssemblies"
-                {
-                }
-            "SourcePath" = "8:NAudio.Lame.dll"
-            "TargetName" = "8:"
-            "Tag" = "8:"
-            "Folder" = "8:_96A4A170F4A64DFE9B274FCB17565575"
-            "Condition" = "8:"
-            "Transitive" = "11:FALSE"
-            "Vital" = "11:TRUE"
-            "ReadOnly" = "11:FALSE"
-            "Hidden" = "11:FALSE"
-            "System" = "11:FALSE"
-            "Permanent" = "11:FALSE"
-            "SharedLegacy" = "11:FALSE"
-            "PackageAs" = "3:1"
-            "Register" = "3:1"
-            "Exclude" = "11:FALSE"
-            "IsDependency" = "11:TRUE"
-            "IsolateTo" = "8:"
-            }
-            "{9F6F8455-1EF1-4B85-886A-4223BCC8E7F7}:_DE112DB3A07A5590E918A9ABE3F6C91C"
-            {
-            "AssemblyRegister" = "3:1"
-            "AssemblyIsInGAC" = "11:FALSE"
-            "AssemblyAsmDisplayName" = "8:NAudio, Version=1.8.4.0, Culture=neutral, processorArchitecture=MSIL"
-                "ScatterAssemblies"
-                {
-                }
-            "SourcePath" = "8:NAudio.dll"
-            "TargetName" = "8:"
-            "Tag" = "8:"
-            "Folder" = "8:_96A4A170F4A64DFE9B274FCB17565575"
-            "Condition" = "8:"
-            "Transitive" = "11:FALSE"
-            "Vital" = "11:TRUE"
-            "ReadOnly" = "11:FALSE"
-            "Hidden" = "11:FALSE"
-            "System" = "11:FALSE"
-            "Permanent" = "11:FALSE"
-            "SharedLegacy" = "11:FALSE"
-            "PackageAs" = "3:1"
-            "Register" = "3:1"
-            "Exclude" = "11:FALSE"
-            "IsDependency" = "11:TRUE"
-            "IsolateTo" = "8:"
-            }
             "{9F6F8455-1EF1-4B85-886A-4223BCC8E7F7}:_F2569EFEA1FE5865AC27494F5825BDDE"
             {
             "AssemblyRegister" = "3:1"
@@ -307,6 +157,11 @@
             "AssemblyAsmDisplayName" = "8:System.Net.Http, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a"
                 "ScatterAssemblies"
                 {
+                    "_F2569EFEA1FE5865AC27494F5825BDDE"
+                    {
+                    "Name" = "8:System.Net.Http.dll"
+                    "Attributes" = "3:512"
+                    }
                 }
             "SourcePath" = "8:System.Net.Http.dll"
             "TargetName" = "8:"
@@ -382,15 +237,15 @@
         {
         "Name" = "8:Microsoft Visual Studio"
         "ProductName" = "8:DtbMerger2"
-        "ProductCode" = "8:{292B40D5-1E20-4D30-8200-7D99A64AFEC3}"
-        "PackageCode" = "8:{73ED3CF0-779F-4711-B84B-EB3FE05A04BC}"
+        "ProductCode" = "8:{71BBC606-5B7A-45C8-A4E1-F832AB43AD21}"
+        "PackageCode" = "8:{7AC52B9B-D362-4769-846F-9FD3F11926B3}"
         "UpgradeCode" = "8:{35AAFEF2-F9C9-4A63-9D02-7700203AC172}"
         "AspNetVersion" = "8:4.0.30319.0"
         "RestartWWWService" = "11:FALSE"
         "RemovePreviousVersions" = "11:TRUE"
         "DetectNewerInstalledVersion" = "11:TRUE"
         "InstallAllUsers" = "11:TRUE"
-        "ProductVersion" = "8:2.0.8"
+        "ProductVersion" = "8:2.0.9"
         "Manufacturer" = "8:Nota"
         "ARPHELPTELEPHONE" = "8:"
         "ARPHELPLINK" = "8:"

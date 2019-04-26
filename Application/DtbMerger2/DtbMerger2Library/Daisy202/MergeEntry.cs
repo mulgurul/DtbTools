@@ -363,6 +363,15 @@ namespace DtbMerger2Library.Daisy202
         {
             get
             {
+                var errorSmilText = SmilElements
+                    .Select(par => par.Element(par.Name.Namespace + "text"))
+                    .FirstOrDefault(text =>
+                        Utils.GetElementFromCachedXDocuments(Utils.GetUri(text?.Attribute("src"))) == null);
+                if (errorSmilText != null)
+                {
+                    throw new ApplicationException(
+                        $"Could not text element referenced by element {errorSmilText} ({errorSmilText.BaseUri}#{errorSmilText.Attribute("id")?.Value})");
+                }
                 return SmilElements
                     .Select(par => par.Element(par.Name.Namespace + "text")?.Attribute("src"))
                     .Select(Utils.GetUri)
@@ -371,14 +380,14 @@ namespace DtbMerger2Library.Daisy202
                     .GroupBy(te => te.Document)
                     .SelectMany(group =>
                     {
-                        var first = group.First();
+                        var first = group.First(e => !Utils.IsPageNum(e));
                         var last = first.Parent?.Elements()
-                            .FirstOrDefault(e => e.DescendantsAndSelf().Contains(group.Last()));
+                            .FirstOrDefault(e => e.DescendantsAndSelf().Contains(group.Last(ee => !Utils.IsPageNum(ee))));
                         if (last == null)
                         {
                             throw new ApplicationException(
                                 $"Unsupported text document structure in {group.Key.BaseUri}: "
-                                + $"first referenced element #{first.Attribute("id")?.Value}'s parent does not contain "
+                                + $"first referenced element #{first.Attribute("id")?.Value}'s parent does not contain (or is the preceding sibling of)"
                                 + $"last referenced element {group.Last().Attribute("id")?.Value}");
                         }
                         if (!first.ElementsAfterSelf().Union(new[] {first}).Contains(last))
@@ -387,9 +396,12 @@ namespace DtbMerger2Library.Daisy202
                             first = last;
                             last = temp;
                         }
-                        return new[] {first}
+                        var elementsNotPrecedingAndFollowingPageNum = new[] {first}
                             .Union(first.ElementsAfterSelf())
                             .Intersect(new[] {last}.Union(last.ElementsBeforeSelf()));
+                        return group.TakeWhile(Utils.IsPageNum)
+                            .Union(elementsNotPrecedingAndFollowingPageNum)
+                            .Union(group.Reverse().TakeWhile(Utils.IsPageNum).Reverse());
                     });
             }
         }

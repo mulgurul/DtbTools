@@ -101,13 +101,25 @@ namespace DtbMerger2Library.Daisy202
         }
 
         /// <summary>
-        /// Determined if an element is a heading or a paragraph (h1-6 or p)
+        /// Determines if an element is a heading or a paragraph (h1-6 or p)
         /// </summary>
         /// <param name="elem">The <see cref="XElement"/></param>
         /// <returns>A <see cref="bool"/> indicating if <paramref name="elem"/> is a heading or a paragraph</returns>
         public static bool IsHeadingOrParagraph(XElement elem)
         {
             return elem.Name.LocalName == "p" || IsHeading(elem);
+        }
+
+        /// <summary>
+        /// Determines if an element is a pagenum span
+        /// </summary>
+        /// <param name="elem">The <see cref="XElement"/></param>
+        /// <returns>A <see cref="bool"/> indicating if <paramref name="elem"/> is a pagenum span</returns>
+        public static bool IsPageNum(XElement elem)
+        {
+            return 
+                elem.Name.LocalName == "span" 
+                && (elem.Attribute("class")?.Value.Split(' ').Any(new[] {"page-front", "page-normal", "page-special"}.Contains)??false);
         }
 
         /// <summary>
